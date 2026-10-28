@@ -4,7 +4,7 @@ Loaded in every session through `~/.claude/CLAUDE.md`. A project's own `CLAUDE.m
 
 ## Hard limits (a project may tighten, never loosen)
 
-- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history) and anything outward-facing (push, opening a PR, publishing, uploading to any external service, spending money).
+- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (opening or merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote is allowed; see "Commits".
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`).
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 
@@ -33,7 +33,15 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 
 ## Commits
 
-You may commit on the current feature branch without asking. Never commit to `main`, and never push or open a PR unless asked.
+You may commit on the current feature branch without asking. Never commit to `main`.
+
+**Pushing** follows the usual practice for coding agents (GitHub Copilot's coding agent, the Claude Code GitHub Action): the agent pushes its own branch, a human reviews and merges. So you may push your feature branch without asking (`git push -u origin <branch>`), after the branch is green, when all of these hold:
+
+- the remote already exists and the repository is **private** (check once, for example `gh repo view --json visibility`, or ask if you cannot tell); pushing to a public repository publishes, so ask first;
+- the branch is not `main` or the default branch, and the push is not a force push (no `--force` or `--force-with-lease`), so nothing on the remote is overwritten;
+- `git status` shows nothing staged or committed that the project keeps out of git (data, run outputs, credentials, identifiers).
+
+Still ask first: opening or merging a PR, pushing to `main`, force-pushing, deleting a remote branch, creating a repository or changing its visibility. Push at a natural boundary (a unit committed, end of a session), not after every commit.
 
 - **One commit = one coherent change** (a feature, a fix, a tooling change, a doc update) with its tests and docs. Do not mix unrelated changes: stage with `git add <paths>`, not `git add -A`.
 - **Commit when a unit is done and green**, not at the end of the session. Run the project's lint and tests first; never commit a half-working state or a failing test.
