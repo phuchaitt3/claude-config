@@ -45,7 +45,7 @@ You may commit on the current feature branch without asking. Never commit to `ma
 
 The user picks the model (`/model`) and effort by hand. At the start of each task, say in one line which model and effort it needs; if the current model is a poor fit, say so before starting. Plan mode: yes only when the design is still open.
 
-**Budget rule:** Sonnet is the default for everything. Opus costs much more and is reserved for tasks that are both hard and expensive to get wrong. Any task tag that names Opus must state the specific difficulty in a few words (for example "unexplained numeric drift after a Sonnet pass found nothing"). "New feature", "porting" or "important" are not reasons; an Opus tag without one is invalid. Prefer Sonnet at high effort first and escalate only if it fails or gets stuck.
+**Budget rule:** Sonnet is the default for everything. Opus costs much more and is reserved for tasks that are both hard and expensive to get wrong. Any task tag that names Opus must state the specific difficulty in a few words (for example "unexplained numeric drift after a Sonnet pass found nothing"). "New feature", "porting" or "important" are not reasons; an Opus tag without one is invalid. Before proposing Opus, say what a Sonnet attempt would miss. Prefer Sonnet at high effort first and escalate only if it fails or gets stuck; say in the handoff what was tried.
 
 | Task | Model | Effort |
 |---|---|---|
@@ -66,14 +66,21 @@ Spawn subagents only when the user asks, or under a project rule that allows it.
 - **No shared state:** the subagent does not push, run cloud jobs, edit coordination files, merge or commit; the dispatching chat does those.
 - **Isolated:** agents that edit code run with `isolation: "worktree"`; the dispatching chat reviews the diff, runs the checks and commits.
 
-Keep it to two at a time, use the cheapest model that fits, ask for a short report (conclusion and paths), and skip tasks the chat can do in a couple of tool calls. A subagent never uses Opus unless the task's tag already justified it.
+Keep it to two at a time, and do not dispatch work that is blocked on a long job or a user decision. A subagent starts cold, so its cost scales with how much it reads, not with the task's importance. To keep that small:
+1. **Tight brief:** name the exact files, the goal and the check, so it does not explore.
+2. **Cheapest model that fits:** a mechanical task on Haiku or Sonnet often costs less than doing it in an Opus chat.
+3. **Short report:** ask for the conclusion and file paths, not file dumps.
+4. **Skip tiny tasks:** if the chat can do it in a couple of tool calls, the cold start costs more.
+5. **Fork when context matters:** a fork inherits the chat's context but runs on the chat's model, so it saves time, not money.
+
+A subagent never uses Opus unless the task's tag already justified it.
 
 ## Clearing or compacting a chat
 
-An agent cannot read the context meter reliably; the user can. Suggest from task boundaries and visible signs, once per boundary, in one line at the end of a message.
+An agent cannot read the context meter reliably; the user can. Suggest from task boundaries and visible signs, once per boundary, in one line at the end of a message. Do not wait for auto-compaction at the limit: long contexts get worse before they fill.
 
 - **Suggest `/clear`** when a unit of work is committed and recorded (inbox or handoff file) and the next task is a new unit. Give a resume prompt to paste afterwards: chat name, folder, branch, any reserved slot, and the next task with its tag.
-- **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (about a dozen large tool outputs, a resolved side thread). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
+- **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (about a dozen large tool outputs, a resolved side thread, or the user says the context is over half full). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
 - **Suggest neither** in the middle of a debugging thread.
 
 ## Several chats on one repository
