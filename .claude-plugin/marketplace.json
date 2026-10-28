@@ -1,0 +1,14 @@
+{
+  "name": "personal-config",
+  "description": "My Claude Code workflow, shared across machines",
+  "owner": {
+    "name": "phuchaitt3"
+  },
+  "plugins": [
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "Multi-chat coordination: worktree per chat, shared inbox, handoff reports, messaging between chats."
+    }
+  ]
+}

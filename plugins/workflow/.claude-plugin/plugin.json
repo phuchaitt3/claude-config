@@ -1,0 +1,5 @@
+{
+  "name": "workflow",
+  "version": "0.1.0",
+  "description": "Multi-chat coordination: worktree per chat, shared inbox, handoff reports, messaging between chats."
+}
