@@ -6,6 +6,12 @@ User: give new work to the lead (or any chat; it lands on this board). Answer de
 
 ---
 
+## Review queue (any chat except the author claims the oldest open row)
+
+| PR / branch | Author | Touches | Reviewer | Status |
+|---|---|---|---|---|
+| #1 title | chat-name | `path/globs` | (open) | waiting |
+
 ## Needs your decision
 
 - **A1** [chat-name] Question in one line. *Default if no answer:* what happens. [Sonnet, medium, no plan mode: reason]

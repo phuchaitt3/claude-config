@@ -35,8 +35,9 @@ Templates for the three are in this skill's `templates/` folder.
 
 Chats are not tied to folders. Any chat may edit any file; conflicts are prevented per **task**.
 
-- **Lead**: one chat, named in the inbox table. Turns the user's requests into board tasks, assigns them, reviews finished task branches, merges them into `dev`, keeps the inbox current. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
-- **Workers**: claim a board task, work on `task/<ID>-<slug>` in their own worktree, set status `review`, message the lead.
+- **Lead**: one chat, named in the inbox table. Turns the user's requests into board tasks, assigns them, keeps the inbox current, and is the fallback reviewer. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
+- **Workers**: claim a board task, work on `task/<ID>-<slug>` in their own worktree, set status `review`, add a row to the review queue, message the idle chats.
+- **Review queue (pool, not a dedicated reviewer):** the industry pattern is GitHub's team review auto-assignment (round robin or load balance across members), not one reviewer. Any chat other than the author claims the oldest unclaimed row before starting new work, reviews (`/code-review`), and merges on green when the review finds no blocking issue and the project's rules let agents merge. An author never reviews its own work. The lead takes rows nobody claimed within a session. Chats act only when prompted, so the author's `SendMessage` to idle peers (or a peer's `/loop`) is what starts a review.
 - **`dev`** is the integration branch, checked out in its own worktree (`../<project>-integration`) where only the lead merges. `dev` reaches `main` only with the user's approval.
 - **Claim rule:** each board row lists the files it touches. Do not start a task whose files overlap another `in progress` task; message its owner or the lead. If you need more files, add them to the row first.
 - **Lifecycle:** `open` → `assigned` / `in progress` → `review` → `done`. Workers start every new task from the latest `dev`.
