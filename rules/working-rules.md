@@ -34,6 +34,12 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 
 **How to ask:** when the user is present and the answer is a choice among 2–4 options (yes/no, approve/hold, A/B/C), ask with the `AskUserQuestion` tool, recommended option first and marked "(Recommended)", one question per decision, each self-contained (it may be read without the rest of the reply). Use plain text only for open-ended questions or when the tool is unavailable (subagents, background runs). Decisions that can wait become decision tickets listed under "Needs you" in the inbox.
 
+**Many changes at once: consent agenda** (like a board's consent agenda, or ITIL's standard vs normal changes). When a proposal has more than about five items, sort them before asking:
+- *Choices:* items where reasonable people would pick differently, or that change who may do what without asking (permissions, merge or push rights, spending, public content). Ask each one with `AskUserQuestion`, recommended option first.
+- *Mechanical:* definitions, wording that aligns existing rules, fallbacks that change no right. Show them as one diff with the exact text, approved with one answer; "yes except X" pulls X out as its own question.
+- *Stale facts:* fix without asking (see "Adding or changing any rule").
+When unsure which group an item belongs to, it is a choice.
+
 **Asking the user for something: notification short, ticket complete** (industry pattern: a short notification points to a self-contained ticket). The user cannot be expected to remember earlier turns.
 - **Push only what blocks the task in hand; the rest is pull** (like on-call paging: page for what is actionable now, dashboards for the rest). A turn ends with a user step only if the current task cannot finish without it. Everything else goes to the inbox silently, and the user checks it when free.
 - **Chat turn ending:** at most 3 lines. Line 1: the step that blocks the current task, in plain words with a link and the time it takes. Line 2, only when the inbox gained an item this turn: "N new in [INBOX.md](<path>)", as a clickable link (in an IDE, a workspace-relative markdown link). Say nothing when nothing blocks. Never end a turn with a bare list of IDs ("D6, #9, D5").
