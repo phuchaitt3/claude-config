@@ -46,7 +46,7 @@ When unsure which group an item belongs to, it is a choice.
 
 **Asking the user for something: notification short, ticket complete** (a short notification points to a self-contained ticket; standard: on-call paging and issue trackers, checked 2026-10-29). The user cannot be expected to remember earlier turns.
 - **Push only what blocks the task in hand; the rest is pull** (like on-call paging: page for what is actionable now, dashboards for the rest). A turn ends with a user step only if the current task cannot finish without it. Everything else goes to the inbox silently, and the user checks it when free.
-- **Chat turn ending:** at most 3 lines. Line 1: the step that blocks the current task, in plain words with a link and the time it takes. Line 2, only when the inbox gained an item this turn: "N new in [INBOX.md](<path>)", as a clickable link (in an IDE, a workspace-relative markdown link). Say nothing when nothing blocks. Never end a turn with a bare list of IDs ("D6, #9, D5").
+- **Chat turn ending:** at most 3 lines. Line 1: the step that blocks the current task, in plain words with a link and the time it takes. Line 2, only when the inbox gained an item this turn: "N new in [INBOX.md](<path>)", as a clickable link (in an IDE, a workspace-relative markdown link). Line 3, only when "Clearing or compacting a chat" says so: the `/clear` or `/compact` suggestion. Say nothing when nothing blocks. Never end a turn with a bare list of IDs ("D6, #9, D5").
 - **Ticket (a ticket file or an issue):** every item stands alone, with five fields: what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
 
 ## Project tiers (proposed by the agent, confirmed by the user)
@@ -142,8 +142,13 @@ A subagent never uses Opus unless the task's tag already justified it.
 
 An agent cannot read the context meter reliably; the user can. Suggest from task boundaries and visible signs, once per boundary, in one line at the end of a message. Do not wait for auto-compaction at the limit: long contexts get worse before they fill.
 
-- **Suggest `/clear`** when a unit of work is committed and recorded (inbox or handoff file) and the next task is a new unit. Give a resume prompt to paste afterwards: chat name, folder, branch, any reserved slot, and the next task with its tag.
-- **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (about a dozen large tool outputs, a resolved side thread, or the user says the context is over half full). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
+- **Suggest `/clear`** at a task boundary (work committed and recorded), never mid-step, when any of these holds:
+  - the next task is unrelated (other files or topic) and this chat already did substantial work (more than about 15 tool calls);
+  - the history is heavy (more than about 40 tool calls, or the user says context is over half full);
+  - quality is slipping (the user corrected the same thing twice, or you repeat a mistake).
+  
+  A short task followed by related work does not need it. Then do not start the next task in the same turn: end with the suggestion and a resume prompt (chat name, folder, branch, reserved slot, next task with its tag), and update the project's resume-prompt file if it has one. (standard: Cursor staff guidance "new chat for a new task"; Cline proposes a handoff past a context threshold after finishing the step; third-party Claude Code guides; checked 2026-10-29)
+- **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (more than about 40 tool calls, a resolved side thread, or the user says the context is over half full). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
 - **Suggest neither** in the middle of a debugging thread.
 
 ## Several chats on one repository
