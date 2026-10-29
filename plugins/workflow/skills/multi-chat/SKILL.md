@@ -55,7 +55,17 @@ The split follows common practice: a tracker holds the details (one issue per it
 - **`DONE.md`**: one line per finished item, newest first, with the commit or PR and how to undo it. A "decide, then tell" choice gets a line here with its reason.
 - When a ticket closes: set its status `done`, add its line to `DONE.md`, and remove it from `INBOX.md`. When a decision is answered, record the answer in the ticket's log the same way.
 - Edit only your own tickets and inbox rows. Exceptions: the lead edits anything needed to keep the page current, and a reviewer writes its name in a Review queue row.
-- Message the user only when the task in hand is blocked; other decision items wait in the inbox (working rules, "Push only what blocks").
+- Message the user only when the task in hand is blocked; other decision items wait in the inbox (working rules, "Push only what blocks"). The one exception is the daily digest below.
+
+### Keeping the user's queue short
+
+A pull-only inbox with no limit piles up unseen. These practices keep it readable (standard: DORA "Streamlining change approval" and Kanban WIP limits, checked 2026-10-29). **The numbers are defaults under test, not standards**: no source gives the right limit, so a project measures its own queue (does it stay within the limit, how long do items wait) and changes them in its `RULES.md` with the user's yes.
+
+- **Limit:** "Needs you" holds at most **3** items (default). When full, no chat adds a user item or starts work that will end in one; it finishes or unblocks existing items, or parks the new one as "Not blocking".
+- **Batch:** PRs waiting for the user's merge form one row ("Merge batch"), one link per PR, one combined time.
+- **Age:** each "Needs you" row shows the date added; an item older than **2 days** (default) moves to the top.
+- **Daily digest** (default on): the first reply a chat gives the user each day starts with one line, "N items wait for you in INBOX.md, oldest since <date>", and says nothing when the queue is empty.
+- **Gate less, check more:** before adding an item for the user, check whether an automated check (CI, a hook, a required status) could replace the approval.
 - Delete your table row when the chat ends.
 
 ## Handoff reports
