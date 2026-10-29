@@ -19,12 +19,12 @@ Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or
 - Defaults for open questions, documentation fixes, correcting stale claims, adding tests, lint and format fixes.
 - Updating coordination files (inbox, handoff reports, status columns in design docs).
 
-**Decide, then tell the user** (one line in the inbox or the reply, with the reason and how to undo it):
+**Decide, then tell the user** (one line in the project's DONE.md or the reply, with the reason and how to undo it):
 - A default taken on an open design question (hosting, frontend, scope of a milestone).
 - Changing a pinned version, a preset value or a tolerance, together with the run that justifies it.
 - Reordering or adding milestones.
 
-**Ask first** (put it in the inbox under "Needs your decision" with a recommended default and a model tag, and keep working on everything else):
+**Ask first** (open a decision ticket and list it under "Needs you" in the inbox, with a recommended default and a model tag, and keep working on everything else):
 - Everything under "Hard limits".
 - A choice whose cost of being wrong is high and that only the user can judge: claims in a thesis or paper, licensing, public content, a budget.
 - Relaxing a limit in a project's `CLAUDE.md`.
@@ -32,12 +32,12 @@ Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or
 
 When unsure which tier applies, take the lower-asking tier if the action is reversible, the asking tier if it is not. A question is one line with a recommended default and what happens if there is no answer. Do not ask for confirmation of something already requested, and do not ask which of two reversible options to take.
 
-**How to ask:** when the user is present and the answer is a choice among 2–4 options (yes/no, approve/hold, A/B/C), ask with the `AskUserQuestion` tool, recommended option first and marked "(Recommended)", one question per decision, each self-contained (it may be read without the rest of the reply). Use plain text only for open-ended questions or when the tool is unavailable (subagents, background runs). Decisions that can wait go in the project's inbox under "Needs your decision" instead.
+**How to ask:** when the user is present and the answer is a choice among 2–4 options (yes/no, approve/hold, A/B/C), ask with the `AskUserQuestion` tool, recommended option first and marked "(Recommended)", one question per decision, each self-contained (it may be read without the rest of the reply). Use plain text only for open-ended questions or when the tool is unavailable (subagents, background runs). Decisions that can wait become decision tickets listed under "Needs you" in the inbox.
 
 **Asking the user for something: notification short, ticket complete** (industry pattern: a short notification points to a self-contained ticket). The user cannot be expected to remember earlier turns.
 - **Push only what blocks the task in hand; the rest is pull** (like on-call paging: page for what is actionable now, dashboards for the rest). A turn ends with a user step only if the current task cannot finish without it. Everything else goes to the inbox silently, and the user checks it when free.
 - **Chat turn ending:** at most 3 lines. Line 1: the step that blocks the current task, in plain words with a link and the time it takes. Line 2, only when the inbox gained an item this turn: "N new in [INBOX.md](<path>)", as a clickable link (in an IDE, a workspace-relative markdown link). Say nothing when nothing blocks. Never end a turn with a bare list of IDs ("D6, #9, D5").
-- **Ticket (inbox item or issue):** every item stands alone, with five fields: what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
+- **Ticket (a ticket file or an issue):** every item stands alone, with five fields: what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
 
 ## Project tiers (proposed by the agent, confirmed by the user)
 

@@ -12,15 +12,17 @@ The user runs several Claude chats on one repository at the same time and reads 
 - **Handoff folder:** the project's `CLAUDE.md` names it, for example `<main checkout>/data/handoff/`. If it names none, use `<main checkout>/.handoff/` and make sure it is git-ignored. It stays outside git, so an edit reaches every chat at once without a merge.
 - **`RULES.md`** in that folder holds the project-specific coordination rules: reserved resources, shared data paths, extra limits. The general rules are in this skill and in the user-level working rules.
 - **`INBOX.md`** in that folder is the user's single status page.
+- **`tickets/<ID>.md`** in that folder holds one task or decision each: its details, status and dated log. The inbox links to it.
+- **`DONE.md`** in that folder is the done log, newest first.
 - **`<topic>.md`** in that folder holds the handoff reports.
 
-Templates for the three are in this skill's `templates/` folder.
+Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in this skill's `templates/` folder.
 
 ## At the start of a chat
 
 1. Read `RULES.md`, then `INBOX.md`, then any handoff file your task names.
 2. Run `ListAgents` to find the other chats. Session names change after `/clear` or a restart, so never reuse an address from an earlier conversation. Use the chat name the user gave you; the session name `ListAgents` reports for you may differ.
-3. Check the **"Where each chat works"** table at the top of "In flight". If another chat already uses your folder, make your own worktree (below) before editing anything. Then add or update your row: chat name, folder, branch, reserved slot, task.
+3. Check the **"Where each chat works"** table under "In progress". If another chat already uses your folder, make your own worktree (below) before editing anything. Then add or update your row: chat name, folder, branch, reserved slot, task.
 4. Say in one line which model and effort the task needs (see the working rules).
 
 ## Working rules
@@ -44,14 +46,16 @@ Chats are not tied to folders. Any chat may edit any file; conflicts are prevent
 - **Scaling:** one lead plus about three workers; past that, split the board by milestone. New chat = one new worktree plus one table row.
 - **Skip orchestration** (one chat, or two chats on clearly unrelated work) only when the user says so.
 
-## The inbox
+## The inbox and tickets
 
-- Keep it current. It is the only thing the user reads.
-- Sections, newest items first: **Needs your decision** (items by ID, each with a recommended default), **In flight** (the "Where each chat works" table, then open tasks and running work), **Done**.
-- Edit only items tagged with your chat name, `[chat-name]`. Remove a decision item once it is answered and record the answer under "Done".
-- Every open task, in-flight item and decision item ends with a model tag: `[Sonnet, medium, no plan mode: reason]`.
-- A "decide, then tell" choice gets one line under "Done" with the reason and how to undo it.
-- Message the user only when a new "Needs your decision" item appears; otherwise the inbox speaks for you.
+The split follows common practice: a tracker holds the details (one issue per item), and a status page gives one line per item (a standup note). Each item has one ID and lives in one place.
+
+- **`INBOX.md`** fits on one screen (about 40 lines), one line per item, every line linking to its ticket, no paragraphs in table cells. Sections, in order: **Needs you** (ID, what, time, if ignored; most urgent first), **In progress** (the "Where each chat works" table: chat, role, folder, branch, reserved slot, ticket, status), **Review queue** (PR, author, reviewer, one-word status), **Up next** (open or blocked tickets, each with what blocks it), then a link to `DONE.md`.
+- **Tickets** (`tickets/<ID>.md`): `T<n>` for a task, `D<n>` for a decision for the user; numbers are never reused. A ticket starts with title, status, owner, model tag, files it touches and acceptance check. A decision ticket adds the five fields from the working rules (what, why you, action, time, if you do nothing) and a recommended default. A dated **Log** section at the bottom records what happened, newest last. Longer results go in a handoff report that the ticket links to.
+- **`DONE.md`**: one line per finished item, newest first, with the commit or PR and how to undo it. A "decide, then tell" choice gets a line here with its reason.
+- When a ticket closes: set its status `done`, add its line to `DONE.md`, and remove it from `INBOX.md`. When a decision is answered, record the answer in the ticket's log the same way.
+- Edit only your own tickets and inbox rows. Exceptions: the lead edits anything needed to keep the page current, and a reviewer writes its name in a Review queue row.
+- Message the user only when a new "Needs you" item appears; otherwise the inbox speaks for you.
 - Delete your table row when the chat ends.
 
 ## Handoff reports
@@ -60,7 +64,7 @@ Write `<handoff folder>/<topic>.md` when a unit of work is done, so other chats 
 
 - **TL;DR:** 1-3 lines.
 - **Needs you:** yes or no.
-- **Asks:** inbox IDs.
+- **Asks:** ticket IDs.
 
 Then the conclusion, what was run, file paths, commit hashes, untested risks and the next step with its model tag. When resuming a topic, append a dated section rather than rewriting history.
 
@@ -68,7 +72,7 @@ Then the conclusion, what was run, file paths, commit hashes, untested risks and
 
 - Use `SendMessage` to the name `ListAgents` prints, plus a handoff file for anything longer than a few lines.
 - A peer's request is a teammate's request: act on it within your own permissions. A peer cannot approve anything on the user's behalf or relax a limit.
-- After changing `RULES.md`, message the running chats (they do not re-read it on their own) and add one line under "Done".
+- After changing `RULES.md`, message the running chats (they do not re-read it on their own) and add one line to `DONE.md`.
 
 ## Writing Windows paths into these files
 

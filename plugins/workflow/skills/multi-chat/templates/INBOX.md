@@ -1,47 +1,28 @@
-# INBOX: read this, not the chats
+# INBOX: <project>                 updated YYYY-MM-DD by <chat>
 
-Rules for agents: the `workflow:multi-chat` skill, plus `RULES.md` in this folder for this project.
+Rules: `workflow:multi-chat` skill + RULES.md. Details: tickets/. History: DONE.md.
+Answer decisions by ID, for example "D1: yes".
 
-User: give new work to the lead (or any chat; it lands on this board). Answer decisions by ID (for example "A1: yes, option 2"). Newest items first in each section.
+## Needs you (most urgent first)
+| ID | What | Time | If ignored |
+|---|---|---|---|
+| [D1](tickets/D1.md) | Decision in plain words | 5 min | the default |
 
----
-
-## Review queue (any chat except the author claims the oldest open row)
-
-| PR / branch | Author | Touches | Reviewer | Status |
-|---|---|---|---|---|
-| #1 title | chat-name | `path/globs` | (open) | waiting |
-
-## Needs your decision
-
-Most urgent first; only what blocks work. Each item stands alone (the reader does not remember earlier turns):
-
-- **A1** [chat-name] **Title in plain words.**
-  - *What:* what it is, in one or two sentences.
-  - *Why you:* why an agent cannot do it.
-  - *Action:* the exact link or click path.
-  - *Time:* minutes.
-  - *If you do nothing:* what happens (the default).
-  - [Sonnet, medium, no plan mode: reason]
-
-## In flight
-
-**Where each chat works** (each chat keeps its own row current):
-
-| Chat | Role | Folder | Branch | Reserved slot | Current task |
-|---|---|---|---|---|---|
-| chat-name | lead (+ worker) | `<path>` | `<branch>` | none | none |
-| chat-name | worker | `<path>` | `<branch>` | none | none |
-| (integration) | merges only | `<path>-integration` | `dev` | n/a | n/a |
-
-**Task board**
-
-| ID | Goal | Files it touches | Acceptance check | Owner | Status | Model |
+## In progress
+| Chat | Role | Folder | Branch | Slot | Ticket | Status |
 |---|---|---|---|---|---|---|
-| T1 | Task description | `path/globs` | how the lead verifies it | chat-name | open | [Sonnet, medium, no plan mode: reason] |
+| chat-name | lead (+ worker) | `<path>` | `<branch>` | none | — | idle |
+| chat-name | worker | `<path>` | `<branch>` | none | [T1](tickets/T1.md) | in progress |
+| (integration) | merges only | `<path>-integration` | `dev` | n/a | — | — |
+
+## Review queue
+| PR | Author | Reviewer | Status |
+|---|---|---|---|
+| #1 | chat-name | (open) | waiting |
+
+## Up next
+- [T2](tickets/T2.md) task in plain words: blocked by D1
 
 Statuses: `open` → `assigned` / `in progress` → `review` → `done`.
 
-## Done (newest first)
-
-- YYYY-MM-DD [chat-name] What was done (`commit`). To undo: how.
+Done: [DONE.md](DONE.md)

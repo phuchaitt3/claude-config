@@ -1,6 +1,6 @@
 # RULES: orchestration for <project>
 
-The general protocol is the `workflow:multi-chat` skill and the user-level working rules; hard limits are in the repo's `CLAUDE.md`. This file adds only what is specific to this project. It is not in git, so an edit reaches every chat at once. After changing it, message the running chats and add one line under "Done" in `INBOX.md`.
+The general protocol is the `workflow:multi-chat` skill and the user-level working rules; hard limits are in the repo's `CLAUDE.md`. This file adds only what is specific to this project. It is not in git, so an edit reaches every chat at once. After changing it, message the running chats and add one line to `DONE.md`.
 
 ## Roles
 
