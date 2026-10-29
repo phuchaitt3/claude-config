@@ -1,6 +1,6 @@
 ---
 name: multi-chat
-description: Coordination protocol for several Claude chats working on one repository at once - a lead chat that assigns tasks and merges into a dev branch, workers that claim tasks by the files they touch, one worktree and branch per chat, the shared INBOX.md status page, the "Where each chat works" table, handoff reports, messaging other chats with ListAgents/SendMessage, and merging. Use at the start of any chat in a repository that has a handoff folder or an INBOX.md, when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
+description: Coordination protocol for several Claude chats working on one repository at once - a lead chat that assigns tasks, trunk-based work where each task lands by pull request, workers that claim tasks by the files they touch, one worktree and branch per chat, the shared INBOX.md status page, the "Where each chat works" table, handoff reports, messaging other chats with ListAgents/SendMessage, and merging. Use at the start of any chat in a repository that has a handoff folder or an INBOX.md, when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
 ---
 
 # Several chats on one repository
@@ -31,18 +31,18 @@ Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in
 - **Test your own worktree's code.** An editable install (`pip install -e`) points at the main checkout, so tests in a worktree silently run the main checkout's code. Put the worktree's source first on the path (for example `PYTHONPATH=<worktree>/src`), check with `python -c "import <pkg>; print(<pkg>.__file__)"`, and do not reinstall the package, which would switch it under the other chats.
 - **Git-ignored data is not in a worktree.** Read and write shared data under the main checkout with absolute paths.
 - **At most one chat per reserved resource** (a cloud kernel, a GPU, a deployment slot). Claim it in your table row before using it; release it when done.
-- **Merging:** merge your branch into the feature branch when its checks pass. Any chat may run the merge in the main checkout (`git -C <main checkout> merge <branch>`). Uncommitted or untracked files there do not block it; git refuses on its own if the merge would touch them.
+- **Merging:** never merge locally. Each task lands on the default branch by pull request, reviewed as the working rules' "Review and merge" says.
 
 ## Orchestration: lead + workers (default)
 
 Chats are not tied to folders. Any chat may edit any file; conflicts are prevented per **task**.
 
 - **Lead**: one chat, named in the inbox table. Turns the user's requests into board tasks, assigns them, keeps the inbox current, and is the fallback reviewer. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
-- **Workers**: claim a board task, work on `task/<ID>-<slug>` in their own worktree, set status `review`, add a row to the review queue, message the idle chats.
-- **Review queue (pool, not a dedicated reviewer):** reviews are spread across members, not given to one reviewer (standard: GitHub team review auto-assignment, round robin or load balance; checked 2026-10-29). Any chat other than the author claims the oldest unclaimed row before starting new work, reviews (`/code-review`; risky paths also get `/security-review`), posts the result as a PR comment, and, when there is no blocking issue, the project's rules let agents merge and the PR is not a user-merge item, enables auto-merge (`gh pr merge <n> --auto --squash`), so CI stays the final gate. An author never reviews its own work. The lead takes rows nobody claimed within a session, except its own PRs, which go to the user. The full pattern and its sources are in the working rules, "Review and merge". Chats act only when prompted, so the author's `SendMessage` to idle peers (or a peer's `/loop`) is what starts a review.
-- **`dev`** is the integration branch, checked out in its own worktree (`../<project>-integration`) where only the lead merges. `dev` reaches `main` only with the user's approval.
+- **Workers**: claim a board task, work on a branch named as the project's `CLAUDE.md` says (default `task/<ID>-<slug>`) in their own worktree, set status `review`, add a row to the review queue, message the idle chats.
+- **Review queue (pool, not a dedicated reviewer):** reviews are spread across members, not given to one reviewer (standard: GitHub team review auto-assignment, round robin or load balance; checked 2026-10-29). Any chat other than the author claims the oldest unclaimed row before starting new work, reviews (`/code-review`; risky paths also get `/security-review`), posts the result as a PR comment, and, when there is no blocking issue, the project's rules let agents merge and the PR is not a user-merge item, enables auto-merge (`gh pr merge <n> --auto --squash`), so CI stays the final gate. An author never reviews its own work. The lead claims any unclaimed row each time it reads the inbox, once the author's message went unanswered or `ListAgents` shows no other chat; the lead's own PRs go to the user. The full pattern and its sources are in the working rules, "Review and merge". Chats act only when prompted, so the author's `SendMessage` to idle peers (or a peer's `/loop`) is what starts a review.
+- **Trunk-based:** the default branch is the integration branch; there is no `dev`. Branches live hours to a few days and land by pull request (standard: DORA trunk-based development, checked 2026-10-29). A project that supports several released versions may keep release branches; its `RULES.md` says so.
 - **Claim rule:** each board row lists the files it touches. Do not start a task whose files overlap another `in progress` task; message its owner or the lead. If you need more files, add them to the row first.
-- **Lifecycle:** `open` → `assigned` / `in progress` → `review` → `done`. Workers start every new task from the latest `dev`.
+- **Lifecycle:** `open` → `assigned` / `in progress` → `review` → `done`. Workers start every new task from the latest default branch.
 - **Scaling:** one lead plus about three workers; past that, split the board by milestone. New chat = one new worktree plus one table row.
 - **Skip orchestration** (one chat, or two chats on clearly unrelated work) only when the user says so.
 
@@ -55,7 +55,7 @@ The split follows common practice: a tracker holds the details (one issue per it
 - **`DONE.md`**: one line per finished item, newest first, with the commit or PR and how to undo it. A "decide, then tell" choice gets a line here with its reason.
 - When a ticket closes: set its status `done`, add its line to `DONE.md`, and remove it from `INBOX.md`. When a decision is answered, record the answer in the ticket's log the same way.
 - Edit only your own tickets and inbox rows. Exceptions: the lead edits anything needed to keep the page current, and a reviewer writes its name in a Review queue row.
-- Message the user only when a new "Needs you" item appears; otherwise the inbox speaks for you.
+- Message the user only when the task in hand is blocked; other decision items wait in the inbox (working rules, "Push only what blocks").
 - Delete your table row when the chat ends.
 
 ## Handoff reports
@@ -83,8 +83,7 @@ Shell heredocs and Python string literals turn `\1`, `\t` and `\b` in paths such
 Quick setup (about five minutes; do it all without asking, these steps are reversible):
 
 1. Create `.handoff/` in the main checkout and add it to `.git/info/exclude` (not `.gitignore`, so no tracked file changes).
-2. Create the integration branch and worktree: `git branch dev <default branch>` then `git worktree add ../<project>-integration dev`.
-3. Create one worktree per chat: `git worktree add ../<project>-<chat> -b <chat>/work dev`. The first chat may keep the main checkout, on its own branch (never on `main`).
-4. Copy `templates/INBOX.md` and `templates/RULES.md` into `.handoff/` and fill in paths, chat names and the lead.
-5. Add `CLAUDE.md` to `dev` (commit it there) with the project's hard limits and a short "Working in several chats" section that names the handoff folder and says to use this skill. Hard limits live in `CLAUDE.md`, in git, so no handoff file can relax them.
-6. `ListAgents`, then `SendMessage` each peer the handoff path, the lead's name and its first task.
+2. The main checkout stays on the default branch; nobody commits there. Each task gets its own worktree: `git worktree add ../<project>-<name> -b <branch> <default branch>`.
+3. Copy `templates/INBOX.md`, `templates/RULES.md` and `templates/DONE.md` into `.handoff/`, create `.handoff/tickets/` (one file per ticket, from `templates/TICKET.md`), and fill in paths, chat names and the lead.
+4. Add `CLAUDE.md` by pull request, with the project's hard limits and a short "Working in several chats" section that names the handoff folder and says to use this skill. Hard limits live in `CLAUDE.md`, in git, so no handoff file can relax them.
+5. `ListAgents`, then `SendMessage` each peer the handoff path, the lead's name and its first task.

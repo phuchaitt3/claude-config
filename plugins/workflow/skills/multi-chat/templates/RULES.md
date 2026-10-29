@@ -8,9 +8,8 @@ Lead: `<chat-name>`. Workers: see the "Where each chat works" table in `INBOX.md
 
 ## Shared paths
 
-- Main checkout: `<path>` (holds git-ignored data and secrets; other worktrees reach them by absolute path, read-only)
-- Integration worktree (branch `dev`, lead merges only, nobody edits here): `<path>-integration`
-- Worker worktrees: `<path>-<chat>`
+- Main checkout: `<path>` (stays on the default branch, nobody commits here; holds git-ignored data and secrets; other worktrees reach them by absolute path, read-only)
+- Task worktrees: `<path>-<name>`, branched from the default branch
 - Handoff folder: `<path>/.handoff/`
 - Testing a worktree's code: `PYTHONPATH=<worktree>/<src path>`; never `pip install -e` into a shared environment.
 
@@ -23,4 +22,3 @@ Lead: `<chat-name>`. Workers: see the "Where each chat works" table in `INBOX.md
 ## Extra rules for this project
 
 - (anything that holds only here: run-time thresholds, data that must never leave the machine, per-run caveats)
-- `dev` → default branch only with the user's approval.

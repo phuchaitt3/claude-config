@@ -13,8 +13,6 @@ Answer decisions by ID, for example "D1: yes".
 |---|---|---|---|---|---|---|
 | chat-name | lead (+ worker) | `<path>` | `<branch>` | none | — | idle |
 | chat-name | worker | `<path>` | `<branch>` | none | [T1](tickets/T1.md) | in progress |
-| (integration) | merges only | `<path>-integration` | `dev` | n/a | — | — |
-
 ## Review queue
 | PR | Author | Reviewer | Status |
 |---|---|---|---|
