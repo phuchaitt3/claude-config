@@ -14,7 +14,15 @@ User: give new work to the lead (or any chat; it lands on this board). Answer de
 
 ## Needs your decision
 
-- **A1** [chat-name] Question in one line. *Default if no answer:* what happens. [Sonnet, medium, no plan mode: reason]
+Most urgent first; only what blocks work. Each item stands alone (the reader does not remember earlier turns):
+
+- **A1** [chat-name] **Title in plain words.**
+  - *What:* what it is, in one or two sentences.
+  - *Why you:* why an agent cannot do it.
+  - *Action:* the exact link or click path.
+  - *Time:* minutes.
+  - *If you do nothing:* what happens (the default).
+  - [Sonnet, medium, no plan mode: reason]
 
 ## In flight
 

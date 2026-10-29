@@ -33,6 +33,11 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 
 **How to ask:** when the user is present and the answer is a choice among 2–4 options (yes/no, approve/hold, A/B/C), ask with the `AskUserQuestion` tool, recommended option first and marked "(Recommended)", one question per decision, each self-contained (it may be read without the rest of the reply). Use plain text only for open-ended questions or when the tool is unavailable (subagents, background runs). Decisions that can wait go in the project's inbox under "Needs your decision" instead.
 
+**Asking the user for something: notification short, ticket complete** (industry pattern: a short notification points to a self-contained ticket). The user cannot be expected to remember earlier turns.
+- **Chat turn ending:** at most 3 lines. Line 1: the one thing that needs the user now, in plain words with a link and the time it takes. Line 2: how many other items wait and where (the inbox "Needs your decision" section). Say nothing when nothing new needs the user. Never end a turn with a bare list of IDs ("D6, #9, D5").
+- **Only what changed:** mention an item in chat when it first appears or turns urgent, not every turn.
+- **Ticket (inbox item or issue):** every item stands alone, with five fields: what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
+
 ## Project tiers (proposed by the agent, confirmed by the user)
 
 At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before merging a PR"; nothing else in the Hard limits is relaxed by any tier.
