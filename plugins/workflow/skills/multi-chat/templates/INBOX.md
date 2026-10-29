@@ -2,7 +2,7 @@
 
 Rules for agents: the `workflow:multi-chat` skill, plus `RULES.md` in this folder for this project.
 
-User: answer by ID (for example "A1: yes, option 2"). Newest items first in each section.
+User: give new work to the lead (or any chat; it lands on this board). Answer decisions by ID (for example "A1: yes, option 2"). Newest items first in each section.
 
 ---
 
@@ -14,12 +14,19 @@ User: answer by ID (for example "A1: yes, option 2"). Newest items first in each
 
 **Where each chat works** (each chat keeps its own row current):
 
-| Chat | Folder | Branch | Reserved slot | Task |
-|---|---|---|---|---|
-| chat-name | `<path>` | `<branch>` | none | what it is doing |
+| Chat | Role | Folder | Branch | Reserved slot | Current task |
+|---|---|---|---|---|---|
+| chat-name | lead (+ worker) | `<path>` | `<branch>` | none | none |
+| chat-name | worker | `<path>` | `<branch>` | none | none |
+| (integration) | merges only | `<path>-integration` | `dev` | n/a | n/a |
 
-- **Open tasks (unowned; put your name on one before starting it)**
-  - **T1** Task description. [Sonnet, medium, no plan mode: reason]
+**Task board**
+
+| ID | Goal | Files it touches | Acceptance check | Owner | Status | Model |
+|---|---|---|---|---|---|---|
+| T1 | Task description | `path/globs` | how the lead verifies it | chat-name | open | [Sonnet, medium, no plan mode: reason] |
+
+Statuses: `open` → `assigned` / `in progress` → `review` → `done`.
 
 ## Done (newest first)
 

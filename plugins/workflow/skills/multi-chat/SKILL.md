@@ -1,6 +1,6 @@
 ---
 name: multi-chat
-description: Coordination protocol for several Claude chats working on one repository at once - one worktree and branch per chat, the shared INBOX.md status page, the "Where each chat works" table, handoff reports, messaging other chats with ListAgents/SendMessage, and merging. Use at the start of any chat in a repository that has a handoff folder or an INBOX.md, when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
+description: Coordination protocol for several Claude chats working on one repository at once - a lead chat that assigns tasks and merges into a dev branch, workers that claim tasks by the files they touch, one worktree and branch per chat, the shared INBOX.md status page, the "Where each chat works" table, handoff reports, messaging other chats with ListAgents/SendMessage, and merging. Use at the start of any chat in a repository that has a handoff folder or an INBOX.md, when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
 ---
 
 # Several chats on one repository
@@ -30,6 +30,18 @@ Templates for the three are in this skill's `templates/` folder.
 - **Git-ignored data is not in a worktree.** Read and write shared data under the main checkout with absolute paths.
 - **At most one chat per reserved resource** (a cloud kernel, a GPU, a deployment slot). Claim it in your table row before using it; release it when done.
 - **Merging:** merge your branch into the feature branch when its checks pass. Any chat may run the merge in the main checkout (`git -C <main checkout> merge <branch>`). Uncommitted or untracked files there do not block it; git refuses on its own if the merge would touch them.
+
+## Orchestration: lead + workers (default)
+
+Chats are not tied to folders. Any chat may edit any file; conflicts are prevented per **task**.
+
+- **Lead**: one chat, named in the inbox table. Turns the user's requests into board tasks, assigns them, reviews finished task branches, merges them into `dev`, keeps the inbox current. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
+- **Workers**: claim a board task, work on `task/<ID>-<slug>` in their own worktree, set status `review`, message the lead.
+- **`dev`** is the integration branch, checked out in its own worktree (`../<project>-integration`) where only the lead merges. `dev` reaches `main` only with the user's approval.
+- **Claim rule:** each board row lists the files it touches. Do not start a task whose files overlap another `in progress` task; message its owner or the lead. If you need more files, add them to the row first.
+- **Lifecycle:** `open` → `assigned` / `in progress` → `review` → `done`. Workers start every new task from the latest `dev`.
+- **Scaling:** one lead plus about three workers; past that, split the board by milestone. New chat = one new worktree plus one table row.
+- **Skip orchestration** (one chat, or two chats on clearly unrelated work) only when the user says so.
 
 ## The inbox
 
@@ -63,6 +75,11 @@ Shell heredocs and Python string literals turn `\1`, `\t` and `\b` in paths such
 
 ## Setting up a new project for several chats
 
-1. Create the handoff folder in the main checkout and git-ignore it.
-2. Copy `templates/INBOX.md` and `templates/RULES.md` into it and fill in the project-specific parts.
-3. Add a short "Working in several chats" section to the project's `CLAUDE.md` that names the handoff folder and says to use this skill. Keep the project's hard limits in `CLAUDE.md` itself, in git, so no handoff file can relax them.
+Quick setup (about five minutes; do it all without asking, these steps are reversible):
+
+1. Create `.handoff/` in the main checkout and add it to `.git/info/exclude` (not `.gitignore`, so no tracked file changes).
+2. Create the integration branch and worktree: `git branch dev <default branch>` then `git worktree add ../<project>-integration dev`.
+3. Create one worktree per chat: `git worktree add ../<project>-<chat> -b <chat>/work dev`. The first chat may keep the main checkout, on its own branch (never on `main`).
+4. Copy `templates/INBOX.md` and `templates/RULES.md` into `.handoff/` and fill in paths, chat names and the lead.
+5. Add `CLAUDE.md` to `dev` (commit it there) with the project's hard limits and a short "Working in several chats" section that names the handoff folder and says to use this skill. Hard limits live in `CLAUDE.md`, in git, so no handoff file can relax them.
+6. `ListAgents`, then `SendMessage` each peer the handoff path, the lead's name and its first task.

@@ -4,7 +4,7 @@ Loaded in every session through `~/.claude/CLAUDE.md`. A project's own `CLAUDE.m
 
 ## Hard limits (a project may tighten, never loosen)
 
-- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (opening or merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote is allowed; see "Commits".
+- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (opening or merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote is allowed, and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`).
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 
@@ -33,7 +33,13 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 
 ## Commits
 
-You may commit on the current feature branch without asking. Never commit to `main`.
+You may commit on the current feature branch without asking. Never commit to `main`, except in the config repo (next section).
+
+**Why `main` is protected:** in project repositories (several chats, collaborators, reviewable history) the usual practice is a protected default branch plus review, so agents work on branches and a human or lead merges. A single-owner config repo has no reviewer, so a branch-and-merge step there adds friction and no safety.
+
+### The config repo (`~/claude-config`) — exception, authorised by the user
+
+This repo is synced between machines, so a change that is not pushed is lost to the other machine. For this repo only, commit and push to `main` yourself after every change to it, without asking. The remote is **public**, so every push publishes: before committing, run `git diff` and check that nothing is a credential, token, private path or identifier from a private project. If anything is, stop and ask. Other limits still hold: no force-push, no history rewrite, no other repository.
 
 **Pushing** follows the usual practice for coding agents (GitHub Copilot's coding agent, the Claude Code GitHub Action): the agent pushes its own branch, a human reviews and merges. So you may push your feature branch without asking (`git push -u origin <branch>`), after the branch is green, when all of these hold:
 
