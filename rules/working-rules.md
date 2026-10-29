@@ -39,11 +39,24 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 | Tier | When | Pull requests |
 |---|---|---|
-| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; the lead reviews (`/code-review`) and merges on green CI; the user merges only PRs touching `CLAUDE.md`, `.github/`, infra/deploy, lockfiles, secrets or money |
+| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see "Review and merge"); the user merges only PRs touching `CLAUDE.md`, `.github/`, infra/deploy, lockfiles, secrets, money or public positioning |
 | **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
 | **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
 
-Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rule `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds it.
+Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
+
+## Review and merge (industry pattern, checked 2026-10-29)
+
+Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub team review auto-assignment, Google/Chromium OWNERS review, and published guidance on agent approval authority.
+
+- **Author ≠ approver.** This is the one fixed rule everywhere: GitHub does not count an author's own approval, and whoever assigned a Copilot agent cannot approve its PR. A chat never reviews or merges its own PR, and an agent-authored PR that an agent approved counts as unreviewed by anyone independent.
+- **General review comes from a pool, not a dedicated reviewer.** This matches GitHub's team auto-assignment (round robin or load balance) and Google's LGTM, which any engineer can give. Chats of the same model with the same `/code-review` recipe gain nothing from a "reviewer" role. What gives a review its value is independence (a fresh context without the author's assumptions), and a dedicated reviewer chat becomes a bottleneck that idles until prompted.
+- **Specialize by risk, not by agent.** Industry practice puts named owners on risky paths (CODEOWNERS, Google OWNERS and readability). Here the user is that owner: risky paths (`.github/` risk items, `infra/`, auth, secrets, lockfiles, money, public content) get a deeper review (`/security-review` or `/code-review high`), and the user merges them. Everything else gets `/code-review medium`.
+- **Merge authority follows the gate, not the person.** On GitHub anyone with write access may merge once the ruleset is satisfied. So the reviewer does not merge by hand: when the review finds no blocking issue and the PR is not a user-merge item, it runs `gh pr merge <n> --auto --squash`, and GitHub merges when the required checks pass. Restricting merges to the lead adds no safety when every chat is the same model under the same account; it only adds a queue.
+- **All chats act as the user's GitHub account**, so GitHub cannot tell author from reviewer, and a required-approvals count cannot enforce author ≠ approver. The inbox rule enforces it. The hard gates are required CI checks and the user-merge list.
+- **Fallback:** an unclaimed PR goes to the lead, except a PR the lead wrote. That one goes to the user, never to its author.
+- **Invest in checks over review.** Studies find agent-only review catches less than human review, and review attention fades with habit. Tests, typing, evaluation jobs and merge queues do not fade, so each one added is worth more than another review pass.
+- **Post the review** as a PR comment (`gh pr comment <n> --body-file …`) stating the verdict, what was checked, findings dropped after checking, and for a `.github/` change, that no user-merge item is touched.
 
 ## Commits
 
