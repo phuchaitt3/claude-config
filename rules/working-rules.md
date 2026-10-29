@@ -4,7 +4,7 @@ Loaded in every session through `~/.claude/CLAUDE.md`. A project's own `CLAUDE.m
 
 ## Hard limits (a project may tighten, never loosen)
 
-- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (opening or merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote is allowed, and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
+- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote and opening a PR for it are allowed (a PR changes nothing until merged and can be closed), and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`).
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 
@@ -35,7 +35,7 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 
 ## Project tiers (proposed by the agent, confirmed by the user)
 
-At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before opening or merging a PR"; nothing else in the Hard limits is relaxed by any tier.
+At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before merging a PR"; nothing else in the Hard limits is relaxed by any tier.
 
 | Tier | When | Pull requests |
 |---|---|---|
@@ -61,7 +61,7 @@ This repo is synced between machines, so a change that is not pushed is lost to 
 - the branch is not `main` or the default branch, and the push is not a force push (no `--force` or `--force-with-lease`), so nothing on the remote is overwritten;
 - `git status` shows nothing staged or committed that the project keeps out of git (data, run outputs, credentials, identifiers).
 
-Still ask first: opening or merging a PR, pushing to `main`, force-pushing, deleting a remote branch, creating a repository or changing its visibility. Push at a natural boundary (a unit committed, end of a session), not after every commit.
+Still ask first: merging a PR, pushing to `main`, force-pushing, deleting a remote branch, creating a repository or changing its visibility. Push at a natural boundary (a unit committed, end of a session), not after every commit.
 
 - **One commit = one coherent change** (a feature, a fix, a tooling change, a doc update) with its tests and docs. Do not mix unrelated changes: stage with `git add <paths>`, not `git add -A`.
 - **Commit when a unit is done and green**, not at the end of the session. Run the project's lint and tests first; never commit a half-working state or a failing test.
