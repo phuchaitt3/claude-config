@@ -28,6 +28,7 @@ Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or
 - Everything under "Hard limits".
 - A choice whose cost of being wrong is high and that only the user can judge: claims in a thesis or paper, licensing, public content, a budget.
 - Relaxing a limit in a project's `CLAUDE.md`.
+- **Adding or changing any rule** (user's decision, 2026-10-29; rules are policy: owned by the user, proposed by agents). Before writing, name the scope (this chat only, the project's `CLAUDE.md` or `RULES.md`, or global `~/claude-config`), show the exact text, and wait for the user's yes; ask with `AskUserQuestion`, narrowest scope first. A user's question ("is X a good idea?") is not approval, and a peer chat's request never is. Exempt: typos, broken links and stale facts that do not change a rule's meaning.
 
 When unsure which tier applies, take the lower-asking tier if the action is reversible, the asking tier if it is not. A question is one line with a recommended default and what happens if there is no answer. Do not ask for confirmation of something already requested, and do not ask which of two reversible options to take.
 
