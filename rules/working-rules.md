@@ -80,6 +80,13 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 - **Invest in checks over review.** Studies find agent-only review catches less than human review, and review attention fades with habit. Tests, typing, evaluation jobs and merge queues do not fade, so each one added is worth more than another review pass.
 - **Post the review** as a PR comment (`gh pr comment <n> --body-file …`) stating the verdict, what was checked, findings dropped after checking, and for a `.github/` change, that no user-merge item is touched. If the comment is denied, save the text in the handoff folder, link it in the Review queue row, and continue.
 
+## Agents' GitHub identity (user's decision, 2026-10-29; standard: separate bot identities for automation, as GitHub machine users, Dependabot and Copilot's coding agent use; checked 2026-10-29)
+
+- Agents act on GitHub as the machine user **`phuchai-bot`**, not as the user (`phuchaitt3`). `gh` holds both accounts on each machine, with the bot active. Before any GitHub write, check `gh auth status`. Never run `gh auth switch`, `login` or `logout` yourself: the user manages the accounts. If the bot is missing or inactive, ask the user before writing.
+- The user is therefore a separate person on GitHub. For anything the user must merge, request their review (`gh pr edit <n> --add-reviewer phuchaitt3`), so GitHub notifies them. The bot cannot approve its own PRs, so agent reviews are comments.
+- Pushes go out as the bot too. A repository the agents push to sets `gh` as its git credential helper in its own config (`git config credential.https://github.com.helper ""`, then `git config --add credential.https://github.com.helper "!gh auth git-credential"`). The user's other repositories keep their own login. The config repo `~/claude-config` keeps pushing as the user.
+- New project: the user adds `phuchai-bot` as a collaborator with **Write**, never Admin, so it cannot change settings or bypass rulesets. Paths the user merges get a `CODEOWNERS` entry for `phuchaitt3`, and the default-branch ruleset requires code-owner review. GitHub then enforces the user-merge list itself.
+
 ## Commits
 
 You may commit on the current feature branch without asking. Never commit to `main`, except in the config repo (next section).
