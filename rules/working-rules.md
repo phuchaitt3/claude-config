@@ -4,9 +4,13 @@ Loaded in every session through `~/.claude/CLAUDE.md`. A project's own `CLAUDE.m
 
 ## Hard limits (a project may tighten, never loosen)
 
-- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch to a private remote and opening a PR for it are allowed (a PR changes nothing until merged and can be closed), and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
+- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch and opening a PR for it are allowed: to a private remote always, to a public one only as "Pushing" says (a PR changes nothing until merged and can be closed), and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`).
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
+
+## Industry-standard tags
+
+A rule or documented point checked against industry practice carries a tag: `(standard: <source>, checked YYYY-MM-DD)`. A deliberate departure says so: `(departs from standard: <reason>)`. Agents do not re-verify a tagged point unless it is over 12 months old, the user asks, or a new fact contradicts it. A tag records a check, not approval: the user still owns the rule.
 
 ## Decision rights
 
@@ -40,7 +44,7 @@ When unsure which tier applies, take the lower-asking tier if the action is reve
 - *Stale facts:* fix without asking (see "Adding or changing any rule").
 When unsure which group an item belongs to, it is a choice.
 
-**Asking the user for something: notification short, ticket complete** (industry pattern: a short notification points to a self-contained ticket). The user cannot be expected to remember earlier turns.
+**Asking the user for something: notification short, ticket complete** (a short notification points to a self-contained ticket; standard: on-call paging and issue trackers, checked 2026-10-29). The user cannot be expected to remember earlier turns.
 - **Push only what blocks the task in hand; the rest is pull** (like on-call paging: page for what is actionable now, dashboards for the rest). A turn ends with a user step only if the current task cannot finish without it. Everything else goes to the inbox silently, and the user checks it when free.
 - **Chat turn ending:** at most 3 lines. Line 1: the step that blocks the current task, in plain words with a link and the time it takes. Line 2, only when the inbox gained an item this turn: "N new in [INBOX.md](<path>)", as a clickable link (in an IDE, a workspace-relative markdown link). Say nothing when nothing blocks. Never end a turn with a bare list of IDs ("D6, #9, D5").
 - **Ticket (a ticket file or an issue):** every item stands alone, with five fields: what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
@@ -55,9 +59,14 @@ At the start of a new project, propose a tier in one line with the reason; the u
 | **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
 | **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
 
+**Deploys by tier** (standard: DORA continuous deployment; GitHub environment protection rules; checked 2026-10-29).
+- solo-fast: every merge to the default branch may deploy, once spending is capped (budget alert, instance limits); `CLAUDE.md` says so.
+- standard: merges deploy to staging; production waits for the user's approval in a GitHub environment with required reviewers.
+- strict: as standard, with "prevent self-review" on and admin bypass off.
+
 Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
 
-## Review and merge (industry pattern, checked 2026-10-29)
+## Review and merge (standard: see Sources below, checked 2026-10-29)
 
 Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub team review auto-assignment, Google/Chromium OWNERS review, and published guidance on agent approval authority.
 
@@ -82,7 +91,7 @@ This repo is synced between machines, so a change that is not pushed is lost to 
 
 **Pushing** follows the usual practice for coding agents (GitHub Copilot's coding agent, the Claude Code GitHub Action): the agent pushes its own branch, a human reviews and merges. So you may push your feature branch without asking (`git push -u origin <branch>`), after the branch is green, when all of these hold:
 
-- the remote already exists and the repository is **private** (check once, for example `gh repo view --json visibility`, or ask if you cannot tell); pushing to a public repository publishes, so ask first;
+- the remote already exists and the repository is **private** (check once, for example `gh repo view --json visibility`, or ask if you cannot tell), or it is public and the project's `CLAUDE.md` records the user's standing approval and secret-scanning push protection is on (check: `gh api repos/<owner>/<repo> --jq .security_and_analysis`); otherwise ask, because pushing to a public repository publishes (standard: GitHub Copilot coding agent pushes only its own `copilot/*` branches; push protection is free on public repos; checked 2026-10-29);
 - the branch is not `main` or the default branch, and the push is not a force push (no `--force` or `--force-with-lease`), so nothing on the remote is overwritten;
 - `git status` shows nothing staged or committed that the project keeps out of git (data, run outputs, credentials, identifiers).
 
