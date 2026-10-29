@@ -31,6 +31,18 @@ Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or
 
 When unsure which tier applies, take the lower-asking tier if the action is reversible, the asking tier if it is not. A question is one line with a recommended default and what happens if there is no answer. Do not ask for confirmation of something already requested, and do not ask which of two reversible options to take.
 
+## Project tiers (proposed by the agent, confirmed by the user)
+
+At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before opening or merging a PR"; nothing else in the Hard limits is relaxed by any tier.
+
+| Tier | When | Pull requests |
+|---|---|---|
+| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; the lead reviews (`/code-review`) and merges on green CI; the user merges only PRs touching `CLAUDE.md`, `.github/`, infra/deploy, lockfiles, secrets or money |
+| **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
+| **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
+
+Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rule `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds it.
+
 ## Commits
 
 You may commit on the current feature branch without asking. Never commit to `main`, except in the config repo (next section).
