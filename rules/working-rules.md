@@ -31,6 +31,8 @@ Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or
 
 When unsure which tier applies, take the lower-asking tier if the action is reversible, the asking tier if it is not. A question is one line with a recommended default and what happens if there is no answer. Do not ask for confirmation of something already requested, and do not ask which of two reversible options to take.
 
+**How to ask:** when the user is present and the answer is a choice among 2–4 options (yes/no, approve/hold, A/B/C), ask with the `AskUserQuestion` tool, recommended option first and marked "(Recommended)", one question per decision, each self-contained (it may be read without the rest of the reply). Use plain text only for open-ended questions or when the tool is unavailable (subagents, background runs). Decisions that can wait go in the project's inbox under "Needs your decision" instead.
+
 ## Project tiers (proposed by the agent, confirmed by the user)
 
 At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before opening or merging a PR"; nothing else in the Hard limits is relaxed by any tier.
