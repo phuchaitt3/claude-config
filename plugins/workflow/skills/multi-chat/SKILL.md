@@ -11,7 +11,7 @@ The user runs several Claude chats on one repository at the same time and reads 
 
 - **Handoff folder:** the project's `CLAUDE.md` names it, for example `<main checkout>/data/handoff/`. If it names none, use `<main checkout>/.handoff/` and make sure it is git-ignored. It stays outside git, so an edit reaches every chat at once without a merge.
 - **`RULES.md`** in that folder holds the project-specific coordination rules: reserved resources, shared data paths, extra limits. The general rules are in this skill and in the user-level working rules.
-- **`INBOX.md`** in that folder is the user's single status page.
+- **`INBOX.md`** in that folder is the agents' status page. The user's own queue is on GitHub (label `needs-you`, see the working rules, "Where the user's items live").
 - **`tickets/<ID>.md`** in that folder holds one task or decision each: its details, status and dated log. The inbox links to it.
 - **`DONE.md`** in that folder is the done log, newest first.
 - **`<topic>.md`** in that folder holds the handoff reports.
@@ -50,7 +50,7 @@ Chats are not tied to folders. Any chat may edit any file; conflicts are prevent
 
 The split follows common practice: a tracker holds the details (one issue per item), and a status page gives one line per item (a standup note). Each item has one ID and lives in one place.
 
-- **`INBOX.md`** fits on one screen (about 40 lines), one line per item, every line linking to its ticket, no paragraphs in table cells. Sections, in order: **Needs you** (ID, what, time, if ignored; most urgent first), **In progress** (the "Where each chat works" table: chat, role, folder, branch, reserved slot, ticket, status), **Review queue** (PR, author, reviewer, one-word status), **Up next** (open or blocked tickets, each with what blocks it), then a link to `DONE.md`.
+- **`INBOX.md`** fits on one screen (about 40 lines), one line per item, every line linking to its ticket, no paragraphs in table cells. Sections, in order: **Needs you** (a mirror of the GitHub `needs-you` items, one line each: link, since, if ignored; the agents' copy, not the user's page), **In progress** (the "Where each chat works" table: chat, role, folder, branch, reserved slot, ticket, status), **Review queue** (PR, author, reviewer, one-word status), **Up next** (open or blocked tickets, each with what blocks it), then a link to `DONE.md`.
 - **Tickets** (`tickets/<ID>.md`): `T<n>` for a task, `D<n>` for a decision for the user; numbers are never reused. A ticket starts with title, status, owner, model tag, files it touches and acceptance check. A decision ticket adds the five fields from the working rules (what, why you, action, time, if you do nothing) and a recommended default. A dated **Log** section at the bottom records what happened, newest last. Longer results go in a handoff report that the ticket links to.
 - **`DONE.md`**: one line per finished item, newest first, with the commit or PR and how to undo it. A "decide, then tell" choice gets a line here with its reason.
 - When a ticket closes: set its status `done`, add its line to `DONE.md`, and remove it from `INBOX.md`. When a decision is answered, record the answer in the ticket's log the same way. Then check the working rules' "Clearing or compacting a chat" before taking the next ticket.
@@ -62,9 +62,9 @@ The split follows common practice: a tracker holds the details (one issue per it
 A pull-only inbox with no limit piles up unseen. These practices keep it readable (standard: DORA "Streamlining change approval" and Kanban WIP limits, checked 2026-10-29). **The numbers are defaults under test, not standards**: no source gives the right limit, so a project measures its own queue (does it stay within the limit, how long do items wait) and changes them in its `RULES.md` with the user's yes.
 
 - **Limit:** "Needs you" holds at most **3** items (default). When full, no chat adds a user item or starts work that will end in one; it finishes or unblocks existing items, or parks the new one as "Not blocking".
-- **Batch:** PRs waiting for the user's merge form one row ("Merge batch"), one link per PR, one combined time.
+- **Batch:** each PR waiting for the user's merge carries the `needs-you` label and a review request; no batch row is needed.
 - **Age:** each "Needs you" row shows the date added; an item older than **2 days** (default) moves to the top.
-- **Daily digest** (default on): the first reply a chat gives the user each day starts with one line, "N items wait for you in INBOX.md, oldest since <date>", and says nothing when the queue is empty.
+- **Daily digest** (default on): the first reply a chat gives the user each day starts with one line, "N items wait for you on GitHub (label needs-you), oldest since <date>", and says nothing when the queue is empty.
 - **Gate less, check more:** before adding an item for the user, check whether an automated check (CI, a hook, a required status) could replace the approval.
 - Delete your table row when the chat ends.
 
