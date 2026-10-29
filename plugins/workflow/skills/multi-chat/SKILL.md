@@ -9,7 +9,8 @@ The user runs several Claude chats on one repository at the same time and reads 
 
 ## Where the files live
 
-- **Handoff folder:** the project's `CLAUDE.md` names it, for example `<main checkout>/data/handoff/`. If it names none, use `<main checkout>/.handoff/` and make sure it is git-ignored. It stays outside git, so an edit reaches every chat at once without a merge.
+- **Handoff folder:** the project's `CLAUDE.md` names it, for example `<main checkout>/data/handoff/`. If it names none, use `<main checkout>/.handoff/` and make sure it is git-ignored. It stays outside the project's repository, so an edit reaches every chat at once without a merge.
+- **When the handoff folder is its own git repo** (a private one, so the notes follow the user between machines): start a session with `git -C <handoff> pull --rebase`; at the end of a session, and before any machine move, commit, `pull --rebase` and push your changes there. Never put `.env*` or other secrets in it. If the folder is not a git repo, skip this.
 - **`RULES.md`** in that folder holds the project-specific coordination rules: reserved resources, shared data paths, extra limits. The general rules are in this skill and in the user-level working rules.
 - **`INBOX.md`** in that folder is the agents' status page. The user's own queue is on GitHub (label `needs-you`, see the working rules, "Where the user's items live").
 - **`tickets/<ID>.md`** in that folder holds one task or decision each: its details, status and dated log. The inbox links to it.
