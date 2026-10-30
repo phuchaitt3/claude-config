@@ -10,6 +10,7 @@ a guard against a known mistake, not a security boundary).
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -49,19 +50,23 @@ def pr_state_of_branch(branch: str, cwd: str) -> str:
 def pushed_branches(command: str, cwd: str) -> list[tuple[str, str]]:
     """(branch, directory) for each `git push` in `command` that pushes a named or current branch."""
     found: list[tuple[str, str]] = []
+    workdir = cwd  # follows `cd X &&` earlier in the same command
     for segment in _SEGMENT_SPLIT.split(command):
         try:
             tokens = shlex.split(segment, posix=True)
         except ValueError:
             tokens = segment.split()
+        if len(tokens) >= 2 and tokens[0].lower() in ("cd", "pushd", "set-location", "sl"):
+            workdir = os.path.normpath(os.path.join(workdir, tokens[1]))
+            continue
         if not tokens or tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower() not in (
             "git", "git.exe"
         ):
             continue
-        directory, i = cwd, 1
+        directory, i = workdir, 1
         while i < len(tokens) and tokens[i].startswith("-"):  # git global options
             if tokens[i] == "-C" and i + 1 < len(tokens):
-                directory, i = tokens[i + 1], i + 2
+                directory, i = os.path.normpath(os.path.join(workdir, tokens[i + 1])), i + 2
             else:
                 i += 2 if tokens[i] in ("-c", "--git-dir", "--work-tree") else 1
         if tokens[i : i + 1] != ["push"]:

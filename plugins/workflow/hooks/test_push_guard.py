@@ -35,6 +35,38 @@ def test_named_refspec_forms_are_checked(command: str) -> None:
     assert push_guard.check(command, ".", states(**{"fix/T11": "merged"}))
 
 
+def test_cd_and_dash_c_change_the_folder_the_branch_is_read_from() -> None:
+    import os
+
+    base = os.path.normpath("/repo")
+    assert push_guard.pushed_branches("cd .handoff && git push", "/repo") == [
+        ("", os.path.join(base, ".handoff"))
+    ]
+    assert push_guard.pushed_branches("git -C .handoff push", "/repo") == [
+        ("", os.path.join(base, ".handoff"))
+    ]
+    assert push_guard.pushed_branches("cd a && cd ../b && git push origin x", "/repo") == [
+        ("x", os.path.join(base, "b"))
+    ]
+
+
+def test_push_after_cd_reads_the_current_branch_of_that_folder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+
+    asked: list[str] = []
+
+    def fake_run(args: list[str], cwd: str) -> str:
+        asked.append(cwd)
+        return "main\n"  # the other folder is on the default branch: nothing to check
+
+    monkeypatch.setattr(push_guard, "_run", fake_run)
+    always_merged = lambda _b, _c: "merged"  # noqa: E731
+    assert push_guard.check("cd .handoff && git push", "/repo", always_merged) is None
+    assert asked == [os.path.join(os.path.normpath("/repo"), ".handoff")]
+
+
 def test_bare_push_checks_the_current_branch(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(push_guard, "_run", lambda args, cwd: "feat/x\n")
     assert push_guard.check("git push", ".", states(**{"feat/x": "merged"}))
