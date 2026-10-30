@@ -92,6 +92,7 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 - The user is therefore a separate person on GitHub. For anything the user must merge, request their review (`gh pr edit <n> --add-reviewer phuchaitt3`), so GitHub notifies them. The bot cannot approve its own PRs, so agent reviews are comments.
 - Pushes go out as the bot too. The global git config pins the user's account (`credential.https://github.com.username phuchaitt3`), so the user's repositories keep their own login. A repository the agents push to overrides that in its own config: `git config credential.https://github.com.helper ""`, then `git config --add credential.https://github.com.helper "!gh auth git-credential"` and `git config credential.https://github.com.username phuchai-bot`; check with `git push --dry-run`. The config repo `~/claude-config` keeps pushing as the user.
 - New project: the user adds `phuchai-bot` as a collaborator with **Write**, never Admin, so it cannot change settings or bypass rulesets. Paths the user merges get a `CODEOWNERS` entry for `phuchaitt3`, and the default-branch ruleset requires code-owner review. GitHub then enforces the user-merge list itself.
+- New project: the user turns on "Automatically delete head branches" in the repository settings, so a merged branch cannot take more pushes (standard: GitHub setting, checked 2026-10-30).
 
 ## Commits
 
@@ -111,6 +112,7 @@ This repo is synced between machines, so a change that is not pushed is lost to 
 
 Still ask first: merging a PR, pushing to `main`, force-pushing, deleting a remote branch, creating a repository or changing its visibility. Push at a natural boundary (a unit committed, end of a session), not after every commit.
 
+- **Before pushing to an existing branch, check its PR is still open** (`gh pr view <n> --json state`). A merge takes only what was on the branch at that moment, so a later push is lost; after a merge, a follow-up goes on a new branch off the default branch.
 - **One commit = one coherent change** (a feature, a fix, a tooling change, a doc update) with its tests and docs. Do not mix unrelated changes: stage with `git add <paths>`, not `git add -A`.
 - **Commit when a unit is done and green**, not at the end of the session. Run the project's lint and tests first; never commit a half-working state or a failing test.
 - **Exception, switching machines (user's decision, 2026-10-30):** when the user moves to another machine, unfinished work may be committed with a subject starting `wip:` (lint and tests need not pass) and pushed to your own feature branch, under the same conditions as "Pushing" above. A `wip:` commit is never merged as it is: the pull request is squash-merged, which drops it. On the other machine, keep committing on top of it; do not `reset` or amend it, because that needs a force-push, which is not allowed. Never on `main`.
