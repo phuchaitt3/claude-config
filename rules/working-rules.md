@@ -162,3 +162,7 @@ An agent cannot read the context meter reliably; the user can. Suggest from task
 ## Several chats on one repository
 
 When more than one chat works on a repository, or a project's `CLAUDE.md` mentions an inbox or handoff folder, use the `workflow:multi-chat` skill. It holds the coordination protocol: worktrees, the inbox, handoff reports and messaging.
+
+## Markdown style (user's decision, 2026-10-30)
+
+In markdown that agents write (replies, documents, handoff files, PR text), do not use `#` headings (`#`, `##`, `###`). Mark a heading as a line of its own with highlight syntax: `==Heading text==`. Use bold or lists for anything below that level. Existing files keep their `#` headings until they are next edited for another reason.
