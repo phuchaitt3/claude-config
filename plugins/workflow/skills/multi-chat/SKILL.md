@@ -23,8 +23,18 @@ Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in
 
 1. Read `RULES.md`, then `INBOX.md`, then any handoff file your task names.
 2. Run `ListAgents` to find the other chats. Session names change after `/clear` or a restart, so never reuse an address from an earlier conversation. Use the chat name the user gave you; the session name `ListAgents` reports for you may differ.
-3. Check who is working where: `gh issue list --label 'claimed:*'`, `gh pr list --state open` and `git worktree list`. If another chat already uses your folder, make your own worktree (below) before editing anything. Then claim your issue with the label `claimed:<chat>` and re-read it (claim, then verify): if another chat's claim is also there, the one whose label was added later backs off. Add or update your row in the inbox's worktree table: chat, folder, branch, machine.
+3. Take your name from the registry ("Chat names" below) and write your row. Then check who is working where: `gh issue list --label 'claimed:*'`, `gh pr list --state open` and `git worktree list`. If another chat already uses your folder, make your own worktree (below) before editing anything. Then claim your issue with the label `claimed:<chat>` and re-read it (claim, then verify): if another chat's claim is also there, the one whose label was added later backs off. Fill in your row's folder and branch.
 4. Say in one line which model and effort the task needs (see the working rules).
+
+## Chat names: the registry (user's decision, 2026-10-30; standard: worker leases with heartbeats, as Kubernetes `Lease` objects; checked 2026-10-30)
+
+The user opens chats without naming them, so chats name themselves. The "Worktrees and machines" table in `INBOX.md` is the registry: one row per active chat with **Chat** (`agent-N`), **Session** (the ID `ListAgents` shows, for example `4e6cdd`), **Role**, **Folder**, **Branch**, **Machine** and **Last seen** (date and time).
+
+- **Take a name** at the start of a chat and after every `/clear` (the session ID changes): run `ListAgents`, then take the lowest `agent-N` whose row is free. A row is free when its session is not in `ListAgents` and its Last seen is more than 2 hours old. A name the user gives is used if it is free. Write your row, then re-read the table (claim, then verify): if another session wrote the same name, the one written later takes the next number.
+- **Heartbeat:** update your Last seen each time you run the "check before each task" step. No timer.
+- **Sign** every PR comment, review verdict, handoff line and message as `agent-N (session)`, so author and reviewer are visible in the record. A review signed with the author's name or session counts as no review.
+- **Lead:** the Role column names it. If the lead's row is free (lease expired), the lowest-numbered active chat becomes lead and adds a line to `DONE.md`.
+- Remove your row when you end the chat for good; otherwise it expires on its own.
 
 ## Working rules
 
@@ -38,7 +48,7 @@ Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in
 
 Chats are not tied to folders. Any chat may edit any file; conflicts are prevented per **task**.
 
-- **Lead**: one chat, named in the inbox table. Turns the user's requests into board tasks, assigns them, keeps the inbox current, and is the fallback reviewer. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
+- **Lead**: one chat, named in the registry's Role column (see "Chat names"). Turns the user's requests into board tasks, assigns them, keeps the inbox current, and is the fallback reviewer. May take tasks itself. To change the lead, edit the table's Role column and message the peers.
 - **Workers**: claim a GitHub issue (label `claimed:<chat>`), work on a branch named as the project's `CLAUDE.md` says (default `task/<ID>-<slug>`) in their own worktree, open the PR (its state is the status) and message the idle chats.
 - **Review queue (pool, not a dedicated reviewer):** reviews are spread across members, not given to one reviewer (standard: GitHub team review auto-assignment, round robin or load balance; checked 2026-10-29). Any chat other than the author takes the oldest unclaimed open PR (one with no review comment from a non-author chat) before starting new work, reviews (`/code-review`; risky paths also get `/security-review`), posts the result as a PR comment (the comment is the claim and the record; there is no queue table), and, when there is no blocking issue, the project's rules let agents merge and the PR is not a user-merge item, enables auto-merge (`gh pr merge <n> --auto --squash`), so CI stays the final gate. An author never reviews its own work. The lead takes any unclaimed PR each time it checks, once the author's message went unanswered or `ListAgents` shows no other chat; the lead's own PRs go to the user. The full pattern and its sources are in the working rules, "Review and merge". Chats act only when prompted, so the author's `SendMessage` to idle peers (or a peer's `/loop`) is what starts a review.
 - **Trunk-based:** the default branch is the integration branch; there is no `dev`. Branches live hours to a few days and land by pull request (standard: DORA trunk-based development, checked 2026-10-29). A project that supports several released versions may keep release branches; its `RULES.md` says so.

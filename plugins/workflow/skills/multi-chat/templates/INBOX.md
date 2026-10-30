@@ -10,10 +10,10 @@ Answer decisions by ID, for example "D1: yes".
 - **Review queue:** <link to the open pull requests>. A PR with no comment from a non-author chat is unclaimed.
 - **The user's page:** <link to the saved search `is:open label:needs-you`>.
 
-## Worktrees and machines
-| Chat | Folder | Branch | Machine |
-|---|---|---|---|
-| chat-name | `<path>` | `<branch>` | `<computer name>` |
+## Chats (registry: see the skill, "Chat names")
+| Chat | Session | Role | Folder | Branch | Machine | Last seen |
+|---|---|---|---|---|---|---|
+| agent-1 | `<ListAgents id>` | lead | `<path>` | `<branch>` | `<computer name>` | YYYY-MM-DD HH:MM |
 
 ## Parked (private or process notes)
 - [D1](tickets/D1.md) decision in plain words: default if ignored
