@@ -163,6 +163,7 @@ An agent cannot read the context meter reliably; the user can. Suggest from task
   
   A short task followed by related work does not need it. Then do not start the next task in the same turn: end with the suggestion and a resume prompt (chat name, folder, branch, reserved slot, next task with its tag), and update the project's resume-prompt file if it has one. (standard: Cursor staff guidance "new chat for a new task"; Cline proposes a handoff past a context threshold after finishing the step; third-party Claude Code guides; checked 2026-10-29)
 - **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (more than about 40 tool calls, a resolved side thread, or the user says the context is over half full). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
+- **When both fit,** prefer `/clear` once the open work is recorded in files (committed handoff, inbox, resume prompt); suggest `/compact` only when state cannot be written down yet. If the work is not recorded, say what to commit first, then suggest `/clear` (user's decision, 2026-10-30).
 - **Suggest neither** in the middle of a debugging thread.
 
 ## Configuration and secrets in new projects (user's decision, 2026-10-30; standard: Twelve-Factor App "III. Config" and the dotenv convention, checked 2026-10-30)
