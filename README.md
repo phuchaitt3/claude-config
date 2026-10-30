@@ -6,8 +6,6 @@ My Claude Code setup, shared between machines through git.
 |---|---|---|
 | `rules/working-rules.md` | Always-on rules: hard limits, decision rights, commits, model/effort, subagents, clearing | imported by `~/.claude/CLAUDE.md` in every session |
 | `plugins/workflow/` | Plugin with the `workflow:multi-chat` skill (worktrees, inbox, handoff reports) and its templates | installed from this repo as a local marketplace |
-| `hooks/merge_gate.py` | PreToolUse guard: agents may not merge PRs unless the project is solo-fast and the PR touches no user-merge path (tests: `hooks/test_merge_gate.py`) | registered in `~/.claude/settings.json` (matcher `Bash\|PowerShell`), once per machine |
-| `hooks/github_state.py` | UserPromptSubmit hook: tells the chat the current PR state when it changed | registered in `~/.claude/settings.json`, once per machine |
 | `CLAUDE.user.md` | The stub to copy to `~/.claude/CLAUDE.md` | copied once per machine |
 
 Project-specific rules stay in each project's own `CLAUDE.md`, together with its hard limits, which these rules never relax.
