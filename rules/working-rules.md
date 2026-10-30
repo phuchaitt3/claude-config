@@ -67,6 +67,19 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
 
+## Project mode (asked at project start, chosen by the user; user's decision, 2026-10-30)
+
+At the start of a new project, with the tier, ask which mode it runs in (`AskUserQuestion`, default first) and record it at the top of the project's `CLAUDE.md`. Never pick or change a mode without the user's answer. A project with no recorded mode runs in **build**.
+
+| Mode | Goal | Who decides the architecture |
+|---|---|---|
+| **build** (default) | ship working software fast | agents, under "Decision rights" |
+| **study-design** | the user learns system design through the project | the user; agents brief and implement |
+
+**study-design:** for a decision that changes the architecture (a new service, store, queue, protocol, data model, or a scaling or consistency choice), an agent does not choose. It writes a design brief in `docs/design/` (problem, requirements with numbers, 2–3 options with trade-offs, a recommendation, what to read), raises it as a decision item, and keeps working on everything else. The user writes the decision and its reasons in the ADR in their own words; the agent may correct facts, not the reasoning. Implementation details inside an agreed design stay the agent's call. Decisions made before the mode was set get ADRs marked "agent-decided, not yet reviewed by the owner".
+
+More modes may be added; each says who decides what.
+
 ## Task tracking (user's decision, 2026-10-30; standard: GitHub Flow, an issue per task with closing keywords, checked 2026-10-30)
 Tracked work lives in GitHub Issues of the project repository, one issue per task, grouped by milestone. A pull request says `Closes #n`, so the merge closes the issue. Handoff files (`INBOX.md`, tickets) are the agents' notes, not the task list. In a public repository an issue never holds private content: that stays in a local ticket and the issue says only "private item; ask in chat". A repository without a GitHub remote keeps tickets in files. Task and review status is kept only in GitHub (issue state, labels, open pull requests). Handoff files (`INBOX.md`, tickets) link to issues and PRs and never copy their status; a chat finds work with `gh`, not by reading a status table. A chat claims an issue with a `claimed:<chat>` label and then re-reads the issue; if another chat's claim is also there, the later one backs off (user's decision, 2026-10-30, project and global; standard: single source of truth, status kept in the tracker, claim-then-verify as in git-bug-ax; checked 2026-10-30). Before stating the status of a PR or issue in a reply, check it with `gh` in the same turn; never report status from memory or from a handoff file (user's decision, 2026-10-30, after a reply called merged PRs open). Before a PR merges, every deferred item (its "Not done" list, and each review finding not fixed in the PR) is an open GitHub issue, or a checklist line in one, and the PR or review comment links it; no bare TODO in code without an issue number (user's decision, 2026-10-30; practice: deferred work gets a tracking issue, review findings are fixed or tracked, checked 2026-10-30).
 
@@ -103,7 +116,7 @@ The user does these once per repository, because they need admin and the bot has
 3. Commit a `CODEOWNERS` entry for `phuchaitt3` on each user-merge path.
 4. Run `gh repo edit <owner>/<repo> --delete-branch-on-merge` ("Agents' GitHub identity").
 5. Public repository: turn on secret-scanning push protection ("Commits", "Pushing").
-6. Record the tier at the top of the project's `CLAUDE.md` ("Project tiers").
+6. Record the tier and mode at the top of the project's `CLAUDE.md` ("Project tiers", "Project mode").
 
 ## Commits
 
