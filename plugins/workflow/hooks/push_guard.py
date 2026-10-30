@@ -1,7 +1,7 @@
 """PreToolUse hook: refuse `git push` to a branch whose pull request is already merged.
 
 A merge takes only what was on the branch at that moment, so a later push is lost (working rules,
-"Commits"). Chats forget which of their PRs merged; this checks GitHub at the moment of the push,
+"Git"). Chats forget which of their PRs merged; this checks GitHub at the moment of the push,
 so it needs no notification to have arrived. It looks at the PR of the branch being pushed:
 open -> allow; merged and none open -> deny; no PR, or gh unavailable -> allow (fail open, this is
 a guard against a known mistake, not a security boundary).

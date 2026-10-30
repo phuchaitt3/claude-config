@@ -6,7 +6,7 @@ needs-you items, the PRs merged in the last 24 hours and the PR of the branch ch
 chat's folder. It adds a line to the chat's context only when that differs from what it last told
 this session, so quiet turns cost nothing. Two things make it a sync mechanism, not just a report:
 
-- a PR merged since the last line adds the working rules' "after a merge" steps (update your own
+- a PR merged since the last line adds the `workflow:pr-review` skill's "after a merge" steps (update your own
   open PR branches from the default branch, follow-ups go on a new branch);
 - if the checked-out branch's PR is already merged, it says so: never push to that branch.
 

@@ -15,7 +15,9 @@ REPO = "C:\\Users\\x\\claude-config"
 def test_empty_settings_get_the_marketplace_autoupdate_and_plugin() -> None:
     settings: dict = {}
     changes = merge_settings.merge(settings, REPO)
-    assert len(changes) == 3
+    assert len(changes) == 4
+    assert settings["statusLine"]["type"] == "command"
+    assert settings["statusLine"]["command"].endswith('statusline.py"')
     assert settings["extraKnownMarketplaces"]["personal-config"] == {
         "source": {"source": "directory", "path": REPO},
         "autoUpdate": True,
@@ -29,6 +31,13 @@ def test_merge_is_idempotent_and_keeps_other_settings() -> None:
     assert merge_settings.merge(settings, REPO) == []
     assert settings["model"] == "opus" and settings["hooks"] == {"Stop": []}
     assert settings["enabledPlugins"]["other@x"] is True
+
+
+def test_an_existing_status_line_is_kept() -> None:
+    mine = {"type": "command", "command": "my-line"}
+    settings: dict = {"statusLine": mine}
+    merge_settings.merge(settings, REPO)
+    assert settings["statusLine"] == mine
 
 
 def run(settings: Path) -> subprocess.CompletedProcess[str]:

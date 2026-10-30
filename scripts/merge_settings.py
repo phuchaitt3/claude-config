@@ -1,8 +1,9 @@
 """Merge the per-machine Claude settings this repo needs into ~/.claude/settings.json.
 
 Idempotent and additive: it registers the `personal-config` marketplace (a directory source
-pointing at the claude-config checkout) with autoUpdate on, and enables `workflow@personal-config`.
-It never removes or changes anything else. The old file is copied to settings.json.bak-<date>
+pointing at the claude-config checkout) with autoUpdate on, enables `workflow@personal-config`, and
+adds the context-% status line (`scripts/statusline.py`) if no `statusLine` is set. It never
+removes or changes anything else. The old file is copied to settings.json.bak-<date>
 first. Prints what it changed (or "no change").
 
     python merge_settings.py [--settings PATH] [--repo PATH]
@@ -36,6 +37,10 @@ def merge(settings: dict, repo: str) -> list[str]:
     if plugins.get(PLUGIN) is not True:
         plugins[PLUGIN] = True
         changes.append(f"enabled {PLUGIN}")
+    if "statusLine" not in settings:
+        script = Path(repo) / "scripts" / "statusline.py"
+        settings["statusLine"] = {"type": "command", "command": f'python "{script}"'}
+        changes.append("status line (context %)")
     return changes
 
 
