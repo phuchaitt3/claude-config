@@ -10,6 +10,16 @@ My Claude Code setup, shared between machines through git.
 
 Project-specific rules stay in each project's own `CLAUDE.md`, together with its hard limits, which these rules never relax.
 
+## Set up or repair a machine: one command
+
+After cloning this repo to `~/claude-config` (step 1 below), everything else is one command, safe to run any number of times (it pulls this repo, installs or updates the `workflow` plugin through the Claude Code command line, and turns `autoUpdate` on in `~/.claude/settings.json` with a backup):
+
+```
+powershell -NoProfile -File "$HOME\claude-config\scripts\setup-machine.ps1"
+```
+
+Needs git, python and Claude Code. Run it once on a machine that is behind; after that the plugin keeps the machine current by itself. The numbered steps below are what it automates (and the manual fallback). Tests: `scripts/test_merge_settings.py`.
+
 ## Set up a machine (once)
 
 1. Clone this repo to `~/claude-config`, which is `C:\Users\<you>\claude-config` on Windows. The import path in the stub assumes that location.
