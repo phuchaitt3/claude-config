@@ -82,6 +82,7 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 - **All chats act as the user's GitHub account**, so GitHub cannot tell author from reviewer, and a required-approvals count cannot enforce author ≠ approver. The inbox rule enforces it. The hard gates are required CI checks and the user-merge list.
 - **Fallback:** an unclaimed PR goes to the lead, except a PR the lead wrote. That one goes to the user, never to its author.
 - **Invest in checks over review.** Studies find agent-only review catches less than human review, and review attention fades with habit. Tests, typing, evaluation jobs and merge queues do not fade, so each one added is worth more than another review pass.
+- **GitHub comments are for the record a human reads** (user's decision, 2026-10-30): review verdicts and needs-you notes. A message for another chat goes through SendMessage or the inbox, never a GitHub comment, because GitHub emails the owner and agents do not read notifications.
 - **Post the review** as a PR comment (`gh pr comment <n> --body-file …`) stating the verdict, what was checked, findings dropped after checking, and for a `.github/` change, that no user-merge item is touched. If the comment is denied, save the text in the handoff folder, link it in the Review queue row, and continue.
 
 ## Agents' GitHub identity (user's decision, 2026-10-29; standard: separate bot identities for automation, as GitHub machine users, Dependabot and Copilot's coding agent use; checked 2026-10-29)
