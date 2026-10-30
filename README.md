@@ -6,6 +6,7 @@ My Claude Code setup, shared between machines through git.
 |---|---|---|
 | `rules/working-rules.md` | Always-on rules: hard limits, decision rights, commits, model/effort, subagents, clearing | imported by `~/.claude/CLAUDE.md` in every session |
 | `plugins/workflow/` | Plugin with the `workflow:multi-chat` skill (worktrees, inbox, handoff reports) and its templates, and two hooks (`hooks/hooks.json`) that keep chats in sync with GitHub: `github_state.py` (UserPromptSubmit: when open PRs, `needs-you` items or merges changed since the chat last heard, it adds one line, plus the "after a merge" steps and a warning when the checked-out branch's PR is already merged; silent otherwise) and `push_guard.py` (PreToolUse: refuses `git push` to a branch whose PR is already merged). Tests: `hooks/test_*.py` | installed from this repo as a local marketplace. **A plugin is a cached copy: after each change, bump `version` in `.claude-plugin/plugin.json`, push, and on every machine run `/plugin update workflow@personal-config` and restart.** |
+| `modes/<mode>.md` | What each project mode means and requires (`build`, `study-design`) | not auto-loaded: `rules/working-rules.md` tells the agent to read it when a project's mode is not build |
 | `CLAUDE.user.md` | The stub to copy to `~/.claude/CLAUDE.md` | copied once per machine |
 
 Project-specific rules stay in each project's own `CLAUDE.md`, together with its hard limits, which these rules never relax.

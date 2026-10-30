@@ -78,7 +78,7 @@ At the start of a new project, with the tier, ask which mode it runs in (`AskUse
 | **build** (default) | ship working software fast | agents, under "Decision rights" |
 | **study-design** | the user learns system design through the project | the user; agents brief and implement |
 
-**study-design:** for a decision that changes the architecture (a new service, store, queue, protocol, data model, or a scaling or consistency choice), an agent does not choose. It writes a design brief in `docs/design/` (problem, requirements with numbers, 2–3 options with trade-offs, a recommendation, what to read), raises it as a decision item, and keeps working on everything else. The user writes the decision and its reasons in the ADR in their own words; the agent may correct facts, not the reasoning. Implementation details inside an agreed design stay the agent's call. Decisions made before the mode was set get ADRs marked "agent-decided, not yet reviewed by the owner".
+**Details per mode** live in `~/claude-config/modes/<mode>.md`. When a project's recorded mode is not **build**, read that file before starting work in the project. In one line, **study-design**: an agent does not choose an architecture; it writes a design brief and waits for the user's decision, and the user writes the ADR in their own words.
 
 More modes may be added; each says who decides what.
 
