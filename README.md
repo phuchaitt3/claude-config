@@ -21,7 +21,7 @@ Project-specific rules stay in each project's own `CLAUDE.md`, together with its
    ```
    Choose user scope. Check with `/plugin` (Installed tab) and `/memory`, which lists the loaded instruction files.
    Where `/plugin` is not available (the VS Code extension), use the bundled command line instead: `claude.exe` sits in `%USERPROFILE%\.vscode\extensions\anthropic.claude-code-*\resources\native-binary\`. Run `claude.exe plugin marketplace add %USERPROFILE%\claude-config`, then `claude.exe plugin install workflow@personal-config`. To update by hand: `claude.exe plugin marketplace update personal-config`, then `claude.exe plugin update workflow@personal-config`, then restart.
-4. Turn on automatic plugin updates: in `~/.claude/settings.json`, under `extraKnownMarketplaces` > `personal-config`, add `"autoUpdate": true` (sibling of `source`). The plugin then updates itself at startup whenever its `version` in `plugin.json` is newer; a plugin change without a version bump is not picked up. The repo itself still needs a `git pull` on each machine.
+4. Turn on automatic plugin updates: in `~/.claude/settings.json`, under `extraKnownMarketplaces` > `personal-config`, add `"autoUpdate": true` (sibling of `source`). The plugin then updates itself at startup whenever its `version` in `plugin.json` is newer; a plugin change without a version bump is not picked up. The plugin's `pull_config.py` (SessionStart) runs `git pull --ff-only` on `~/claude-config` at most every 30 minutes, silently, so the repo follows too; a machine is current after one or two restarts.
 
 ## Change something
 
