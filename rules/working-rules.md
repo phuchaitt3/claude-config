@@ -92,7 +92,18 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 - The user is therefore a separate person on GitHub. For anything the user must merge, request their review (`gh pr edit <n> --add-reviewer phuchaitt3`), so GitHub notifies them. The bot cannot approve its own PRs, so agent reviews are comments.
 - Pushes go out as the bot too. The global git config pins the user's account (`credential.https://github.com.username phuchaitt3`), so the user's repositories keep their own login. A repository the agents push to overrides that in its own config: `git config credential.https://github.com.helper ""`, then `git config --add credential.https://github.com.helper "!gh auth git-credential"` and `git config credential.https://github.com.username phuchai-bot`; check with `git push --dry-run`. The config repo `~/claude-config` keeps pushing as the user.
 - New project: the user adds `phuchai-bot` as a collaborator with **Write**, never Admin, so it cannot change settings or bypass rulesets. Paths the user merges get a `CODEOWNERS` entry for `phuchaitt3`, and the default-branch ruleset requires code-owner review. GitHub then enforces the user-merge list itself.
-- New project: the user turns on "Automatically delete head branches" in the repository settings, so a merged branch cannot take more pushes (standard: GitHub setting, checked 2026-10-30).
+- New project: the user runs `gh repo edit <owner>/<repo> --delete-branch-on-merge` once (needs admin; the bot cannot), so a merged branch cannot take more pushes (standard: GitHub setting, checked 2026-10-30). Exception: a repository with long-lived branches other than the default.
+
+## New project setup (one-time steps, user's decision, 2026-10-30)
+
+The user does these once per repository, because they need admin and the bot has Write only. The agent proposes the list at the start of a project and ticks off what is done; each step's reason is in the section named.
+
+1. Add `phuchai-bot` as a collaborator with **Write** ("Agents' GitHub identity").
+2. Create the `protect-main` ruleset: pull request required, required CI checks, no force-push, code-owner review where the project has user-merge paths ("Review and merge").
+3. Commit a `CODEOWNERS` entry for `phuchaitt3` on each user-merge path.
+4. Run `gh repo edit <owner>/<repo> --delete-branch-on-merge` ("Agents' GitHub identity").
+5. Public repository: turn on secret-scanning push protection ("Commits", "Pushing").
+6. Record the tier at the top of the project's `CLAUDE.md` ("Project tiers").
 
 ## Commits
 
