@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: How pull requests are opened, reviewed and merged across the user's projects - author never approves, review from a pool, review depth by risk, auto-merge after a clean review, the solo-fast tier's user-merge paths, posting the review comment, refreshing open PRs after a merge, and tracking deferred work as issues. Use before opening, reviewing or merging a pull request, when enabling auto-merge, or when a PR leaves work undone.
+description: ALWAYS load this before opening, reviewing or merging a pull request, when enabling auto-merge, or when a PR leaves work undone. How pull requests are handled across the user's projects: author never approves, review from a pool, review depth by risk, auto-merge after a clean review, the solo-fast tier's user-merge paths, posting the review comment, refreshing open PRs after a merge, and tracking deferred work as issues.
 ---
 
 # Pull requests: open, review, merge

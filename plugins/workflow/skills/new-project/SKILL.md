@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: Setting up a new project or repository for the user - propose a tier (solo-fast, standard, strict) and ask the mode (build, study-design), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled. Use at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, or when adding environment settings or a .env file.
+description: ALWAYS load this at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, or when adding environment settings or a .env file. Covers proposing a tier (solo-fast, standard, strict) and asking the mode (build, study-design), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled.
 ---
 
 # New project setup

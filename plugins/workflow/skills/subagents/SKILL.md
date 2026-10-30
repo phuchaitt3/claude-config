@@ -1,6 +1,6 @@
 ---
 name: subagents
-description: Rules for dispatching subagents in the user's projects - only when the user asks or a project rule allows, self-contained and checkable briefs, no pushes or commits or coordination edits by the subagent, worktree isolation for code edits, at most two at a time, and keeping cost down (tight brief, cheapest model, short report, skip tiny tasks, fork when context matters). Use before spawning any subagent or fork.
+description: ALWAYS load this before spawning any subagent or fork. Rules for dispatching subagents in the user's projects: only when the user asks or a project rule allows, self-contained and checkable briefs, no pushes or commits or coordination edits by the subagent, worktree isolation for code edits, at most two at a time, and keeping cost down (tight brief, cheapest model, short report, skip tiny tasks, fork when context matters).
 ---
 
 # Dispatching subagents

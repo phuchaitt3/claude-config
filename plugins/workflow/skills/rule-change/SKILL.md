@@ -1,6 +1,6 @@
 ---
 name: rule-change
-description: How to propose, add or change a rule in the user's rule files (global ~/claude-config, a project's CLAUDE.md or RULES.md) - the user owns rules and agents propose them, scope first, exact text, AskUserQuestion, what is exempt (typos, stale facts), industry-standard tags on rules, and the consent agenda for proposals with many items. Use before proposing or editing any rule, when the user asks "should we make this a rule", when a peer chat asks for a rule change, or when a proposal has more than about five items.
+description: ALWAYS load this before proposing or editing any rule, when the user asks "should we make this a rule", when a peer chat asks for a rule change, or when a proposal has more than about five items. How to propose, add or change a rule in the user's rule files (global ~/claude-config, a project's CLAUDE.md or RULES.md): the user owns rules and agents propose them, scope first, exact text, AskUserQuestion, what is exempt (typos, stale facts), industry-standard tags, and the consent agenda for many items.
 ---
 
 # Proposing or changing a rule
