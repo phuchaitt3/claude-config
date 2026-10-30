@@ -3,24 +3,19 @@
 Rules: `workflow:multi-chat` skill + RULES.md. Details: tickets/. History: DONE.md.
 Answer decisions by ID, for example "D1: yes".
 
-## Needs you (most urgent first)
-| ID | What | Time | If ignored |
+**Status is on GitHub, not here.** This page holds links and notes GitHub cannot hold. Never copy PR or issue status into it.
+
+## Where to look
+- **Tasks:** <link to the open issues>. A `claimed:<chat>` label means a chat has it.
+- **Review queue:** <link to the open pull requests>. A PR with no comment from a non-author chat is unclaimed.
+- **The user's page:** <link to the saved search `is:open label:needs-you`>.
+
+## Worktrees and machines
+| Chat | Folder | Branch | Machine |
 |---|---|---|---|
-| [D1](tickets/D1.md) | Decision in plain words | 5 min | the default |
+| chat-name | `<path>` | `<branch>` | `<computer name>` |
 
-## In progress
-| Chat | Role | Folder | Branch | Slot | Ticket | Status |
-|---|---|---|---|---|---|---|
-| chat-name | lead (+ worker) | `<path>` | `<branch>` | none | — | idle |
-| chat-name | worker | `<path>` | `<branch>` | none | [T1](tickets/T1.md) | in progress |
-## Review queue
-| PR | Author | Reviewer | Status |
-|---|---|---|---|
-| #1 | chat-name | (open) | waiting |
-
-## Up next
-- [T2](tickets/T2.md) task in plain words: blocked by D1
-
-Statuses: `open` → `assigned` / `in progress` → `review` → `done`.
+## Parked (private or process notes)
+- [D1](tickets/D1.md) decision in plain words: default if ignored
 
 Done: [DONE.md](DONE.md)

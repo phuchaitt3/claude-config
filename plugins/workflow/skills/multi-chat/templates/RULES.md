@@ -4,7 +4,7 @@ The general protocol is the `workflow:multi-chat` skill and the user-level worki
 
 ## Roles
 
-Lead: `<chat-name>`. Workers: see the "Where each chat works" table in `INBOX.md`. Task lifecycle, claim rule and merge flow: see the skill.
+Lead: `<chat-name>`. Workers: see the "Worktrees and machines" table in `INBOX.md` and the `claimed:` labels on GitHub. Task lifecycle, claim rule and merge flow: see the skill.
 
 ## Shared paths
 
