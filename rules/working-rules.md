@@ -1,18 +1,18 @@
-# Working rules (all projects)
+==Working rules (all projects)==
 
 Loaded in every session through `~/.claude/CLAUDE.md`. A project's own `CLAUDE.md` adds to these and may make them stricter; nothing here relaxes a limit a project sets.
 
-## Hard limits (a project may tighten, never loosen, except through the exceptions named in this file)
+==Hard limits (a project may tighten, never loosen, except through the exceptions named in this file)==
 
 - Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Pushing your own feature branch and opening a PR for it are allowed: to a private remote always, to a public one only as "Pushing" says (a PR changes nothing until merged and can be closed), and the config repo `~/claude-config` is committed and pushed to `main` after every change; see "Commits".
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`).
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 
-## Industry-standard tags
+==Industry-standard tags==
 
 A rule or documented point checked against industry practice carries a tag: `(standard: <source>, checked YYYY-MM-DD)`. A deliberate departure says so: `(departs from standard: <reason>)`. Agents do not re-verify a tagged point unless it is over 12 months old, the user asks, or a new fact contradicts it. A tag records a check, not approval: the user still owns the rule.
 
-## Decision rights
+==Decision rights==
 
 Asking is a cost: it stops the flow. Ask only when a wrong guess is expensive or only the user knows the answer. The test is **reversibility**: if a choice can be undone with a revert, a rerun or a file edit, make it.
 
@@ -50,7 +50,7 @@ When unsure which group an item belongs to, it is a choice.
 - **Where the user's items live: GitHub, not files** (user's decision, 2026-10-30; standard: issue trackers with labels, review requests and saved searches, checked 2026-10-30). Every item that needs the user is a GitHub pull request or issue labelled `needs-you`, with the user as requested reviewer or assignee, so GitHub notifies them (agents act as the bot, see "Agents' GitHub identity"). The user's one page is the saved search `is:open label:needs-you user:<owner>`, across all repositories. A PR waiting for the user's merge gets the label and a comment saying in plain words what it changes, that checks and review are done, and which button to press. A decision is an issue with the five fields below and a recommended answer; the user answers in the issue. The agent removes the label when the item is done. Handoff files (`INBOX.md`, tickets) are the agents' notes, and the user is never asked to read them. In a public repository, private content stays in a local ticket, and the issue says only "private item; ask in chat". The WIP limit and age rule count labelled items.
 - **Item fields** (issue body or local ticket): what it is (plain words), why it needs the user, the exact action (link or click path), the time it takes, and what happens if the user does nothing. Most urgent first. List only what blocks work.
 
-## Project tiers (proposed by the agent, confirmed by the user)
+==Project tiers (proposed by the agent, confirmed by the user)==
 
 At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before merging a PR"; nothing else in the Hard limits is relaxed by any tier.
 
@@ -67,7 +67,7 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
 
-## Review and merge (standard: see Sources below, checked 2026-10-29)
+==Review and merge (standard: see Sources below, checked 2026-10-29)==
 
 Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub team review auto-assignment, Google/Chromium OWNERS review, and published guidance on agent approval authority.
 
@@ -81,20 +81,20 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 - **Invest in checks over review.** Studies find agent-only review catches less than human review, and review attention fades with habit. Tests, typing, evaluation jobs and merge queues do not fade, so each one added is worth more than another review pass.
 - **Post the review** as a PR comment (`gh pr comment <n> --body-file …`) stating the verdict, what was checked, findings dropped after checking, and for a `.github/` change, that no user-merge item is touched. If the comment is denied, save the text in the handoff folder, link it in the Review queue row, and continue.
 
-## Agents' GitHub identity (user's decision, 2026-10-29; standard: separate bot identities for automation, as GitHub machine users, Dependabot and Copilot's coding agent use; checked 2026-10-29)
+==Agents' GitHub identity (user's decision, 2026-10-29; standard: separate bot identities for automation, as GitHub machine users, Dependabot and Copilot's coding agent use; checked 2026-10-29)==
 
 - Agents act on GitHub as the machine user **`phuchai-bot`**, not as the user (`phuchaitt3`). `gh` holds both accounts on each machine, with the bot active. Before any GitHub write, check `gh auth status`. Never run `gh auth switch`, `login` or `logout` yourself: the user manages the accounts. If the bot is missing or inactive, ask the user before writing.
 - The user is therefore a separate person on GitHub. For anything the user must merge, request their review (`gh pr edit <n> --add-reviewer phuchaitt3`), so GitHub notifies them. The bot cannot approve its own PRs, so agent reviews are comments.
 - Pushes go out as the bot too. The global git config pins the user's account (`credential.https://github.com.username phuchaitt3`), so the user's repositories keep their own login. A repository the agents push to overrides that in its own config: `git config credential.https://github.com.helper ""`, then `git config --add credential.https://github.com.helper "!gh auth git-credential"` and `git config credential.https://github.com.username phuchai-bot`; check with `git push --dry-run`. The config repo `~/claude-config` keeps pushing as the user.
 - New project: the user adds `phuchai-bot` as a collaborator with **Write**, never Admin, so it cannot change settings or bypass rulesets. Paths the user merges get a `CODEOWNERS` entry for `phuchaitt3`, and the default-branch ruleset requires code-owner review. GitHub then enforces the user-merge list itself.
 
-## Commits
+==Commits==
 
 You may commit on the current feature branch without asking. Never commit to `main`, except in the config repo (next section).
 
 **Why `main` is protected:** in project repositories (several chats, collaborators, reviewable history) the usual practice is a protected default branch plus review, so agents work on branches and a human or lead merges. A single-owner config repo has no reviewer, so a branch-and-merge step there adds friction and no safety.
 
-### The config repo (`~/claude-config`) — exception, authorised by the user
+**The config repo (`~/claude-config`) — exception, authorised by the user**
 
 This repo is synced between machines, so a change that is not pushed is lost to the other machine. For this repo only, commit and push to `main` yourself after every change to it, without asking. The remote is **public**, so every push publishes: before committing, run `git diff` and check that nothing is a credential, token, private path or identifier from a private project. If anything is, stop and ask. Other limits still hold: no force-push, no history rewrite, no other repository.
 
@@ -113,7 +113,7 @@ Still ask first: merging a PR, pushing to `main`, force-pushing, deleting a remo
 - **Never commit** run outputs, data, build artefacts, credentials or private identifiers. Check `git status` before adding.
 - Never commit, stash or revert changes you did not make.
 
-## Model and effort per task
+==Model and effort per task==
 
 The user picks the model (`/model`) and effort by hand. At the start of each task, say in one line which model and effort it needs; if the current model is a poor fit, say so before starting. Plan mode: yes only when the design is still open.
 
@@ -130,7 +130,7 @@ The user picks the model (`/model`) and effort by hand. At the start of each tas
 
 Use `max` effort only when the user asks. Tags are written `[Sonnet, medium, no plan mode: reason]` and go on every open task, in-flight item, decision item and proposed next step.
 
-## Subagents
+==Subagents==
 
 Spawn subagents only when the user asks, or under a project rule that allows it. When dispatching, all of these must hold:
 - **Self-contained:** the prompt states the whole task, the files and the expected result.
@@ -147,7 +147,7 @@ Keep it to two at a time, and do not dispatch work that is blocked on a long job
 
 A subagent never uses Opus unless the task's tag already justified it.
 
-## Clearing or compacting a chat
+==Clearing or compacting a chat==
 
 An agent cannot read the context meter reliably; the user can. Suggest from task boundaries and visible signs, once per boundary, in one line at the end of a message. Do not wait for auto-compaction at the limit: long contexts get worse before they fill.
 
@@ -160,10 +160,18 @@ An agent cannot read the context meter reliably; the user can. Suggest from task
 - **Suggest `/compact <what to keep>`** when the task continues but the history is heavy (more than about 40 tool calls, a resolved side thread, or the user says the context is over half full). Name what must survive: open hypotheses, ruled-out causes, paths, commit hashes. First write the ruled-out causes to a handoff file, because a summary can distort them.
 - **Suggest neither** in the middle of a debugging thread.
 
-## Several chats on one repository
+==Configuration and secrets in new projects (user's decision, 2026-10-30; standard: Twelve-Factor App "III. Config" and the dotenv convention, checked 2026-10-30)==
+
+- Settings that differ between machines or deploys (URLs, keys, ports) come from environment variables. A `.env` file is the local-development way to supply them, not a requirement: a project without such settings has none.
+- When a project has them: commit `.env.example` (every key, dummy values, a one-line comment each) and keep `.env` and `.env.*` out of git (`.gitignore`, with `!.env.example`). CI and production take values from the platform's secret store (GitHub Actions secrets, the host's environment settings), never from a committed file.
+- The app loads the file, not the shell: the framework's own loader (Next.js, Docker Compose), `uv run --env-file .env`, `node --env-file=.env`, or a settings library (pydantic-settings). Do not set up terminals or shell profiles to export `.env` on start: every program run from that shell would see the secrets. If a shell needs per-folder variables, use direnv (loads only inside the folder, only after `direnv allow`), never the profile.
+- Python virtual environments need no activation under uv (`uv run` uses `.venv`). Leave VS Code's default of activating the selected interpreter in new terminals on; do not add activation to shell profiles.
+- Agents never read `.env` (see Hard limits); they read and update `.env.example`.
+
+==Several chats on one repository==
 
 When more than one chat works on a repository, or a project's `CLAUDE.md` mentions an inbox or handoff folder, use the `workflow:multi-chat` skill. It holds the coordination protocol: worktrees, the inbox, handoff reports and messaging.
 
-## Markdown style (user's decision, 2026-10-30)
+==Markdown style (user's decision, 2026-10-30)==
 
 In markdown that agents write (replies, documents, handoff files, PR text), do not use `#` headings (`#`, `##`, `###`). Mark a heading as a line of its own with highlight syntax: `==Heading text==`. Use bold or lists for anything below that level. Existing files keep their `#` headings until they are next edited for another reason.
