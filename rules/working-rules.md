@@ -67,6 +67,9 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 Hard limits (credentials, force-push, paid jobs over the threshold, publishing) apply in every tier. solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
 
+==Task tracking (user's decision, 2026-10-30; standard: GitHub Flow, an issue per task with closing keywords, checked 2026-10-30)==
+Tracked work lives in GitHub Issues of the project repository, one issue per task, grouped by milestone. A pull request says `Closes #n`, so the merge closes the issue. Handoff files (`INBOX.md`, tickets) are the agents' notes, not the task list. In a public repository an issue never holds private content: that stays in a local ticket and the issue says only "private item; ask in chat". A repository without a GitHub remote keeps tickets in files.
+
 ==Review and merge (standard: see Sources below, checked 2026-10-29)==
 
 Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub team review auto-assignment, Google/Chromium OWNERS review, and published guidance on agent approval authority.
