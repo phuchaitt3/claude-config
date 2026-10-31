@@ -1,5 +1,5 @@
 {
   "name": "workflow",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Multi-chat coordination: worktree per chat, shared inbox, handoff reports, messaging between chats; on-demand skills for pull requests, new projects, rule changes, subagents and self-driving loops; hooks that keep chats in sync with GitHub (state line on each message, no push to a merged branch)."
 }
