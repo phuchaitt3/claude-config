@@ -31,9 +31,9 @@ At the start of a new project, with the tier, ask which mode it runs in (`AskUse
 | Mode | Goal | Who decides the architecture |
 |---|---|---|
 | **build** (default) | ship working software fast | agents, under "Decision rights" |
-| **study-design** | the user learns system design through the project | the user; agents brief and implement |
+| **study-design** | the user learns system design by questioning agents' decisions | agents, with full reasoning in each ADR; the user reviews and may overrule |
 
-**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **study-design**: an agent does not choose an architecture; it writes a design brief and waits for the user's decision, and the user writes the ADR in their own words. More modes may be added; each says who decides what.
+**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **study-design**: an agent chooses the architecture and writes the full reasoning in the ADR for a newcomer to study; the user reviews by questioning it from outside the loop, and work does not wait for that review. More modes may be added; each says who decides what.
 
 ## Why `main` is protected
 
