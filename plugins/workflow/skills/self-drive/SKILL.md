@@ -23,7 +23,12 @@ Run `/loop` with no interval (the model paces itself) and this brief. If the pro
 
 ## Pacing
 
-If a round ended with a PR waiting on CI, schedule the next round for 5 to 10 minutes; if it ended with nothing to do, stop rather than polling. Never schedule waits shorter than 60 seconds.
+After opening a PR, start the next round at once in a new worktree; do not wait for its review or CI (user's decision, 2026-10-31; standard: Kanban pull with a WIP limit on review, about 1-2 items per reviewer, and background coding agents such as Copilot coding agent open a PR and move on; checked 2026-10-31). Wait only when:
+
+- 2 of your own PRs are open with no review yet: review others' PRs, or schedule the next round in 5 to 10 minutes;
+- the next eligible task depends on an open PR's change.
+
+When nothing is eligible, stop rather than poll. Never schedule waits shorter than 60 seconds.
 
 ## Stopping
 
