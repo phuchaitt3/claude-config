@@ -1,5 +1,5 @@
 {
-  "version": "0.8.0",
-  "since": "2026-10-31T17:30:00+07:00",
-  "why": "multi-chat: no lead; chats are named by their ListAgents ID; claims use one `claimed` label plus a comment"
+  "version": "0.9.0",
+  "since": "2026-10-31T21:34:00+07:00",
+  "why": "multi-chat: talk mode is now focus mode (a working chat, never a reviewer); skip chats whose Role is focus when naming a reviewer"
 }

@@ -65,5 +65,5 @@ The user sees the context meter in the status line; you do not. Suggest once per
 - `workflow:rule-change`: before proposing or editing any rule, here or in a project, and for any proposal with more than about five items.
 - `workflow:subagents`: before dispatching a subagent (only when the user asks or a project rule allows).
 - `workflow:self-drive`: when the user asks a chat to pick tasks and loop without prompts (per chat, user-started only).
-- `workflow:talk`: when the user says "talk mode" or types /talk (a conversation-only chat that owns no work; overrides the multi-chat start-of-chat steps).
+- `workflow:focus`: when the user says "focus mode" or "talk mode", or types /focus or /talk (a chat peers leave alone: it does normal work but never reviews, and answers peers only about its own claims and PRs).
 - A project whose recorded mode is not **build**: read `~/claude-config/modes/<mode>.md` before starting work.
