@@ -30,11 +30,12 @@ Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in
 
 The user opens chats without naming them, so chats name themselves. The "Worktrees and machines" table in `INBOX.md` is the registry: one row per active chat with **Chat** (`agent-N`), **Session** (the ID `ListAgents` shows, for example `4e6cdd`), **Role**, **Folder**, **Branch**, **Machine** and **Last seen** (date and time).
 
-- **Take a name** at the start of a chat and after every `/clear` (the session ID changes): run `ListAgents`, then take the lowest `agent-N` whose row is free. A row is free when its session is not in `ListAgents` and its Last seen is more than 2 hours old. A name the user gives is used if it is free. Write your row, then re-read the table (claim, then verify): if another session wrote the same name, the one written later takes the next number.
-- **Heartbeat:** update your Last seen each time you run the "check before each task" step. No timer.
+- **Take a name** at the start of a chat and after every `/clear` (the session ID changes): run `ListAgents`, then take the lowest `agent-N` whose row is free. A row is free when it is dead (see Liveness). A name the user gives is used if it is free. Write your row, then re-read the table (claim, then verify): if another session wrote the same name, the one written later takes the next number.
+- **Heartbeat:** update your Last seen each time you run the "check before each task" step. No timer. It matters only to peers on another machine (see Liveness).
+- **Liveness** (user's decision, 2026-10-31): `ListAgents` is the source of truth for whether a chat on this machine is alive. A row on this machine whose Session `ListAgents` does not list is dead, whatever its Last seen says: do not message it, do not count it as lead or reviewer, and delete it the next time you write the table. `ListAgents` sees only this machine's sessions (plus cloud and Remote Control ones), so a row on another machine is alive while its Last seen is under 2 hours old. `idle` in `ListAgents` means only that the session is between prompts; work goes out through `claimed:` labels, not to whoever looks idle.
 - **Sign** every PR comment, review verdict, handoff line and message as `agent-N (session)`, so author and reviewer are visible in the record. A review signed with the author's name or session counts as no review.
-- **Lead:** the Role column names it. If the lead's row is free (lease expired), the lowest-numbered active chat becomes lead and adds a line to `DONE.md`.
-- Remove your row when you end the chat for good; otherwise it expires on its own.
+- **Lead:** the Role column names it. If the lead's row is dead (see Liveness), the lowest-numbered active chat becomes lead and adds a line to `DONE.md`.
+- Remove your row when you end the chat for good; if you cannot (window closed), any chat deletes it once dead.
 
 ## Working rules
 
