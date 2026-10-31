@@ -64,4 +64,5 @@ The user sees the context meter in the status line; you do not. Suggest once per
 - `workflow:multi-chat`: when several chats share a repository, or the project's `CLAUDE.md` names an inbox or handoff folder.
 - `workflow:rule-change`: before proposing or editing any rule, here or in a project, and for any proposal with more than about five items.
 - `workflow:subagents`: before dispatching a subagent (only when the user asks or a project rule allows).
+- `workflow:self-drive`: when the user asks a chat to pick tasks and loop without prompts (per chat, user-started only).
 - A project whose recorded mode is not **build**: read `~/claude-config/modes/<mode>.md` before starting work.
