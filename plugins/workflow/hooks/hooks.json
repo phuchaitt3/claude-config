@@ -38,6 +38,17 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/registry_cleanup.py\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
