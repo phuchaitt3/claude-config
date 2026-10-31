@@ -64,6 +64,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "WebSearch|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/standard_nudge.py\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

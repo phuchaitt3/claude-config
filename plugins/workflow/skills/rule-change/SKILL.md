@@ -23,4 +23,4 @@ When unsure which group an item belongs to, it is a choice.
 
 ## Industry-standard tags
 
-A rule or documented point checked against industry practice carries a tag: `(standard: <source>, checked YYYY-MM-DD)`. A deliberate departure says so: `(departs from standard: <reason>)`. Agents do not re-verify a tagged point unless it is over 12 months old, the user asks, or a new fact contradicts it. A tag records a check, not approval: the user still owns the rule.
+A rule or documented point checked against industry practice carries a tag: `(standard: <source>, checked YYYY-MM-DD)`. A deliberate departure says so: `(departs from standard: <reason>)`. Agents do not re-verify a tagged point unless it is over 12 months old, the user asks, or a new fact contradicts it. A tag records a check, not approval: the user still owns the rule. This applies to every check, not only to rule changes: the `standard_nudge` hook reminds a chat after each web search or fetch (user's decision, 2026-10-31).
