@@ -37,7 +37,7 @@ At the start of a new project, with the tier, ask which mode it runs in (`AskUse
 
 ## Why `main` is protected
 
-In project repositories (several chats, collaborators, reviewable history) the usual practice is a protected default branch plus review, so agents work on branches and a human or lead merges. A single-owner config repo has no reviewer, so a branch-and-merge step there adds friction and no safety.
+In project repositories (several chats, collaborators, reviewable history) the usual practice is a protected default branch plus review, so agents work on branches and a human or a reviewing chat merges. A single-owner config repo has no reviewer, so a branch-and-merge step there adds friction and no safety.
 
 ## Agents' GitHub identity (user's decision, 2026-10-29; standard: separate bot identities for automation, as GitHub machine users, Dependabot and Copilot's coding agent use; checked 2026-10-29)
 

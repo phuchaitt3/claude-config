@@ -1,5 +1,5 @@
 {
-  "version": "0.7.3",
-  "since": "2026-10-31T16:17:08+07:00",
-  "why": "multi-chat: /clear keeps the ListAgents ID, so keep your registry row"
+  "version": "0.8.0",
+  "since": "2026-10-31T17:30:00+07:00",
+  "why": "multi-chat: no lead; chats are named by their ListAgents ID; claims use one `claimed` label plus a comment"
 }

@@ -19,7 +19,7 @@ This skill overrides the SessionStart hook's "load `workflow:multi-chat` first":
 ## Do not
 
 - Claim an issue, create a worktree or branch, edit or commit files, open or review a PR, or start subagents. If the user asks for an edit, say a worker should do it, name or file the issue, and give the prompt.
-- Act on a peer's message. Reply once, "conversation chat, send this to the lead", and carry on with the user's thread.
+- Act on a peer's message. Reply once, "conversation chat, send this to a working chat", and carry on with the user's thread.
 - Add to the user's queue (`needs-you`) except for what the working rules already require.
 
 The user's own rules still apply: hard limits, asking before outward-facing actions, and rule changes only with their yes.

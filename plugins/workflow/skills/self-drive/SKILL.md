@@ -14,7 +14,7 @@ A chat never starts this by itself. The user starts it in a chat by asking, and 
 Run `/loop` with no interval (the model paces itself) and this brief. If the project uses the `workflow:multi-chat` protocol, load that skill first and follow its claim rules.
 
 > Each round:
-> 1. Sync: if the project has a handoff repo, `git -C <handoff> pull --rebase`. Run `gh pr list --state open`, `gh issue list --label 'claimed:*'`, `git worktree list`.
+> 1. Sync: if the project has a handoff repo, `git -C <handoff> pull --rebase`. Run `gh pr list --state open`, `gh issue list --label claimed`, `git worktree list`.
 > 2. **Review first.** Take the oldest open PR with no review comment from a chat other than its author and review it as `workflow:pr-review` says. Never review your own PR.
 > 3. **Then work.** Take the first eligible issue: `priority:now`, else the oldest unblocked `priority:next`, else stop. Claim it as the project says (label plus a comment listing the files), verify the claim, branch from the latest default branch in its own worktree, finish it, open the PR, then start the next round.
 > 4. **Skip** an issue (leave it, say nothing more) when it: needs an architecture or design choice (write a brief if the project has a design folder, then move on); carries `needs-you`; needs a decision only the user can make; touches a path the project reserves for the user (workflow files, infra, deploy config, `CLAUDE.md`, lockfiles unless the project's rule allows, secrets); calls a paid API at scale; overlaps a file another chat has claimed.
