@@ -34,6 +34,8 @@ Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub
 
 Before a PR merges, every deferred item (its "Not done" list, and each review finding not fixed in the PR) is an open GitHub issue, or a checklist line in one, and the PR or review comment links it; no bare TODO in code without an issue number (user's decision, 2026-10-30; practice: deferred work gets a tracking issue, review findings are fixed or tracked, checked 2026-10-30). In a public repository an issue never holds private content: that stays in a local ticket and the issue says only "private item; ask in chat".
 
+Workflow work is never low priority (user's decision, 2026-10-31): a change to how agents work (rules, skills, `CLAUDE.md`, process docs, issue and PR templates, hooks) affects every chat from then on. A PR that changes a process updates every file that describes it in the same PR; if one is a user-merge path, the author opens a companion PR for it in the same turn, labelled `needs-you` with the user as reviewer, and links the two. Workflow drift found at any other time is fixed in the turn it is found, or opened at once as a `needs-you` PR if only the user can merge it; never queued as `priority:later` (standard: Google docguide "Update docs with code", checked 2026-10-31).
+
 ## Before pushing to an existing branch
 
 Check its PR is still open (`gh pr view <n> --json state`). A merge takes only what was on the branch at that moment, so a later push is lost; after a merge, a follow-up goes on a new branch off the default branch. The `push_guard` hook enforces this.
