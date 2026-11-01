@@ -10,14 +10,12 @@ a guard against a known mistake, not a security boundary).
 from __future__ import annotations
 
 import json
-import os
-import re
-import shlex
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
 
-_SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|&\n()`]")
+from _gitcmd import git_calls
+
 _DEFAULT_BRANCHES = {"main", "master"}
 # `git push` flags that take a separate value.
 _VALUE_FLAGS = {"--repo", "--receive-pack", "--exec", "-o", "--push-option", "--signed"}
@@ -50,28 +48,10 @@ def pr_state_of_branch(branch: str, cwd: str) -> str:
 def pushed_branches(command: str, cwd: str) -> list[tuple[str, str]]:
     """(branch, directory) for each `git push` in `command` that pushes a named or current branch."""
     found: list[tuple[str, str]] = []
-    workdir = cwd  # follows `cd X &&` earlier in the same command
-    for segment in _SEGMENT_SPLIT.split(command):
-        try:
-            tokens = shlex.split(segment, posix=True)
-        except ValueError:
-            tokens = segment.split()
-        if len(tokens) >= 2 and tokens[0].lower() in ("cd", "pushd", "set-location", "sl"):
-            workdir = os.path.normpath(os.path.join(workdir, tokens[1]))
+    for call in git_calls(command, cwd):
+        if call.subcommand != "push":
             continue
-        if not tokens or tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower() not in (
-            "git", "git.exe"
-        ):
-            continue
-        directory, i = workdir, 1
-        while i < len(tokens) and tokens[i].startswith("-"):  # git global options
-            if tokens[i] == "-C" and i + 1 < len(tokens):
-                directory, i = os.path.normpath(os.path.join(workdir, tokens[i + 1])), i + 2
-            else:
-                i += 2 if tokens[i] in ("-c", "--git-dir", "--work-tree") else 1
-        if tokens[i : i + 1] != ["push"]:
-            continue
-        rest = tokens[i + 1 :]
+        directory, rest = call.directory, call.args
         if any(a in ("--delete", "-d", "--tags", "--all", "--mirror") for a in rest):
             continue
         positional: list[str] = []

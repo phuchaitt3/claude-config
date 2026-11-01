@@ -18,6 +18,8 @@
 - alexwlchan, [A hook to stop committing to main](https://alexwlchan.net/2026/no-main-hook/) (community post).
 - [Git worktrees for parallel AI coding agents](https://recca0120.github.io/en/2026/04/14/git-worktree-parallel-work/), [OpenReplay](https://blog.openreplay.com/git-worktrees-ai-agents/), [MindStudio](https://www.mindstudio.ai/blog/git-worktrees-parallel-ai-coding-agents) (community posts: one worktree per agent, cleanup, bare-repo layout).
 
+**Tested 2026-11-01 (headless session, throwaway repo):** once a session is in a built-in worktree, its isolation checks block Edit, Write and `git -C` aimed anywhere under the main checkout, including a git-ignored folder with its own nested repo there. A project that keeps shared coordination files inside the main checkout therefore cannot use the built-in worktrees; it keeps worktrees made by hand, outside the main checkout.
+
 **Limits:** no official source says how to keep a shared main checkout clean or current; that guidance is community practice. The Claude Code behaviour is version-dependent and documented for its own worktree location (`.claude/worktrees/`). No source measures how often stale reads happen.
 
 **Checked:** 2026-11-01

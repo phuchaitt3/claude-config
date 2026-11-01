@@ -5,7 +5,7 @@ The general protocol is the `workflow:multi-chat` skill and the user-level worki
 ## Shared paths
 
 - Main checkout: `<path>` (stays on the default branch, nobody commits here; holds git-ignored data and secrets; other worktrees reach them by absolute path, read-only)
-- Task worktrees: `<path>-<name>`, branched from the default branch
+- Task worktrees: `<path>-<ID>-<slug>`, branched from the fetched default branch; the `worktree_sweep` hook removes them after their PR merges
 - Handoff folder: `<path>/.handoff/`
 - Testing a worktree's code: `PYTHONPATH=<worktree>/<src path>`; never `pip install -e` into a shared environment.
 
