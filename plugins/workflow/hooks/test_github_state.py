@@ -34,6 +34,22 @@ def test_describe_lists_open_needs_you_and_merged() -> None:
     assert merged == [28, 27] and warning == ""
 
 
+def test_open_prs_in_other_repos_are_listed_by_repo() -> None:
+    fake = state()
+    fake["repo"] = "o/r"
+    fake["others"] = [
+        {"repository": {"nameWithOwner": "o/notes"}, "number": 5},
+        {"repository": {"nameWithOwner": "o/notes"}, "number": 4},
+        {"repository": {"nameWithOwner": "o/r"}, "number": 9},
+    ]
+    line = github_state.describe(fake, None)[0]
+    assert line.endswith("open PRs in other repos: notes #4, #5")
+
+
+def test_no_other_repo_prs_adds_nothing() -> None:
+    assert "other repos" not in github_state.describe(state(), None)[0]
+
+
 def test_branch_of_a_merged_pr_gets_a_warning() -> None:
     _, _, warning = github_state.describe(state(branch=[(27, "MERGED")]), "fix/T11-followups")
     assert "#27" in warning and "do not push" in warning

@@ -1,5 +1,5 @@
 {
-  "version": "0.16.0",
-  "since": "2026-11-01T16:30:00+07:00",
-  "why": "solo-fast: CLAUDE.md and .github/ are no longer default user-merge paths (reviewer may merge them); new docs mode"
+  "version": "0.17.0",
+  "since": "2026-11-01T16:40:00+07:00",
+  "why": "multi-chat review queue: the author also posts 'Review requested: <chat name>' on the PR; reviewers check open PRs across all the owner's repos; state line lists other repos' PRs"
 }

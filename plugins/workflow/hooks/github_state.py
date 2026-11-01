@@ -2,8 +2,10 @@
 
 Agents only know GitHub's state from their last `gh` call, so a PR the user merged between turns
 stays "open" in their memory. On each user message this hook reads the repo's open PRs, the
-needs-you items, the PRs merged in the last 24 hours and the PR of the branch checked out in the
-chat's folder. It adds a line to the chat's context only when that differs from what it last told
+needs-you items, the PRs merged in the last 24 hours, the PR of the branch checked out in the
+chat's folder, and the open PRs in the owner's other repositories (all chats share one bot account,
+so this per-owner list stands in for GitHub's per-person review queue; standard:
+standards/multi-repo-agent-review, checked 2026-11-01). It adds a line to the chat's context only when that differs from what it last told
 this session, so quiet turns cost nothing. Two things make it a sync mechanism, not just a report:
 
 - a PR merged since the last line adds the `workflow:pr-review` skill's "after a merge" steps (update your own
@@ -26,7 +28,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 CACHE_DIR = Path.home() / ".claude" / "hook-cache" / "github_state"
-GH_TIMEOUT_S = 3.5  # the three gh calls run in parallel and must fit the hook's 5 s timeout
+GH_TIMEOUT_S = 3.5  # the gh calls run in parallel and must fit the hook's 5 s timeout
 
 
 def run(args: list[str], cwd: str) -> str:
@@ -63,12 +65,23 @@ def read_state(repo: str, cwd: str, branch: str | None) -> dict:
         "merged": ["gh", "pr", "list", "-R", repo, "--state", "merged",
                    "--search", f"merged:>={since}", "--json", "number,mergedAt", "--limit", "20"],
     }
+    jobs["others"] = ["gh", "search", "prs", "--owner", repo.split("/")[0], "--state", "open",
+                      "--json", "repository,number", "--limit", "30"]
     if branch:
         jobs["branch"] = ["gh", "pr", "list", "-R", repo, "--head", branch, "--state", "all",
                           "--json", "number,state", "--limit", "5"]
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         futures = {name: pool.submit(run, cmd, cwd) for name, cmd in jobs.items()}
-        return {name: json.loads(future.result()) for name, future in futures.items()}
+        result = {}
+        for name, future in futures.items():
+            try:
+                result[name] = json.loads(future.result())
+            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired):
+                if name != "others":  # the other-repos line is optional; the rest is not
+                    raise
+                result[name] = []
+        result["repo"] = repo
+        return result
 
 
 def describe(state: dict, branch: str | None) -> tuple[str, list[int], str]:
@@ -88,6 +101,16 @@ def describe(state: dict, branch: str | None) -> tuple[str, list[int], str]:
     if len(merged) > 5:
         recent += f" and {len(merged) - 5} more"
     line = f"open PRs: {opened} · needs-you PRs: {needs_you} · merged in last 24h: {recent}"
+    others: dict[str, list[int]] = {}
+    for pr in state.get("others") or []:
+        name = pr["repository"]["nameWithOwner"]
+        if name != state.get("repo"):
+            others.setdefault(name.split("/")[-1], []).append(pr["number"])
+    if others:
+        line += " · open PRs in other repos: " + "; ".join(
+            f"{name} " + ", ".join(f"#{n}" for n in sorted(numbers))
+            for name, numbers in sorted(others.items())
+        )
 
     warning = ""
     prs = state.get("branch") or []
