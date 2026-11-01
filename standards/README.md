@@ -29,3 +29,4 @@ One file per topic, `standards/<topic>.md`:
 | [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? |
 | [secret-leak-prevention](secret-leak-prevention.md) | How is a secret kept out of a public repository, and how common are leaks? |
 | [leaked-secret-response](leaked-secret-response.md) | What to do first when a secret has been pushed. |
+| [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? |
