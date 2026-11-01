@@ -39,3 +39,4 @@ One file per topic, `standards/<topic>.md`:
 | [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, and clean up worktrees? |
 | [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? |
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? |
+| [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? |

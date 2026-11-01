@@ -16,6 +16,8 @@ The test is reversibility: if a choice can be undone with a revert, a rerun or a
 - **Decide, then tell** (one line in the reply or the project's DONE.md, with the reason and the undo): a default on an open design question; a changed pinned version, preset or tolerance, with the run that justifies it; reordered or added milestones.
 - **Ask first:** everything under Hard limits; choices only the user can judge (thesis or paper claims, licensing, public content, a budget); relaxing a project's limit; **adding or changing any rule** (user's decision, 2026-10-29): load `workflow:rule-change` before proposing one.
 
+**Review mode** (user's decision, 2026-11-01): one global setting, `settings/review.json`, says how a PR is checked before an agent merges it (`peer`, `self-review`, `self-diff`, `ci-only`; `workflow:pr-review`, "Review modes"). The `review_mode` hook announces it. The user changes it; a chat edits it only when the user asks.
+
 When unsure, take the lower-asking tier if the action is reversible. Do not ask for confirmation of something already requested, or which of two reversible options to take.
 
 **How to ask:** a choice among 2–4 options goes through `AskUserQuestion`, recommended option first and marked "(Recommended)", one self-contained question per decision. Plain text only for open questions or when the tool is unavailable. Decisions that can wait become `needs-you` issues ("Replies").

@@ -1,5 +1,5 @@
 {
-  "version": "0.18.0",
-  "since": "2026-11-01T17:10:00+07:00",
-  "why": "solo-fast merge gate: .claude/ changes are drawn by risk; agents may merge them after a careful review, the user merges only one that adds an allow rule, removes or disables a hook, or makes a hook refuse less"
+  "version": "0.19.0",
+  "since": "2026-11-01T17:20:00+07:00",
+  "why": "review modes: a global setting (settings/review.json, now self-diff) replaces mandatory peer review; outside peer mode the author checks its own diff and enables auto-merge itself, user-merge paths unchanged"
 }

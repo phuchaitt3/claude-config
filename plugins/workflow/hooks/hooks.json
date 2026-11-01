@@ -32,6 +32,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/claim_sweep.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/review_mode.py\"",
+            "timeout": 5
           }
         ]
       }
@@ -47,6 +52,11 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/focus_title.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/review_mode.py\"",
             "timeout": 5
           },
           {

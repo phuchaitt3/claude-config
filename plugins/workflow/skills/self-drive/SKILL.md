@@ -15,7 +15,7 @@ Run `/loop` with no interval (the model paces itself) and this brief. If the pro
 
 > Each round:
 > 1. Sync: if the project has a handoff repo, `git -C <handoff> pull --rebase`. Run `gh pr list --state open`, `gh issue list --label claimed`, `git worktree list`.
-> 2. **Review first.** Take the oldest open PR with no review comment from a chat other than its author and review it as `workflow:pr-review` says. Never review your own PR.
+> 2. **Review first** (only in review mode `peer`; in other modes merge your own PRs as that mode says, see `workflow:pr-review`, "Review modes"). Take the oldest open PR with no review comment from a chat other than its author and review it as `workflow:pr-review` says. Never review your own PR.
 > 3. **Then work.** Run `python <this skill's folder>/next_task.py` in the repository. It lists the startable issues bottleneck-first (multi-chat skill, "Bottlenecks first"); take the first one the rules below let you take, and make the `fix:` lines it prints (a missing dependency link or `priority:now` label) on the way. If it cannot reach GitHub, take `priority:now`, else the oldest unblocked `priority:next`, else the oldest unblocked `priority:later`. Claim it as the project says (label plus a comment listing the files), verify the claim, branch from the latest default branch in its own worktree, finish it, open the PR, then start the next round.
 > 4. **Route or skip** an issue:
 >    - needs an architecture or design choice: write a brief in the project's design folder, open it as a PR, move on;
@@ -28,7 +28,7 @@ Run `/loop` with no interval (the model paces itself) and this brief. If the pro
 
 After opening a PR, start the next round at once in a new worktree; do not wait for its review or CI (user's decision, 2026-10-31; standard: Kanban pull with a WIP limit on review, about 1-2 items per reviewer, and background coding agents such as Copilot coding agent open a PR and move on; checked 2026-10-31). Wait only when:
 
-- 2 of your own PRs are open with no review yet: review others' PRs, or schedule the next round in 5 to 10 minutes;
+- 2 of your own PRs are open with no review yet (review mode `peer` only): review others' PRs, or schedule the next round in 5 to 10 minutes;
 - the next eligible task depends on an open PR's change.
 
 When nothing is eligible, stop rather than poll. Never schedule waits shorter than 60 seconds.

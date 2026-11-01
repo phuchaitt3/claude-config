@@ -13,7 +13,22 @@ A confirmed **solo-fast** tier (recorded at the top of the project's `CLAUDE.md`
 
 solo-fast needs the permission rules `Bash(gh pr create:*)`, `Bash(gh pr comment:*)` and `Bash(gh pr merge:*)` in the project's `.claude/settings.local.json`; the user adds them. An allow rule matches only a command that starts with it, so run these commands plain (`gh pr create --repo … --body-file …`), never chained after `cd … &&` or with `$(…)`; a chained call falls to the auto-mode classifier and is denied.
 
+## Review modes (user's decision, 2026-11-01)
+
+One global setting, `~/claude-config/settings/review.json` (`mode`, `since`, `why`), says how a pull request is checked before an agent merges it, in every project and tier. The `review_mode` hook tells each chat the live value at start and again when it changes; a missing or unknown value counts as `peer`. The user changes it; a chat edits the file only when the user asks. A project's `CLAUDE.md` may pin a stricter mode for itself. In the standard and strict tiers the user already merges or reviews, so in practice the mode changes solo-fast.
+
+| mode | before `gh pr merge <n> --auto --squash` | measured cost |
+|---|---|---|
+| `peer` | a named peer chat reviews as "Review and merge" below (`/code-review medium`, deeper on risky paths) and posts the comment | about 1.3M input tokens and 7 calls per review, plus a chat to hold it |
+| `self-review` | the author runs `/code-review low` on its own PR and fixes or tracks each finding | up to about a peer review, scaled by the author's context |
+| `self-diff` | the author re-reads its own diff once against the blocking-issue list below | about one call |
+| `ci-only` | the author enables auto-merge; required checks are the only gate | none |
+
+Cost is a median of 14 reviews in one project's transcripts (standard: standards/agent-review-cost, checked 2026-11-01). In every mode: Hard limits, required checks, the user-merge paths and the `merge_gate` hook are unchanged; a user-merge item still goes `needs-you` to the user, and a blocking issue still stops the merge. Outside `peer`, the author may enable auto-merge on its own PR (author ≠ approver applies to agent review only in `peer`), there is no named reviewer or review comment, and the PR body says `Review mode: <mode>`. A project rule that asks the reviewer to do something at merge (a DONE.md line, say) falls to the author.
+
 ## Review and merge (standard: see Sources below, checked 2026-10-29)
+
+In `peer` mode this section applies as written; in the other modes, only the blocking-issue list, the user-merge rules, "After a merge" and "Post the review" (for `self-review` findings) apply.
 
 Sources: GitHub's rules for required approvals and for Copilot-agent PRs, GitHub team review auto-assignment, Google/Chromium OWNERS review, and published guidance on agent approval authority.
 
