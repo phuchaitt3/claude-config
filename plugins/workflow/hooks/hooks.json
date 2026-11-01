@@ -31,6 +31,11 @@
           },
           {
             "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/focus_title.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/plugin_notice.py\"",
             "timeout": 5
           }

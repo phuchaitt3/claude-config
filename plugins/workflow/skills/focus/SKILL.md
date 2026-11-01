@@ -10,6 +10,7 @@ User's decision, 2026-10-31 (replaces talk mode, same day): the user wants a cha
 ## Start
 
 - Write your row in the INBOX registry with Role `focus`; Folder and Branch stay `—` until you claim something.
+- The `focus_title` hook renames the chat `focus-<folder>` when the user says "focus mode" or types /focus or /talk, so peers see the role in `ListAgents`. If `ListAgents` does not show a `focus-` name for you, tell the user in one line to type `/rename focus-<your ID>`.
 - Skip the other multi-chat start-of-chat steps (PR backstop, inbox triage) unless the user asks.
 
 ## Work
