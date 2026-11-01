@@ -10,9 +10,9 @@ Answer decisions by ID, for example "D1: yes".
 - **Review queue:** <link to the open pull requests>. A PR with no comment from a non-author chat is unclaimed.
 - **The user's page:** <link to the saved search `is:open label:needs-you`>.
 
-## Chats (see the skill, "Chat names")
-| Session | Role | Folder | Branch | Machine | Last seen |
-|---|---|---|---|---|---|
-| `<ListAgents id>` | worker | `<path>` | `<branch>` | `<computer name>` | YYYY-MM-DD HH:MM |
+## Other machines (only chats `ListAgents` cannot see; delete this section when empty)
+| Session | Machine | Folder | Branch | Last seen |
+|---|---|---|---|---|
+| `<id>` | `<computer name>` | `<path>` | `<branch>` | YYYY-MM-DD HH:MM |
 
 Done: [DONE.md](DONE.md)
