@@ -84,6 +84,35 @@ def test_a_clean_merged_worktree_is_removed_and_its_branch_kept(
     assert sh(main, "branch", "--list", "feat/x")
 
 
+def test_files_git_leaves_behind_are_deleted(main: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """On Windows git can unregister a worktree, then fail inside node_modules."""
+    path, head = task_worktree(main, "x")
+    real_git_ok = worktree_sweep.git_ok
+
+    def partial_remove(args: list[str], cwd: Path, timeout: float = 8) -> bool:
+        if args[:2] == ["worktree", "remove"]:
+            (path / ".git").unlink()
+            sh(main, "worktree", "prune")
+            return False
+        return real_git_ok(args, cwd, timeout)
+
+    monkeypatch.setattr(worktree_sweep, "git_ok", partial_remove)
+    lines = run(main, monkeypatch, prs(feat_x=(head, LONG_AGO)))
+    assert lines[0].startswith("remove ") and "left behind" in lines[0] and not path.exists()
+
+
+def test_a_refused_removal_is_kept(main: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path, head = task_worktree(main, "x")
+    real_git_ok = worktree_sweep.git_ok
+    monkeypatch.setattr(
+        worktree_sweep, "git_ok",
+        lambda args, cwd, timeout=8: False if args[:2] == ["worktree", "remove"]
+        else real_git_ok(args, cwd, timeout),
+    )
+    lines = run(main, monkeypatch, prs(feat_x=(head, LONG_AGO)))
+    assert lines[0].startswith("keep ") and "refused" in lines[0] and path.exists()
+
+
 def test_dry_run_changes_nothing(main: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     path, head = task_worktree(main, "x")
     lines = run(main, monkeypatch, prs(feat_x=(head, LONG_AGO)), dry_run=True)

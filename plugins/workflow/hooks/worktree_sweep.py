@@ -9,7 +9,9 @@ At most every 6 hours per repository it starts a detached worker. The worker rem
 worktree only when every check passes: not locked; its branch has no open PR and a PR merged over
 2 hours ago (the liveness window); HEAD is in that PR or on the default branch; `git status` shows
 nothing; and its ignored files are only ones a tool regenerates. Removal is `git worktree remove`
-without `--force`, so git refuses anything else, and the branch is kept. Every decision is logged;
+without `--force`, so git refuses anything else, and the branch is kept. When git unregisters a
+worktree but cannot delete all its files (Windows, inside node_modules), the sweep deletes the
+rest, since the checks found nothing to lose there. Every decision is logged;
 the next session start shows one line when worktrees were removed.
 
 `python worktree_sweep.py sweep <main checkout> --dry-run` prints the decisions and changes nothing.
@@ -19,6 +21,9 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import os
+import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -138,6 +143,32 @@ def decide(tree: Worktree, prs: Prs, target: str, now: datetime) -> tuple[bool, 
     return True, f"PR #{latest['number']} merged {latest['mergedAt'][:10]}"
 
 
+def _retry_writable(func, path, _exc) -> None:  # noqa: ANN001 (shutil.rmtree's onerror shape)
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def remove_worktree(main: Path, path: str) -> tuple[bool, str]:
+    """Remove a worktree `decide` cleared: (removed?, note for the log)."""
+    git_ok(["worktree", "remove", path], main, timeout=600)  # the checks below tell what happened
+    folder = Path(path)
+    if not folder.exists():
+        return True, ""
+    still_listed = any(
+        os.path.normcase(os.path.normpath(t.path)) == os.path.normcase(os.path.normpath(path))
+        for t in parse_worktrees(git(["worktree", "list", "--porcelain"], main))
+    )
+    if still_listed or (folder / ".git").exists():
+        return False, "git refused to remove it"
+    # git unregistered the worktree but could not delete every file (on Windows, usually inside
+    # node_modules). `decide` already found nothing to lose there, so finish the deletion; rmtree
+    # does not follow directory junctions (Python 3.8+), so a pnpm store stays untouched.
+    shutil.rmtree(folder, onerror=_retry_writable)
+    if folder.exists():
+        return False, "git unregistered it but its folder could not be deleted"
+    return True, " (finished deleting files git left behind)"
+
+
 def log_path(main: Path) -> Path:
     return CACHE / f"{repo_key(main)}.log"
 
@@ -159,11 +190,8 @@ def sweep(main: Path, dry_run: bool, now: datetime | None = None) -> list[str]:
         except (OSError, RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
             remove, reason = False, f"could not check: {exc}"
         if remove and not dry_run:
-            if git_ok(["worktree", "remove", tree.path], main, timeout=600):
-                left = " (left a non-empty folder; not deleted)" if Path(tree.path).exists() else ""
-                reason += left
-            else:
-                remove, reason = False, "git refused to remove it"
+            remove, note = remove_worktree(main, tree.path)
+            reason = f"{reason}{note}" if remove else note
         lines.append(f"{'remove' if remove else 'keep'} {tree.path} [{tree.branch}] {reason}")
     if any(t.prunable for t in trees) and not dry_run:
         git_ok(["worktree", "prune"], main)
