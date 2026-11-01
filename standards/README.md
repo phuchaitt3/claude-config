@@ -8,6 +8,7 @@ The repository is public: an entry names no project and holds no private detail.
 
 - Before a web search about an industry practice, look for the topic below. If an entry covers the question and is under 12 months old, answer from it and cite it as `standards/<topic>`.
 - After a search that checks a practice, add or update the entry in the same turn, and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: <reason>)`.
+- A hook (`tag_check.py` in the workflow plugin) refuses a commit in this repo that cites `standards/<topic>` with no `standards/<topic>.md`. It checks that the entry exists, not that it supports the claim.
 - An entry older than 12 months, a source that has changed, or a new fact that contradicts it means check again and update the entry.
 
 ## Entry format
