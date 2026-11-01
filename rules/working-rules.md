@@ -57,6 +57,10 @@ The user sees the context meter in the status line; you do not. Suggest once per
 - `/clear` with a resume prompt (chat name, folder, branch, next task with its tag) when the next task is unrelated and this chat did more than about 15 tool calls, when the chat passed about 40 tool calls, or when quality is slipping (the same correction twice). Do not start the next task in that turn.
 - `/compact <what to keep>` only when the task continues and its state cannot be written to files yet; write ruled-out causes to a file first, because a summary can distort them.
 
+## Industry practice (user's decision, 2026-11-01)
+
+Before searching the web for an industry practice, read `~/claude-config/standards/README.md`. If an entry covers the question and is under 12 months old, answer from it and cite it; do not search. After a search that checks a practice, add or update the entry in the same turn (finding in a few lines, source links, date, limits of the sources) and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`. The register names no project and holds no private detail: the repository is public.
+
 ## Skills to load (the `workflow` plugin)
 
 - `workflow:pr-review`: before opening, reviewing or merging a pull request, or deferring work out of one.
