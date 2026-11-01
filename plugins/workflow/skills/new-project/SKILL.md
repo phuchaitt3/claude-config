@@ -13,7 +13,7 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 | Tier | When | Pull requests |
 |---|---|---|
-| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see `workflow:pr-review`); the user merges only PRs touching the paths the project's `CLAUDE.md` lists; default: `CLAUDE.md`, `.github/` (a project may narrow this by risk), infra and deploy config (files that build or run production or CI; local-only dev files, such as a compose file for the dev stack, are not deploy config), lockfiles by risk (the reviewer lists every changed package and may merge new packages and patch or minor bumps from the default registry with hashes kept; the user merges a major bump, a package the PR does not name, a new registry or git source, or removed hashes), secrets, money; README and docs are ordinary files, checked by the reviewer (user's decision, 2026-11-01) |
+| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see `workflow:pr-review`); the user merges only PRs touching the paths the project's `CLAUDE.md` lists; default: infra and deploy config (files that build or run production or CI; local-only dev files, such as a compose file for the dev stack, are not deploy config), lockfiles by risk (the reviewer lists every changed package and may merge new packages and patch or minor bumps from the default registry with hashes kept; the user merges a major bump, a package the PR does not name, a new registry or git source, or removed hashes), secrets, money; `CLAUDE.md`, `.github/`, README and docs are ordinary files, checked by the reviewer (user's decision, 2026-11-01) |
 | **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
 | **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
 
@@ -32,8 +32,9 @@ At the start of a new project, with the tier, ask which mode it runs in (`AskUse
 |---|---|---|
 | **build** (default) | ship working software fast | agents, under "Decision rights" |
 | **study-design** | the user learns system design by questioning agents' decisions | agents, with full reasoning in each ADR; the user reviews and may overrule |
+| **docs** | a repository of pages, notes or documentation, with no software to ship (user's decision, 2026-11-01) | agents on wording, structure and examples; the user on claims, scope and what is published |
 
-**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **study-design**: an agent chooses the architecture and writes the full reasoning in the ADR for a newcomer to study; the user reviews by questioning it from outside the loop, and work does not wait for that review. More modes may be added; each says who decides what.
+**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **docs**: agents write and revise pages to the project's page format and log the user's questions on the page; the user decides claims and scope. **study-design**: an agent chooses the architecture and writes the full reasoning in the ADR for a newcomer to study; the user reviews by questioning it from outside the loop, and work does not wait for that review. More modes may be added; each says who decides what.
 
 ## Why `main` is protected
 
