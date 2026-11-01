@@ -1,5 +1,5 @@
 {
-  "version": "0.17.0",
-  "since": "2026-11-01T16:40:00+07:00",
-  "why": "multi-chat review queue: the author also posts 'Review requested: <chat name>' on the PR; reviewers check open PRs across all the owner's repos; state line lists other repos' PRs"
+  "version": "0.18.0",
+  "since": "2026-11-01T17:10:00+07:00",
+  "why": "solo-fast merge gate: .claude/ changes are drawn by risk; agents may merge them after a careful review, the user merges only one that adds an allow rule, removes or disables a hook, or makes a hook refuse less"
 }
