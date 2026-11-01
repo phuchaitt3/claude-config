@@ -35,3 +35,4 @@ One file per topic, `standards/<topic>.md`:
 | [lockfile-review](lockfile-review.md) | How is a dependency lockfile change reviewed, and must the owner do it? |
 | [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? |
 | [adr-lifecycle](adr-lifecycle.md) | What statuses does an ADR have, and does a review block work? |
+| [bottleneck-tasks](bottleneck-tasks.md) | Do teams automatically find the tasks blocking other work and put them first? |
