@@ -30,6 +30,7 @@ One file per topic, `standards/<topic>.md`:
 | [secret-leak-prevention](secret-leak-prevention.md) | How is a secret kept out of a public repository, and how common are leaks? |
 | [leaked-secret-response](leaked-secret-response.md) | What to do first when a secret has been pushed. |
 | [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? |
+| [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? |
 | [lockfile-review](lockfile-review.md) | How is a dependency lockfile change reviewed, and must the owner do it? |
 | [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? |
 | [adr-lifecycle](adr-lifecycle.md) | What statuses does an ADR have, and does a review block work? |
