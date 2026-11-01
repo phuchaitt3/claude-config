@@ -1,11 +1,15 @@
 ---
 name: scaling-test
-description: Load before measuring how something behaves at a larger size than today's data (a load test, a benchmark of a store or index, a "does it still work at 100x" run), or before generating synthetic data to do so. How to ramp in steps on one machine, check the memory budget first, compare at matched quality, label synthetic data, and ask before any cloud spend.
+description: Load before measuring how something behaves at a larger size than today's data (a load test, a benchmark of a store or index, a "does it still work at 100x" run), or before generating synthetic data to do so. Also decides when a heavy local job runs (now, or in a window the user chooses). How to ramp in steps on one machine, check the memory budget first, compare at matched quality, label synthetic data, and ask before any cloud spend.
 ---
 
 # Testing scaling problems on a small budget
 
 User's decision, 2026-11-01, after a vector-store experiment in a RAG project could only compare two stores on 164 real chunks. Used with `workflow:experiment` (which decides what to compare and by when) and `workflow:adr` (numbers go in a measurement note, the ADR keeps one line).
+
+## When to run it (user's decision, 2026-11-01; standard: standards/heavy-job-scheduling, checked 2026-11-01)
+
+Size the job before starting it: expected duration, RAM and CPU. A local job that would run over about 15 minutes, or take most of the RAM or cores, does not start now. Ask the user for a window with `AskUserQuestion` (tonight at a given time, or "when you say you are leaving"; recommended first), and say what the slowdown would be. Never choose the window alone. For a chosen time, register it with `schedule-heavy.ps1` next to this file (`pwsh -NoProfile -File schedule-heavy.ps1 -Name <task> -At '<time>' -Run '<command>' -WorkDir <dir> -Log <file>`): it wakes the computer, starts only on AC power, stops after `-MaxHours`, runs through `keepawake.ps1` and deletes its own task. The wake-up needs "allow wake timers" in the power plan, which an agent does not change; ask the user to check it once. Put the log path and the expected finish in the issue the run belongs to. The next chat that opens with the issue reads the log's last line (`== finished ... exit=<code>`) and reports the result in its first message; there is no other reminder. A job too big for the machine is a cloud-spend question (below).
 
 ## Steps
 
