@@ -13,7 +13,7 @@ At the start of a new project, propose a tier in one line with the reason; the u
 
 | Tier | When | Pull requests |
 |---|---|---|
-| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see `workflow:pr-review`); the user merges only PRs touching the paths the project's `CLAUDE.md` lists; default: `CLAUDE.md`, `.github/` (a project may narrow this by risk), infra/deploy, lockfiles, secrets, money, public positioning |
+| **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see `workflow:pr-review`); the user merges only PRs touching the paths the project's `CLAUDE.md` lists; default: `CLAUDE.md`, `.github/` (a project may narrow this by risk), infra and deploy config (files that build or run production or CI; local-only dev files, such as a compose file for the dev stack, are not deploy config), lockfiles by risk (the reviewer lists every changed package and may merge new packages and patch or minor bumps from the default registry with hashes kept; the user merges a major bump, a package the PR does not name, a new registry or git source, or removed hashes), secrets, money, public positioning (user's decision, 2026-11-01) |
 | **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
 | **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
 
