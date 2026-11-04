@@ -36,7 +36,7 @@ One file per topic, `standards/<topic>.md`:
 | [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? |
 | [adr-lifecycle](adr-lifecycle.md) | What statuses does an ADR have, and does a review block work? |
 | [bottleneck-tasks](bottleneck-tasks.md) | Do teams automatically find the tasks blocking other work and put them first? |
-| [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, and clean up worktrees? |
+| [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, clean up worktrees, and where do worktrees live on disk? |
 | [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? |
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? |
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? |
