@@ -150,7 +150,7 @@ def check(command: str, cwd: str) -> str | None:
             f"`git {call.subcommand}` would change the main checkout ({main}), which stays on "
             f"`{branch_name}` so every chat reads current files (multi-chat skill, \"Working "
             f"rules\"). Do this in a task worktree: `git fetch origin`, then `git worktree add "
-            f"../{main.name}.worktrees/<ID>-<slug> -b <branch> origin/{branch_name}`, and run it there."
+            f"../<ID>-<slug> -b <branch> origin/{branch_name}`, and run it there."
         )
     return None
 

@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: ALWAYS load this at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, or when adding environment settings or a .env file. Covers proposing a tier (solo-fast, standard, strict) and asking the mode (build, study-design), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled.
+description: ALWAYS load this at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, when adding environment settings or a .env file, or when moving or renaming a project folder. Covers proposing a tier (solo-fast, standard, strict) and asking the mode (build, study-design), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled, and the folder layout (`<repo>/main` plus `<repo>/<ID>-<slug>` worktrees) with what to do after a move.
 ---
 
 # New project setup
@@ -68,3 +68,7 @@ A direct-tier repository needs only step 6, plus step 1 when the bot does not ow
 - The app loads the file, not the shell: the framework's own loader (Next.js, Docker Compose), `uv run --env-file .env`, `node --env-file=.env`, or a settings library (pydantic-settings). Do not set up terminals or shell profiles to export `.env` on start: every program run from that shell would see the secrets. If a shell needs per-folder variables, use direnv (loads only inside the folder, only after `direnv allow`), never the profile.
 - Python virtual environments need no activation under uv (`uv run` uses `.venv`). Leave VS Code's default of activating the selected interpreter in new terminals on; do not add activation to shell profiles.
 - Agents never read `.env` (see Hard limits); they read and update `.env.example`.
+
+## Folder layout (user's decision, 2026-11-05)
+
+Each repository has one folder in the projects folder: the main checkout is `<repo>/main`, and each task worktree is `<repo>/<ID>-<slug>` beside it, never inside `main/`. Tracked files hold no absolute paths; machine-specific paths go in one git-ignored place (`.env`, `.dvc/config.local`). After moving a folder, recreate environments instead of patching them, and run `git worktree repair <new paths>` in `main/` (standard: standards/project-path-portability, checked 2026-11-05).
