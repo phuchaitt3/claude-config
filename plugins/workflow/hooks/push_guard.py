@@ -1,22 +1,32 @@
-"""PreToolUse hook: refuse `git push` to a branch whose pull request is already merged.
+"""PreToolUse hook: refuse a force-push, a push to the default branch, and a push to a merged branch.
 
-A merge takes only what was on the branch at that moment, so a later push is lost (working rules,
-"Git"). Chats forget which of their PRs merged; this checks GitHub at the moment of the push,
-so it needs no notification to have arrived. It looks at the PR of the branch being pushed:
-open -> allow; merged and none open -> deny; no PR, or gh unavailable -> allow (fail open, this is
-a guard against a known mistake, not a security boundary).
+- Force in any form (`--force`, `-f`, `--force-with-lease`, `--mirror`, a `+` refspec) is refused
+  everywhere: the working rules ban it in every tier.
+- A push to the default branch is refused unless the repository is the config repo `~/claude-config`
+  or its CLAUDE.md declares the direct tier; those are the working rules' two exceptions. The user
+  runs any other such push.
+- A merge takes only what was on the branch at that moment, so a later push is lost. For a push to a
+  branch: open PR -> allow; merged and none open -> deny; no PR, or gh unavailable -> allow.
+
+All of it fails open: this guards against known mistakes and is not a security boundary (standard:
+standards/agent-permission-enforcement, checked 2026-11-05).
 """
 
 from __future__ import annotations
 
 import json
+import os
+import re
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
+from pathlib import Path
 
-from _gitcmd import git_calls
+from _gitcmd import GitCall, default_branch, git_calls
 
 _DEFAULT_BRANCHES = {"main", "master"}
+_SHORT_FORCE = re.compile(r"-[a-zA-Z]*f[a-zA-Z]*")
+_DIRECT_TIER = re.compile(r"tier:\s*\**\s*direct", re.I)
 # `git push` flags that take a separate value.
 _VALUE_FLAGS = {"--repo", "--receive-pack", "--exec", "-o", "--push-option", "--signed"}
 
@@ -73,8 +83,80 @@ def pushed_branches(command: str, cwd: str) -> list[tuple[str, str]]:
     return found
 
 
+def _forces(args: Sequence[str]) -> bool:
+    for arg in args:
+        if arg in ("--force", "--force-if-includes", "--mirror"):
+            return True
+        if arg.startswith("--force-with-lease") or _SHORT_FORCE.fullmatch(arg):
+            return True
+        if arg.startswith("+") and len(arg) > 1:
+            return True
+    return False
+
+
+def may_push_default(directory: str) -> bool:
+    """True in the two kinds of repository where the rules let agents push the default branch."""
+    try:
+        top = _run(["git", "rev-parse", "--show-toplevel"], directory).strip()
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
+        return True  # fail open
+    config = str(Path.home() / "claude-config")
+    if os.path.normcase(os.path.normpath(top)) == os.path.normcase(os.path.normpath(config)):
+        return True
+    try:
+        return _DIRECT_TIER.search(Path(top, "CLAUDE.md").read_text(encoding="utf-8")) is not None
+    except OSError:
+        return False
+
+
+def _targets_default(call: GitCall) -> bool:
+    """True when this `git push` reaches the default branch: by name, by --all or as the current."""
+    try:
+        names = _DEFAULT_BRANCHES | {default_branch(call.directory)}
+        if "--all" in call.args or "--branches" in call.args:
+            return True
+        positional: list[str] = []
+        skip = False
+        for arg in call.args:
+            if skip:
+                skip = False
+            elif arg in _VALUE_FLAGS:
+                skip = True
+            elif not arg.startswith("-"):
+                positional.append(arg)
+        specs = positional[1:]  # positional[0] is the remote
+        if not specs:
+            return _run(["git", "branch", "--show-current"], call.directory).strip() in names
+        for spec in specs:
+            target = spec.lstrip("+").split(":")[-1].removeprefix("refs/heads/")
+            if target == "HEAD":
+                target = _run(["git", "branch", "--show-current"], call.directory).strip()
+            if target in names:
+                return True
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
+        return False  # fail open
+    return False
+
+
+def policy_refusal(
+    command: str, cwd: str, may_push: Callable[[str], bool] = may_push_default
+) -> str | None:
+    """Why the rules ban this push whatever the state of its branch's PR, or None."""
+    for call in git_calls(command, cwd):
+        if call.subcommand != "push":
+            continue
+        if _forces(call.args):
+            return "Force-pushing is banned in every project. If history must change, the user does it."
+        if _targets_default(call) and not may_push(call.directory):
+            return (
+                "Pushing to the default branch is banned here: work on a feature branch and open a "
+                "PR. If the user has approved this push, the user runs it."
+            )
+    return None
+
+
 def check(command: str, cwd: str, state_fn: StateFn = pr_state_of_branch) -> str | None:
-    """A refusal reason for `command`, or None when it may run."""
+    """A refusal reason for a push to a branch whose PR already merged, or None."""
     for branch, directory in pushed_branches(command, cwd):
         try:
             name = branch or _run(["git", "branch", "--show-current"], directory).strip()
@@ -104,7 +186,8 @@ def main() -> int:
     if "push" not in command:
         return 0
     try:
-        reason = check(command, str(payload.get("cwd") or "."))
+        cwd = str(payload.get("cwd") or ".")
+        reason = policy_refusal(command, cwd) or check(command, cwd)
     except Exception:  # never block on a bug in the guard itself
         return 0
     if reason:

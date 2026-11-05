@@ -1,5 +1,5 @@
 {
-  "version": "0.20.3",
-  "since": "2026-11-05T11:30:00+07:00",
-  "why": "merge gate: on a repository with no required checks, --auto is not a gate; watch the checks, then merge plainly only if all pass"
+  "version": "0.21.0",
+  "since": "2026-11-05T12:30:00+07:00",
+  "why": "hooks now refuse force-push, push to the default branch outside the config repo and direct tier, and agent merges that are red, on user-merge paths, outside solo-fast, or use --auto with no required check"
 }

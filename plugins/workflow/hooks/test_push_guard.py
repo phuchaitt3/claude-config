@@ -109,3 +109,101 @@ def test_main_denies_and_ignores_other_tools(
     monkeypatch.setattr("sys.stdin", io.StringIO('{"tool_name":"Read","tool_input":{}}'))
     assert push_guard.main() == 0
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git push --force origin fix/T11",
+        "git push origin fix/T11 --force",
+        "git push -f origin fix/T11",
+        "git push -uf origin fix/T11",
+        "git push --force-with-lease origin fix/T11",
+        "git push --force-with-lease=fix/T11 origin fix/T11",
+        "git push origin +fix/T11",
+        "git push --mirror origin",
+        "git -C ../wt push -f origin fix/T11",
+        "cd x && git push -f",
+    ],
+)
+def test_force_is_refused_even_where_main_may_be_pushed(command: str) -> None:
+    reason = push_guard.policy_refusal(command, ".", lambda _d: True)
+    assert reason and "Force" in reason
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git push origin main",
+        "git push -u origin main",
+        "git push origin HEAD:main",
+        "git push origin fix/T11:main",
+        "git push origin refs/heads/main",
+        "git push origin master",
+        "git push origin :main",
+        "git push origin --delete main",
+        "git push --all origin",
+    ],
+)
+def test_default_branch_is_refused_unless_the_repo_allows_it(command: str) -> None:
+    reason = push_guard.policy_refusal(command, ".", lambda _d: False)
+    assert reason and "default branch" in reason
+    assert push_guard.policy_refusal(command, ".", lambda _d: True) is None
+
+
+def _on_branch(monkeypatch, name: str) -> None:
+    real = push_guard._run
+
+    def fake(args, cwd):
+        return name + "\n" if args[:2] == ["git", "branch"] else real(args, cwd)
+
+    monkeypatch.setattr(push_guard, "_run", fake)
+
+
+@pytest.mark.parametrize("command", ["git push", "git push origin", "git push origin HEAD"])
+def test_a_bare_push_is_judged_by_the_current_branch(monkeypatch, command: str) -> None:
+    _on_branch(monkeypatch, "main")
+    assert push_guard.policy_refusal(command, ".", lambda _d: False)
+    _on_branch(monkeypatch, "fix/T11")
+    assert push_guard.policy_refusal(command, ".", lambda _d: False) is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git push -u origin fix/T11",
+        "git push origin fix/main-menu",
+        "git push origin main:fix/T11",
+        "git push --dry-run origin fix/T11",
+        "git status",
+        "echo git push -f",
+    ],
+)
+def test_ordinary_commands_pass(command: str) -> None:
+    assert push_guard.policy_refusal(command, ".", lambda _d: False) is None
+
+
+def _repo_at(monkeypatch, top: Path) -> None:
+    monkeypatch.setattr(push_guard, "_run", lambda args, cwd: str(top) + "\n")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("**Tier: direct.**", True), ("Tier: **direct**", True), ("**Tier: solo-fast.**", False)],
+)
+def test_the_direct_tier_may_push_main(tmp_path, monkeypatch, text: str, expected: bool) -> None:
+    (tmp_path / "CLAUDE.md").write_text(text, encoding="utf-8")
+    _repo_at(monkeypatch, tmp_path)
+    assert push_guard.may_push_default(".") is expected
+
+
+def test_a_repo_with_no_claude_md_may_not_push_main(tmp_path, monkeypatch) -> None:
+    _repo_at(monkeypatch, tmp_path)
+    assert push_guard.may_push_default(".") is False
+
+
+def test_the_config_repo_may_push_main(tmp_path, monkeypatch) -> None:
+    (tmp_path / "claude-config").mkdir()
+    monkeypatch.setattr(push_guard.Path, "home", lambda: tmp_path)
+    _repo_at(monkeypatch, tmp_path / "claude-config")
+    assert push_guard.may_push_default(".") is True
