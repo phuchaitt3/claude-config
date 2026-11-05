@@ -29,6 +29,7 @@ One file per topic, `standards/<topic>.md`:
 | [policy-single-source](policy-single-source.md) | How do rules in prose and in enforcement code stay in step? |
 | [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? |
 | [secret-leak-prevention](secret-leak-prevention.md) | How is a secret kept out of a public repository, and how common are leaks? |
+| [private-repo-commit-checks](private-repo-commit-checks.md) | Can the secret and output checks before a commit be skipped in a private repository? |
 | [leaked-secret-response](leaked-secret-response.md) | What to do first when a secret has been pushed. |
 | [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? |
 | [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? |
