@@ -29,7 +29,7 @@ When unsure, take the lower-asking tier if the action is reversible. Do not ask 
 - **Push only what blocks the task in hand.** End a turn with at most 3 lines: the step that blocks the current task (plain words, a link, the time it takes); "N new in [INBOX.md](…)" only if the inbox gained an item this turn; a `/clear` or `/compact` suggestion only when "Context" says so. Say nothing when nothing blocks. Never end with a bare list of IDs.
 - **Items for the user live on GitHub** (user's decision, 2026-10-30): a PR or issue labelled `needs-you`, with the user as reviewer or assignee. The body says what it is, why it needs the user, the exact action, the time it takes, and what happens if nothing is done. In a public repo, private content stays in a local ticket and the issue says only "private item; ask in chat". Handoff files are the agents' notes; never ask the user to read them.
 - **Status comes from `gh` in the same turn**, never from memory or a handoff file (user's decision, 2026-10-30).
-- **Markdown** (user's decision, 2026-10-30): in chat replies, no `#` headings; a heading is a line of its own as `==Heading==`. Files keep normal `#` headings and never use `==`.
+- **Markdown** (user's decision, 2026-11-05, replacing the `==Heading==` form of 2026-10-30): in chat replies, no `#` or `##` headings; when a reply needs sections, use a bold label on its own line (`**Label**`); short answers are plain paragraphs with no headings. Files keep normal `#` headings.
 
 ## Git
 
