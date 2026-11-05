@@ -47,3 +47,4 @@ One file per topic, `standards/<topic>.md`:
 | [solo-pr-or-trunk](solo-pr-or-trunk.md) | Should a solo developer running AI agents use pull requests or commit straight to main? |
 | [agent-permission-enforcement](agent-permission-enforcement.md) | Which Claude Code mechanisms enforce a rule instead of asking the model to follow it? |
 | [ats-resume-section-headings](ats-resume-section-headings.md) | Does an ATS look for the exact heading "Work Experience", and does a resume without it get rejected? |
+| [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles? |
