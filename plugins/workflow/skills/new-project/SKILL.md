@@ -9,10 +9,11 @@ Moved out of the working rules (`~/claude-config/rules/working-rules.md`) on 202
 
 ## Project tiers (proposed by the agent, confirmed by the user)
 
-At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before merging a PR"; nothing else in the Hard limits is relaxed by any tier.
+At the start of a new project, propose a tier in one line with the reason; the user confirms once, then record it at the top of the project's `CLAUDE.md`. Never pick or change a tier without that confirmation. A confirmed **solo-fast** tier is the user's standing exception to the Hard limits' "ask before merging a PR"; a confirmed **direct** tier is the user's standing exception to "never commit on `main`" and "ask before pushing to `main`" for that repository, and lapses if the repository becomes public or gains a collaborator other than the bot. Nothing else in the Hard limits is relaxed by any tier.
 
 | Tier | When | Pull requests |
 |---|---|---|
+| **direct** | private personal repository with no collaborators other than the bot, no users, no money, no private data, where the user wants no PRs (user's decision, 2026-11-05) | no PRs, reviews or issue per task: agents commit on `main` and push it without asking once the project's lint and tests pass; no force-push, no history rewrite; all other Hard limits apply |
 | **solo-fast** | personal project, no users, no money, no private data | agents open PRs freely; any chat other than the author reviews and enables auto-merge (see `workflow:pr-review`); the user merges only PRs touching the paths the project's `CLAUDE.md` lists; default: infra and deploy config (files that build or run production or CI; local-only dev files, such as a compose file for the dev stack, are not deploy config), lockfiles by risk (the reviewer lists every changed package and may merge new packages and patch or minor bumps from the default registry with hashes kept; the user merges a major bump, a package the PR does not name, a new registry or git source, or removed hashes), secrets, money, and agent config (`.claude/`) only when a change adds an allow rule, removes or disables a hook, or makes a hook refuse less; `CLAUDE.md`, `.github/`, README and docs are ordinary files, checked by the reviewer (user's decision, 2026-11-01) |
 | **standard** (default) | shared repo, collaborators, or anything others depend on | agents push branches; the user opens and merges PRs |
 | **strict** | thesis/paper claims, client work, production with users | as standard, plus the user reviews every diff before merge |
@@ -57,6 +58,8 @@ The user does these once per repository, because they need admin and the bot has
 4. Run `gh repo edit <owner>/<repo> --delete-branch-on-merge`.
 5. Public repository: turn on secret-scanning push protection.
 6. Record the tier and mode at the top of the project's `CLAUDE.md`.
+
+A direct-tier repository needs only step 6, plus step 1 when the bot does not own it: with no PRs, the ruleset, `CODEOWNERS` and delete-branch-on-merge have nothing to act on.
 
 ## Configuration and secrets (user's decision, 2026-10-30; standard: Twelve-Factor App "III. Config" and the dotenv convention, checked 2026-10-30)
 

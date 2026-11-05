@@ -1,5 +1,5 @@
 {
-  "version": "0.19.0",
-  "since": "2026-11-01T17:20:00+07:00",
-  "why": "review modes: a global setting (settings/review.json, now self-diff) replaces mandatory peer review; outside peer mode the author checks its own diff and enables auto-merge itself, user-merge paths unchanged"
+  "version": "0.20.0",
+  "since": "2026-11-05T09:30:00+07:00",
+  "why": "new direct tier: in a confirmed direct-tier project agents commit on main and push it once lint and tests pass, with no PRs or reviews"
 }

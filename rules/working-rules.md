@@ -4,7 +4,7 @@ Loaded in every session through `~/.claude/CLAUDE.md`. This file holds only what
 
 ## Hard limits (a project may tighten, never loosen, except through the exceptions named here)
 
-- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Exceptions: pushing your own feature branch and opening its PR ("Git"); merges in a confirmed solo-fast project (`workflow:pr-review`); the config repo ("Git").
+- Ask before anything destructive (deleting or overwriting data you did not create, rewriting git history, force-pushing) and anything outward-facing (merging a PR, pushing to `main` or to a public repository, publishing, uploading to any external service, spending money). Exceptions: pushing your own feature branch and opening its PR ("Git"); merges in a confirmed solo-fast project (`workflow:pr-review`); the config repo ("Git"); commits and pushes to `main` in a confirmed direct-tier project (`workflow:new-project`; user's decision, 2026-11-05).
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`). Read and update `.env.example` instead.
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 
@@ -33,8 +33,8 @@ When unsure, take the lower-asking tier if the action is reversible. Do not ask 
 
 ## Git
 
-- **Tasks:** one GitHub issue per task; its PR says `Closes #n` (user's decision, 2026-10-30). A repo without a GitHub remote keeps tickets in files.
-- **Commit** on the current feature branch without asking; never on `main` (except the config repo). One commit is one coherent change with its tests and docs, staged with `git add <paths>`, committed once the project's lint and tests pass. Never commit run outputs, data, build artefacts, credentials, private identifiers, or changes you did not make. Message: imperative subject, a body with the why and known gaps, the harness's attribution trailer.
+- **Tasks:** one GitHub issue per task; its PR says `Closes #n` (user's decision, 2026-10-30). A repo without a GitHub remote keeps tickets in files; a direct-tier project needs no issue per task.
+- **Commit** on the current feature branch without asking; never on `main` (except the config repo and a confirmed direct-tier project). One commit is one coherent change with its tests and docs, staged with `git add <paths>`, committed once the project's lint and tests pass. Never commit run outputs, data, build artefacts, credentials, private identifiers, or changes you did not make. Message: imperative subject, a body with the why and known gaps, the harness's attribution trailer.
 - **Push** your own feature branch (`git push -u origin <branch>`, never `--force`) when it is green and the repo is private, or public with the user's standing approval in the project's `CLAUDE.md` and secret-scanning push protection on; otherwise ask. Push at a natural boundary. Once its PR has merged, follow-ups go on a new branch off the default branch (the `push_guard` hook refuses a push to a merged PR's branch).
 - **Switching machines** (user's decision, 2026-10-30): unfinished work may be committed as `wip: …` and pushed to your own feature branch; keep committing on top of it, never amend or reset it.
 - **GitHub identity:** agents write to GitHub as `phuchai-bot`. Check `gh auth status` before a write; never `gh auth switch`, `login` or `logout` yourself; if the bot is not active, ask.
