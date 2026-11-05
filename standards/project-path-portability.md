@@ -12,7 +12,7 @@
 - Layout: no source says a container folder per repository (`<repo>/main` plus `<repo>/<task>`) is cheaper to move than a checkout beside a `<repo>.worktrees` folder. Guides on the bare-repository variant report that some tools expect a normal clone as the project root; a normal clone in `main/` avoids that (see [worktree-hygiene](worktree-hygiene.md) for the layouts).
 - Checker's inference (not stated by the sources): sort everything that holds a path into three groups. Rebuildable (environments, editable installs, build caches): recreate, never patch. Tracked (code, docs, agent instructions): keep relative, so a move changes nothing. Machine-local (a data root, a remote, per-machine settings): one git-ignored place per machine. Moving a project then costs one rebuild and one local edit, whatever the layout.
 
-**Observed locally (2026-11-05):** renaming a parent folder left a Python environment's editable install and `activate` script on the old path, so the import failed until a rebuild, and nothing reported it. It also left two Claude Code project folders for one repository. Across five repositories, absolute paths in tracked files were rare: three files in one repository, one of them a remote outside the repository that a move does not affect. Handoff notes held more.
+**Observed locally (2026-11-05):** renaming a parent folder left a Python environment's editable install and `activate` script on the old path, so the import failed until a rebuild, and nothing reported it. It also left two Claude Code project folders for one repository. Across five repositories, absolute paths in tracked files were rare: five files in two of them, one of those a remote outside the repository that a move does not affect. Handoff notes held more.
 
 **Sources:**
 
