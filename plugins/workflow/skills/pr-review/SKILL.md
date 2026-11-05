@@ -26,6 +26,8 @@ One global setting, `~/claude-config/settings/review.json` (`mode`, `since`, `wh
 
 Cost is a median of 14 reviews in one project's transcripts (standard: standards/agent-review-cost, checked 2026-11-01). In every mode: Hard limits, required checks, the user-merge paths and the `merge_gate` hook are unchanged; a user-merge item still goes `needs-you` to the user, and a blocking issue still stops the merge. Outside `peer`, the author may enable auto-merge on its own PR (author ≠ approver applies to agent review only in `peer`), there is no named reviewer or review comment, and the PR body says `Review mode: <mode>`. A project rule that asks the reviewer to do something at merge (a DONE.md line, say) falls to the author.
 
+**No required checks** (user's decision, 2026-11-05): on a repository with no required checks (GitHub Free, private), `--auto` is not a gate. Run `gh pr checks <n> --watch` and, only if every check passes, `gh pr merge <n> --squash --delete-branch` (standard: standards/auto-merge-without-protection, checked 2026-11-05).
+
 ## Review and merge (standard: see Sources below, checked 2026-10-29)
 
 In `peer` mode this section applies as written; in the other modes, only the blocking-issue list, the user-merge rules, "After a merge" and "Post the review" (for `self-review` findings) apply.

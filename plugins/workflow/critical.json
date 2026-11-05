@@ -1,5 +1,5 @@
 {
-  "version": "0.20.0",
-  "since": "2026-11-05T09:30:00+07:00",
-  "why": "new direct tier: in a confirmed direct-tier project agents commit on main and push it once lint and tests pass, with no PRs or reviews"
+  "version": "0.20.3",
+  "since": "2026-11-05T11:30:00+07:00",
+  "why": "merge gate: on a repository with no required checks, --auto is not a gate; watch the checks, then merge plainly only if all pass"
 }
