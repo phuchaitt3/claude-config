@@ -55,6 +55,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 |---|---|---|
 | [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? | 2026-11-01 |
 | [agent-permission-enforcement](agent-permission-enforcement.md) | Which Claude Code mechanisms enforce a rule instead of asking the model to follow it? | 2026-11-05 |
+| [bot-repo-access](bot-repo-access.md) | Must a bot account be added to every repository one by one, and what do teams do instead? | 2026-11-08 |
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? | 2026-11-01 |
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
 
