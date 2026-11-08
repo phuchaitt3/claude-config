@@ -7,7 +7,7 @@ The repository is public: an entry names no project and holds no private detail.
 ## How to use it
 
 - Before a web search about an industry practice, look for the topic below. If an entry covers the question and is under 12 months old, answer from it and cite it as `standards/<topic>`.
-- After a search that checks a practice, add or update the entry in the same turn, and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: <reason>)`.
+- After a search that checks a practice, add or update the entry in the same turn, list it in the matching section of the index below with its Checked date (add a section only when no existing one fits), and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: <reason>)`.
 - A hook (`tag_check.py` in the workflow plugin) refuses a commit in this repo that cites `standards/<topic>` with no `standards/<topic>.md`. It checks that the entry exists, not that it supports the claim.
 - An entry older than 12 months, a source that has changed, or a new fact that contradicts it means check again and update the entry.
 
@@ -23,31 +23,50 @@ One file per topic, `standards/<topic>.md`:
 
 ## Index
 
-| Topic | Question |
-|---|---|
-| [code-owners-required-review](code-owners-required-review.md) | How does GitHub enforce a list of paths that only the owner may merge? |
-| [policy-single-source](policy-single-source.md) | How do rules in prose and in enforcement code stay in step? |
-| [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? |
-| [secret-leak-prevention](secret-leak-prevention.md) | How is a secret kept out of a public repository, and how common are leaks? |
-| [private-repo-commit-checks](private-repo-commit-checks.md) | Can the secret and output checks before a commit be skipped in a private repository? |
-| [leaked-secret-response](leaked-secret-response.md) | What to do first when a secret has been pushed. |
-| [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? |
-| [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? |
-| [lockfile-review](lockfile-review.md) | How is a dependency lockfile change reviewed, and must the owner do it? |
-| [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? |
-| [adr-lifecycle](adr-lifecycle.md) | What statuses does an ADR have, and does a review block work? |
-| [bottleneck-tasks](bottleneck-tasks.md) | Do teams automatically find the tasks blocking other work and put them first? |
-| [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, clean up worktrees, and where do worktrees live on disk? |
-| [project-path-portability](project-path-portability.md) | What should depend on a project's absolute path on disk, so that moving or renaming its folder stays cheap? |
-| [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? |
-| [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? |
-| [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? |
-| [auto-merge-without-protection](auto-merge-without-protection.md) | Does `gh pr merge --auto` wait for CI on a private GitHub Free repository, and what replaces it? |
-| [ml-ci-test-tiers](ml-ci-test-tiers.md) | How do machine-learning projects split tests between pull-request CI and heavier runs? |
-| [solo-pr-or-trunk](solo-pr-or-trunk.md) | Should a solo developer running AI agents use pull requests or commit straight to main? |
-| [agent-permission-enforcement](agent-permission-enforcement.md) | Which Claude Code mechanisms enforce a rule instead of asking the model to follow it? |
-| [ats-resume-section-headings](ats-resume-section-headings.md) | Does an ATS look for the exact heading "Work Experience", and does a resume without it get rejected? |
-| [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles? |
-| [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? |
-| [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? |
-| [knowledge-register-layout](knowledge-register-layout.md) | Should a practice register stay one flat folder as it grows, or use categories or subfolders? |
+Grouped by area so a lookup reads one section; the files stay flat, so a `standards/<topic>` tag never changes when an entry moves section (standard: standards/knowledge-register-layout, checked 2026-11-08).
+
+### Software process
+
+| Topic | Question | Checked |
+|---|---|---|
+| [code-owners-required-review](code-owners-required-review.md) | How does GitHub enforce a list of paths that only the owner may merge? | 2026-11-01 |
+| [policy-single-source](policy-single-source.md) | How do rules in prose and in enforcement code stay in step? | 2026-11-01 |
+| [secret-leak-prevention](secret-leak-prevention.md) | How is a secret kept out of a public repository, and how common are leaks? | 2026-11-01 |
+| [private-repo-commit-checks](private-repo-commit-checks.md) | Can the secret and output checks before a commit be skipped in a private repository? | 2026-11-05 |
+| [leaked-secret-response](leaked-secret-response.md) | What to do first when a secret has been pushed. | 2026-11-01 |
+| [lockfile-review](lockfile-review.md) | How is a dependency lockfile change reviewed, and must the owner do it? | 2026-11-01 |
+| [auto-merge-without-protection](auto-merge-without-protection.md) | Does `gh pr merge --auto` wait for CI on a private GitHub Free repository, and what replaces it? | 2026-11-05 |
+| [solo-pr-or-trunk](solo-pr-or-trunk.md) | Should a solo developer running AI agents use pull requests or commit straight to main? | 2026-11-05 |
+| [ml-ci-test-tiers](ml-ci-test-tiers.md) | How do machine-learning projects split tests between pull-request CI and heavier runs? | 2026-11-05 |
+| [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? | 2026-11-01 |
+| [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? | 2026-11-01 |
+| [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? | 2026-11-01 |
+| [adr-lifecycle](adr-lifecycle.md) | What statuses does an ADR have, and does a review block work? | 2026-11-01 |
+| [bottleneck-tasks](bottleneck-tasks.md) | Do teams automatically find the tasks blocking other work and put them first? | 2026-11-01 |
+| [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, clean up worktrees, and where do worktrees live on disk? | 2026-11-01 |
+| [project-path-portability](project-path-portability.md) | What should depend on a project's absolute path on disk, so that moving or renaming its folder stays cheap? | 2026-11-05 |
+| [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? | 2026-11-01 |
+| [knowledge-register-layout](knowledge-register-layout.md) | Should a practice register stay one flat folder as it grows, or use categories or subfolders? | 2026-11-08 |
+
+### Agent setup
+
+| Topic | Question | Checked |
+|---|---|---|
+| [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? | 2026-11-01 |
+| [agent-permission-enforcement](agent-permission-enforcement.md) | Which Claude Code mechanisms enforce a rule instead of asking the model to follow it? | 2026-11-05 |
+| [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? | 2026-11-01 |
+| [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
+
+### Research methods
+
+| Topic | Question | Checked |
+|---|---|---|
+| [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? | 2026-11-08 |
+
+### Career
+
+| Topic | Question | Checked |
+|---|---|---|
+| [ats-resume-section-headings](ats-resume-section-headings.md) | Does an ATS look for the exact heading "Work Experience", and does a resume without it get rejected? | 2026-11-05 |
+| [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles? | 2026-11-05 |
+| [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? | 2026-11-05 |

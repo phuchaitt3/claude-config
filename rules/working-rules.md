@@ -61,7 +61,7 @@ The user sees the context meter in the status line; you do not. Suggest once per
 
 ## Industry practice (user's decision, 2026-11-01)
 
-Before searching the web for an industry practice, read `~/claude-config/standards/README.md`. If an entry covers the question and is under 12 months old, answer from it and cite it; do not search. After a search that checks a practice, add or update the entry in the same turn (finding in a few lines, source links, date, limits of the sources) and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`. The register names no project and holds no private detail: the repository is public.
+Before searching the web for an established practice (software, research methods, hiring or any other field), read `~/claude-config/standards/README.md`. If an entry covers the question and is under 12 months old, answer from it and cite it; do not search. After a search that checks a practice, add or update the entry in the same turn (finding in a few lines, source links, date, limits of the sources) and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`. The register names no project and holds no private detail: the repository is public.
 
 ## Skills to load (the `workflow` plugin)
 
