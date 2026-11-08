@@ -7,6 +7,8 @@
   - Plain language first. Technical terms are fine when the hiring manager will recognise them; otherwise use plain words. Avoid stacked jargon and over-explaining.
   - Lead with the result, then how: Google's "accomplished X, as measured by Y, by doing Z" (popularised by Laszlo Bock) is the most cited shape. Quantify where a measured number exists; otherwise state the purpose or outcome, not only the mechanism.
   - Put the strongest material at the top of the page and the start of each bullet.
+  - **Reasons belong in the bullet, briefly.** The CAR shape (Challenge or Context, Action, Result) taught by university career centres puts the problem first because it gives the action its point; STAR is the interview form of the same idea. A short "to <purpose>" clause does this job when there is no measured result.
+  - **Specific beats generic.** Guides say to replace vague phrases with concrete, checkable detail: name the tool or mechanism, quantify what can be quantified. A phrase that fits any project ("optimized performance", "fit GPU memory") tells the reader nothing; a phrase only this project could say is the point. Balance it against the 1–2 line limit and against stacking jargon.
   - *Checker's inference:* a technical resume has two readers: a recruiter skimming for fit and keywords, then a technical reviewer who reads closely. A bullet should make sense to the first in one read and carry one or two precise terms for the second; fine mechanism detail belongs in the interview.
 - **Sources:**
   - HR Dive on the 2018 Ladders eye-tracking update (trade press): https://www.hrdive.com/news/eye-tracking-study-shows-recruiters-look-at-resumes-for-7-seconds/
@@ -15,5 +17,9 @@
   - CNBC on Google's X-Y-Z formula (press): https://www.cnbc.com/2018/08/16/google-recruiters-share-the-3-part-formula-for-stronger-resumes.html
   - The Muse, what resume readers wish candidates knew (career site): https://www.themuse.com/advice/5-things-people-reading-your-resume-wish-you-knew
   - CNBC, terms to remove from a resume (press): https://www.cnbc.com/2022/10/13/terms-to-avoid-using-on-your-resume.html
+  - SF State, CAR accomplishment statements worksheet (university career centre): https://grad.sfsu.edu/sites/default/files/documents/Accomplishment-Statements-for-Resumes-CAR-Statement-Worksheet.pdf
+  - Michigan State University Extension, CAR statements (university): https://www.canr.msu.edu/news/challenge_action_result_statements_car_statements_part_3
+  - UTSA Career Center, writing resume bullet points (university career centre): https://careercenter.utsa.edu/resources/_documents/writing-resume-bullet-points.pdf
+  - Toptal, how to write a tech resume (vendor guide): https://www.toptal.com/resume/career-center/how-to-write-a-tech-resume-for-software-engineering-roles
 - **Limits:** No peer-reviewed study of bullet wording was found; most sources are career blogs and vendors. The seconds figures come from one vendor study with weak methods. No primary Google document for X-Y-Z was found, only press reports. Nothing found specific to research-engineering roles.
 - **Checked:** 2026-11-08
