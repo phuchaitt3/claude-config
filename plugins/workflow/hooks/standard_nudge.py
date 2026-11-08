@@ -1,4 +1,4 @@
-"""PreToolUse and PostToolUse hook: keep industry-practice checks in the standards register.
+"""PreToolUse and PostToolUse hook: keep practice checks (software, research methods, hiring or any other field) in the standards register.
 
 Before a web search or fetch, remind the chat to read `~/claude-config/standards/` first, so a practice
 already checked is answered from the register and not searched again. After one, remind it to add or
@@ -17,13 +17,13 @@ import json
 import sys
 
 BEFORE = (
-    "Before searching: if this is about an industry practice, read `~/claude-config/standards/README.md`. "
+    "Before searching: if this is about an established practice (software, research methods, hiring or any other field), read `~/claude-config/standards/README.md`. "
     "If an entry covers the question and is under 12 months old, answer from it and cite it instead of "
     "searching. Otherwise ignore this."
 )
 
 AFTER = (
-    "If this search checked a rule or a documented point against industry practice, add or update its entry "
+    "If this search checked a rule or a documented point against established practice, add or update its entry "
     "in `~/claude-config/standards/` in this turn (finding, source links, limits, date), and tag the point "
     "where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: "
     "<reason>)`. Agents then skip re-checking it for 12 months (`rules/working-rules.md`, \"Industry "
