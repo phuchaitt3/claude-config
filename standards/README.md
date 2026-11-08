@@ -50,3 +50,4 @@ One file per topic, `standards/<topic>.md`:
 | [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles? |
 | [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? |
 | [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? |
+| [knowledge-register-layout](knowledge-register-layout.md) | Should a practice register stay one flat folder as it grows, or use categories or subfolders? |
