@@ -207,3 +207,16 @@ def test_the_config_repo_may_push_main(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(push_guard.Path, "home", lambda: tmp_path)
     _repo_at(monkeypatch, tmp_path / "claude-config")
     assert push_guard.may_push_default(".") is True
+
+
+@pytest.mark.parametrize(("value", "expected"), [("allow\n", True), ("ALLOW\n", True), ("no\n", False), (None, False)])
+def test_the_git_config_opt_in_may_push_main(tmp_path, monkeypatch, value, expected) -> None:
+    def fake_run(args, cwd):
+        if args[:2] == ["git", "config"]:
+            if value is None:
+                raise RuntimeError("key not set")
+            return value
+        return str(tmp_path) + "\n"
+
+    monkeypatch.setattr(push_guard, "_run", fake_run)
+    assert push_guard.may_push_default(".") is expected

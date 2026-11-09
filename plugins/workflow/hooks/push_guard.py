@@ -2,9 +2,11 @@
 
 - Force in any form (`--force`, `-f`, `--force-with-lease`, `--mirror`, a `+` refspec) is refused
   everywhere: the working rules ban it in every tier.
-- A push to the default branch is refused unless the repository is the config repo `~/claude-config`
-  or its CLAUDE.md declares the direct tier; those are the working rules' two exceptions. The user
-  runs any other such push.
+- A push to the default branch is refused unless the repository is the config repo `~/claude-config`,
+  its CLAUDE.md declares the direct tier, or the user opted it in with the local git setting
+  `git config claude.pushDefault allow` (for private notes repositories; it stays out of every
+  committed file, so no private path reaches the public config repo). Those are the working rules'
+  exceptions. The user runs any other such push.
 - A merge takes only what was on the branch at that moment, so a later push is lost. For a push to a
   branch: open PR -> allow; merged and none open -> deny; no PR, or gh unavailable -> allow.
 
@@ -95,7 +97,7 @@ def _forces(args: Sequence[str]) -> bool:
 
 
 def may_push_default(directory: str) -> bool:
-    """True in the two kinds of repository where the rules let agents push the default branch."""
+    """True in the repositories where the rules let agents push the default branch."""
     try:
         top = _run(["git", "rev-parse", "--show-toplevel"], directory).strip()
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
@@ -104,9 +106,20 @@ def may_push_default(directory: str) -> bool:
     if os.path.normcase(os.path.normpath(top)) == os.path.normcase(os.path.normpath(config)):
         return True
     try:
-        return _DIRECT_TIER.search(Path(top, "CLAUDE.md").read_text(encoding="utf-8")) is not None
+        if _DIRECT_TIER.search(Path(top, "CLAUDE.md").read_text(encoding="utf-8")):
+            return True
     except OSError:
+        pass
+    return _opted_in(top)
+
+
+def _opted_in(top: str) -> bool:
+    """The user's per-repository opt-in: `git config claude.pushDefault allow` (local, uncommitted)."""
+    try:
+        value = _run(["git", "config", "--get", "claude.pushDefault"], top)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
         return False
+    return value.strip().lower() == "allow"
 
 
 def _targets_default(call: GitCall) -> bool:
