@@ -64,6 +64,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | Topic | Question | Checked |
 |---|---|---|
 | [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? | 2026-11-08 |
+| [llm-judge-vs-em-f1](llm-judge-vs-em-f1.md) | Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers? | 2026-11-09 |
 
 ### Career
 
