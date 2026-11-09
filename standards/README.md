@@ -72,7 +72,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 
 | Topic | Question | Checked |
 |---|---|---|
-| [llm-inference-memory-calibration](llm-inference-memory-calibration.md) | How do inference systems size the batch token budget, how is it calibrated, and what must an inference benchmark report? | 2026-11-09 |
+| [llm-inference-memory-calibration](llm-inference-memory-calibration.md) | How do inference systems size the batch token budget, how is it calibrated, where does a bigger batch stop paying, and what must an inference benchmark report? | 2026-11-09 |
 
 ### Career
 

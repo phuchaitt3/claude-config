@@ -21,6 +21,12 @@
     - repeating runs and reporting spread;
     - reporting several metrics, not one number.
     - Specific warmup counts and thermal-soak times come from single blogs, not standards.
+  - **Where a bigger batch stops paying** (checked 2026-11-09):
+    - Prefill is compute-bound and saturates the GPU early. Sarathi-Serve reports prefill throughput nearly saturated at a single request, with per-token cost almost constant across batch sizes.
+    - Decode is memory-bound and gains most from batching, up to the hardware's roofline ridge point. Practitioner estimates put that ridge at a batch in the hundreds on H100-class GPUs; it is hardware- and precision-specific.
+    - For decode-heavy serving, the usual advice is the largest batch that fits memory and the latency target.
+    - So the best batch size depends on the workload's prefill/decode mix and on the GPU. It should be measured, not assumed to grow with the budget.
+  - **Static (padded) batching wastes work.** A batch runs until its longest output ends, and finished rows keep their slots. Continuous batching (Orca, OSDI 2022) fixes this by rescheduling every decode step; its gain grows with output-length variance. Speedups quoted in blogs (4-23×) depend on the baseline and should be checked against the papers.
   - **Checker's inference** (not from these sources): for offline batched generation with padded batches (Hugging Face `generate`), sorting inputs by length before batching is the usual way to cut padding (compare `group_by_length` in Hugging Face training).
 - **Sources:**
   - vLLM docs, optimization and tuning (official): https://docs.vllm.ai/en/latest/configuration/optimization.html
@@ -29,6 +35,10 @@
   - IETF Internet-Draft, LLM benchmarking methodology (draft, not a standard): https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-methodology
   - NVIDIA NIM benchmarking, parameters and best practices (vendor docs): https://docs.nvidia.com/nim/benchmarking/llm/latest/parameters.html
   - Modular, LLM performance benchmarks (vendor handbook): https://handbook.modular.com/inference-optimization/llm-performance-benchmarks/
+  - Sarathi-Serve, Agrawal et al. (paper): https://arxiv.org/abs/2403.02310
+  - SARATHI, chunked prefills (paper): https://arxiv.org/abs/2308.16369
+  - Roofline for LLM inference (practitioner blogs): https://aleph-alpha.com/en/blog/inference-performance-from-first-principles/ and https://www.spheron.network/blog/the-roofline-model-for-llm-inference-are-you-compute-bound-o/
+  - Continuous batching and Orca (secondary blogs; check against the Orca paper, OSDI 2022): https://www.generalcompute.com/blog/continuous-batching-the-orca-paper and https://tianpan.co/blog/2026/04/09/continuous-batching-llm-inference
 - **Limits:**
   - These are serving systems with paged KV caches and unpadded attention. A research pipeline on Hugging Face `generate` with padded batches has no paging or preemption, so its budget must cover padding, and a linear token budget can under-count memory at long prompts.
   - The exact shape of vLLM's profiling run is not in the official page; forum posts disagree.
