@@ -70,6 +70,6 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | Topic | Question | Checked |
 |---|---|---|
 | [ats-resume-section-headings](ats-resume-section-headings.md) | Does an ATS look for the exact heading "Work Experience", and does a resume without it get rejected? | 2026-11-05 |
-| [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles? | 2026-11-05 |
+| [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles, and may a class project carry a lead title? | 2026-11-09 |
 | [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? | 2026-11-05 |
 | [resume-bullet-clarity](resume-bullet-clarity.md) | Should resume bullets be understandable in one read by someone new to the work, and what shape do guides recommend? | 2026-11-08 |
