@@ -1,0 +1,36 @@
+# LLM inference: sizing the batch token budget and benchmarking it
+
+- **Question:** How do inference systems decide how many tokens fit in a GPU batch, how is that calibration run, and what must an inference benchmark report?
+- **Finding:**
+  - **The server calibrates once, at the worst-case shape, then enforces input limits so it never sees a larger shape.**
+    - vLLM reserves a fraction of GPU memory (`gpu_memory_utilization`). It sizes the KV cache from a profiling step at startup, unless the cache size is given explicitly.
+    - Hugging Face TGI runs a warmup that must fit the configured prefill budget, and fails at startup if it does not.
+      - `--max-batch-prefill-tokens` defaults to `max_input_tokens + 50`.
+      - `--max-batch-total-tokens` is "the largest possible amount that fits the remaining memory"; TGI infers it when it is not set.
+      - `--max-input-tokens` caps what users can send.
+    - So the calibration holds because inputs are capped at the calibrated length.
+  - **A per-step token budget, not a fixed batch size, is the main batching control.**
+    - vLLM: `max_num_batched_tokens` (decodes first, then prefills fill the rest; a prefill that does not fit is chunked).
+    - TGI: the token limits above.
+    - TGI notes that with padding the budget is effectively `batch_size × max_total_tokens`, and that servers avoid padding with unpadded (flash) attention.
+  - **When memory still runs out, servers degrade rather than crash.** vLLM preempts requests and recomputes them later.
+  - **Benchmarks.** An IETF draft on LLM benchmarking, NVIDIA's NIM benchmarking guide and practitioner guides agree on:
+    - declaring the input- and output-length distribution, in tokens of a named tokenizer, since input length drives prefill memory and time;
+    - reporting hardware and framework versions;
+    - discarding warmup runs;
+    - repeating runs and reporting spread;
+    - reporting several metrics, not one number.
+    - Specific warmup counts and thermal-soak times come from single blogs, not standards.
+  - **Checker's inference** (not from these sources): for offline batched generation with padded batches (Hugging Face `generate`), sorting inputs by length before batching is the usual way to cut padding (compare `group_by_length` in Hugging Face training).
+- **Sources:**
+  - vLLM docs, optimization and tuning (official): https://docs.vllm.ai/en/latest/configuration/optimization.html
+  - TGI launcher arguments (official): https://huggingface.co/docs/text-generation-inference/reference/launcher
+  - vLLM forum, profile run (community; details disagree between posts): https://discuss.vllm.ai/t/question-about-profile-run/1194
+  - IETF Internet-Draft, LLM benchmarking methodology (draft, not a standard): https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-methodology
+  - NVIDIA NIM benchmarking, parameters and best practices (vendor docs): https://docs.nvidia.com/nim/benchmarking/llm/latest/parameters.html
+  - Modular, LLM performance benchmarks (vendor handbook): https://handbook.modular.com/inference-optimization/llm-performance-benchmarks/
+- **Limits:**
+  - These are serving systems with paged KV caches and unpadded attention. A research pipeline on Hugging Face `generate` with padded batches has no paging or preemption, so its budget must cover padding, and a linear token budget can under-count memory at long prompts.
+  - The exact shape of vLLM's profiling run is not in the official page; forum posts disagree.
+  - The IETF document is an individual draft.
+- **Checked:** 2026-11-09

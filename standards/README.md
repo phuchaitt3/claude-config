@@ -68,6 +68,12 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [rag-retrieval-eval-without-benchmark](rag-retrieval-eval-without-benchmark.md) | With no benchmark that fits, how do teams evaluate RAG retrieval, and can LLM-generated test questions be trusted? | 2026-11-09 |
 | [llm-judge-vs-em-f1](llm-judge-vs-em-f1.md) | Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers? | 2026-11-09 |
 
+### ML systems
+
+| Topic | Question | Checked |
+|---|---|---|
+| [llm-inference-memory-calibration](llm-inference-memory-calibration.md) | How do inference systems size the batch token budget, how is it calibrated, and what must an inference benchmark report? | 2026-11-09 |
+
 ### Career
 
 | Topic | Question | Checked |
