@@ -10,5 +10,6 @@
   - GraphRAG.com, "Hypothetical Question Retriever" (community reference): https://graphrag.com/reference/graphrag/hypothetical-question-retriever/
   - Manning, *Essential GraphRAG*, chapter 3 preview (book): https://www.manning.com/preview/essential-graphrag/chapter-3
   - LangChain OpenTutorial, MultiVectorRetriever (community tutorial): https://langchain-opentutorial.gitbook.io/langchain-opentutorial/10-retriever/07-multivectorretriever
+- **Related:** testing such an index with questions from the same generator flatters it; see [rag-retrieval-eval-without-benchmark](rag-retrieval-eval-without-benchmark.md).
 - **Limits:** read through search summaries, not the full pages. No peer-reviewed comparison of question-only against chunk-plus-question indexing was found, and no LlamaIndex page for the pattern.
 - **Checked:** 2026-11-09

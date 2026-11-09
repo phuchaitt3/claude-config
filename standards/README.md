@@ -65,6 +65,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 |---|---|---|
 | [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? | 2026-11-08 |
 | [rag-hypothetical-question-indexing](rag-hypothetical-question-indexing.md) | Is indexing LLM-generated questions per chunk, instead of the chunk text, an established RAG practice? | 2026-11-09 |
+| [rag-retrieval-eval-without-benchmark](rag-retrieval-eval-without-benchmark.md) | With no benchmark that fits, how do teams evaluate RAG retrieval, and can LLM-generated test questions be trusted? | 2026-11-09 |
 | [llm-judge-vs-em-f1](llm-judge-vs-em-f1.md) | Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers? | 2026-11-09 |
 
 ### Career
