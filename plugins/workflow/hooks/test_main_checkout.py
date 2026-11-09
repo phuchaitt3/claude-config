@@ -1,5 +1,6 @@
 import importlib.util
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -138,3 +139,87 @@ def test_prompt_starts_a_refresh_only_when_due(
     main_checkout.on_prompt(payload, "SessionStart", time.time())
     main_checkout.on_prompt(payload, "UserPromptSubmit", time.time())
     assert len(started) == 1 and started[0][1:] == ["refresh", str(repo)]
+
+
+def test_refresh_fast_forwards_a_project_without_a_handoff_folder(repo: Path) -> None:
+    (repo / ".handoff").rmdir()
+    land_on_origin(repo, "b")
+    assert main_checkout.refresh(repo) is None
+    assert (repo / "b").exists()
+
+
+def test_refresh_outside_multi_chat_never_switches_branches(repo: Path) -> None:
+    (repo / ".handoff").rmdir()
+    sh(repo, "checkout", "-q", "-b", "feat/x")
+    assert main_checkout.refresh(repo) is None  # not behind: nothing to say
+    land_on_origin(repo, "b")
+    warning = main_checkout.refresh(repo)
+    assert warning and "feat/x" in warning and "worktree" not in warning
+    assert sh(repo, "branch", "--show-current") == "feat/x"
+
+
+def test_refresh_outside_multi_chat_is_quiet_about_uncommitted_work_when_current(
+    repo: Path,
+) -> None:
+    (repo / ".handoff").rmdir()
+    (repo / "a").write_text("edited")
+    assert main_checkout.refresh(repo) is None
+
+
+def test_paths_in_reads_tool_fields_and_shell_commands() -> None:
+    assert main_checkout.paths_in("Read", {"file_path": "D:/x/y.md"}) == ["D:/x/y.md"]
+    assert main_checkout.paths_in("Grep", {"pattern": "x"}) == []
+    found = main_checkout.paths_in(
+        "Bash", {"command": r'cd /d/projects/other/main; cat "C:\Users\a\b.md" | head'}
+    )
+    assert r"C:\Users\a\b.md" in found
+    if main_checkout.os.name == "nt":
+        assert "D:/projects/other/main" in found
+    assert main_checkout.paths_in("WebFetch", {"url": "https://x"}) == []
+
+
+def test_reading_another_repository_refreshes_it_once(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main_checkout, "CACHE", tmp_path / "cache")
+    session_repo = tmp_path / "session"
+    session_repo.mkdir()
+    sh(session_repo, "init", "-q", "-b", "main")
+    land_on_origin(repo, "b")
+    payload = {"tool_name": "Read", "tool_input": {"file_path": str(repo / "b")},
+               "cwd": str(session_repo), "session_id": "s1"}
+    now = time.time()
+    assert main_checkout.on_read(payload, now) is None
+    assert (repo / "b").exists()
+    land_on_origin(repo, "c")  # within 5 minutes: no second fetch
+    main_checkout.on_read(payload, now + 10)
+    assert not (repo / "c").exists()
+
+
+def test_reading_another_repository_passes_on_its_warning_once(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main_checkout, "CACHE", tmp_path / "cache")
+    land_on_origin(repo, "b")
+    (repo / "a").write_text("edited")
+    payload = {"tool_name": "Bash", "tool_input": {"command": f'cat "{repo / "a"}"'},
+               "cwd": str(tmp_path), "session_id": "s1"}
+    now = time.time()
+    warning = main_checkout.on_read(payload, now)
+    assert warning and "uncommitted" in warning and "1 commits behind" in warning
+    assert main_checkout.on_read(payload, now + 400) is None  # shown once per session
+
+
+def test_reads_in_the_own_repository_or_a_worktree_are_left_alone(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main_checkout, "CACHE", tmp_path / "cache")
+    sh(repo, "worktree", "add", "-q", str(repo.parent / "proj-1"), "-b", "feat/x", "origin/main")
+    land_on_origin(repo, "b")
+    own = {"tool_name": "Read", "tool_input": {"file_path": str(repo / "a")},
+           "cwd": str(repo), "session_id": "s1"}
+    worktree = {"tool_name": "Read", "tool_input": {"file_path": str(repo.parent / "proj-1" / "a")},
+                "cwd": str(tmp_path), "session_id": "s1"}
+    assert main_checkout.on_read(own, 1e10) is None
+    assert main_checkout.on_read(worktree, 1e10) is None
+    assert not (repo / "b").exists()

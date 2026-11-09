@@ -79,7 +79,7 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/main_checkout.py\"",
-            "timeout": 5
+            "timeout": 20
           },
           {
             "type": "command",
@@ -100,6 +100,16 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/tag_check.py\"",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/main_checkout.py\"",
+            "timeout": 20
           }
         ]
       },
