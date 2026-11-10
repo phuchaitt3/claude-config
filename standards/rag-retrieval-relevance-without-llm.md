@@ -1,0 +1,22 @@
+# Deciding retrieval relevance without an LLM judge
+
+- **Question:** Without an LLM judge, how do retrieval evaluations decide whether a retrieved passage or chunk is relevant, and how reliable are those non-LLM labels? (Which ranking metric to report on top of the labels is standards/rag-retrieval-metrics.)
+- **Finding:**
+  - **Three non-LLM ways to label relevance are in use, from strongest to weakest:**
+    1. **Gold evidence (provenance) labels:** humans marked where the answer comes from, and a passage counts as relevant if it holds that evidence. KILT scores retrieval this way (R-precision against the gold provenance pages; with one gold page, R-precision equals Precision@1) and only gives downstream credit when that retrieval is right (KILT-AC, KILT-F1). Datasets with rationale or evidence spans (SQuAD-style spans, CoQA-style rationales) allow the same check at chunk level, as span overlap or span coverage.
+    2. **Answer-string containment:** a passage counts as relevant if it contains a gold answer string. DPR's "top-k retrieval accuracy" uses this, and it is the usual open-domain QA retrieval number (DPR on NQ: 78.4% top-20 against 59.1% for BM25).
+    3. **Token or keyword recall** of the gold answer inside the passage: a softer form of 2.
+  - **Reliability:**
+    - Lexical matching is **too strict**. It undercounts correct items whose wording differs from the gold answer: over half of the lexical-match failures in Kamalloo et al. (ACL 2023) were semantically equivalent answers. It also misses formats ("25" against "twenty-five") and units (s3, 2025). Measured on generated answers, it agrees with human judgment less than an LLM judge does (see standards/llm-judge-vs-em-f1). Its error is mostly one-sided: it rarely calls a wrong item right, but string match can accept wrong passages that happen to contain a short answer word (a known problem with very short answers and multiple-choice options).
+    - **Comparing systems is safer than reading absolute levels.** Kamalloo et al. found regex matching ranks QA models consistently with human judgments, while still underestimating every one of them.
+    - **Gold evidence labels do not depend on wording,** but they cover only the annotated evidence. A passage that answers the question from somewhere else counts as a miss. eRAG (Salemi and Zamani, SIGIR 2024) reports that human or provenance relevance labels correlate only weakly with downstream RAG answer quality.
+  - *Checker's inference:* for comparing retrieval variants on one dataset, the reliable non-LLM setup is (a) gold-evidence overlap where the dataset has it, as the primary label, and (b) answer-string containment as a second, independent label. Report both, and treat the difference between variants (with a paired bootstrap, standards/rag-eval-confidence-intervals) as the result, not the absolute level. Do not mix in LLM-judged labels for some rows only: that changes the measuring instrument between rows and between runs.
+- **Sources:**
+  - Kamalloo, Dziri, Clarke, Rafiei, "Evaluating Open-Domain Question Answering in the Era of Large Language Models", ACL 2023 (peer-reviewed): https://aclanthology.org/2023.acl-long.307
+  - Petroni et al., "KILT: a Benchmark for Knowledge Intensive Language Tasks", NAACL 2021 (peer-reviewed): https://arxiv.org/pdf/2009.02252
+  - Karpukhin et al., "Dense Passage Retrieval for Open-Domain Question Answering", EMNLP 2020 (peer-reviewed); figures read from a secondary summary: https://liner.com/review/dense-passage-retrieval-for-opendomain-question-answering
+  - Salemi and Zamani, "Evaluating Retrieval Quality in Retrieval-Augmented Generation" (eRAG), SIGIR 2024 (peer-reviewed): https://arxiv.org/html/2404.13781v1
+  - Jiang et al., "s3: You Don't Need That Much Data to Train a Search Agent via RL", arXiv 2505.14146 (preprint): https://arxiv.org/pdf/2505.14146
+  - "Redefining Retrieval Evaluation in the Era of LLMs" (UDCG), arXiv 2510.21440 (preprint): https://arxiv.org/html/2510.21440v1
+- **Limits:** Read through search summaries and abstracts, not full papers. No study was found that compares gold-span overlap, answer-string match and LLM labels on the same data, and none on CoQA-style rationales specifically. The reliability figures come from English open-domain QA; behaviour on other languages, including word-segmentation effects on string match, is not covered.
+- **Checked:** 2026-11-10
