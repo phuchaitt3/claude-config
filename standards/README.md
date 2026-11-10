@@ -83,4 +83,5 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? | 2026-11-05 |
 | [resume-bullet-clarity](resume-bullet-clarity.md) | Should resume bullets be understandable in one read by someone new to the work, and what shape do guides recommend? | 2026-11-08 |
 | [resume-tailoring-project-context](resume-tailoring-project-context.md) | When tailoring cuts bullets, does an entry lose what the project was, and is that accepted practice? | 2026-11-10 |
+| [resume-summary-entry-level](resume-summary-entry-level.md) | Does an entry-level resume need a summary, what should it say, and may it restate the top entry? | 2026-11-10 |
 | [resume-english-score-vietnam-it](resume-english-score-vietnam-it.md) | How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume? | 2026-11-09 |
