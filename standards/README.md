@@ -58,6 +58,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [bot-repo-access](bot-repo-access.md) | Must a bot account be added to every repository one by one, and what do teams do instead? | 2026-11-08 |
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? | 2026-11-01 |
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
+| [keep-awake-long-jobs](keep-awake-long-jobs.md) | How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled? | 2026-11-11 |
 
 ### Research methods
 
