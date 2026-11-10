@@ -37,3 +37,8 @@ def test_a_worktree_folder_becomes_the_suffix() -> None:
 
 def test_empty_folder_falls_back() -> None:
     assert focus_title.title_for("/focus", "", "") == "focus-chat"
+
+
+def test_main_checkout_title_names_the_repo(tmp_path) -> None:
+    (tmp_path / "myrepo" / "main").mkdir(parents=True)
+    assert focus_title.title_for("/focus", str(tmp_path / "myrepo" / "main"), "") == "focus-myrepo-main"
