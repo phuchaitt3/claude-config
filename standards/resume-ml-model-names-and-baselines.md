@@ -5,6 +5,7 @@
   - **Name the model, inside a bullet that says what was done with it.** Guides contrast "Fine-tuned LLaMA-3-70B …; reduced error mode X by 41%" (signal) with "worked with LLMs" (none). Recruiters and ATS filters search specific names, not categories. A categorised skills section (Models, Frameworks) is where a plain list of models belongs.
   - Only name models the candidate can discuss; interviewers probe what is listed.
   - **Give a number with its baseline.** Guides say a metric alone ("AUC 0.91") means little to a reader; show what it is compared against ("18% over the baseline", "against a logistic-regression baseline"). One or two metrics per bullet; more dilutes it.
+  - **Older models in older projects (added 2026-11-10):** naming the model actually used is normal and honest; the project's dates give the context, and guides advise keeping each tool tied to the project and period where it was used rather than in a general skills list. The risk guides name is looking out of date: a recent project whose only named tools are superseded, or a skills section that lists them as current skills. So: name the old model inside its dated project bullet; keep the skills section to tools still in use; never swap in a newer model that was not used. Where the old model is incidental, a generic word ("LLM", "the OpenAI API") avoids the dated look at no cost.
   - *Checker's inference:* the baseline need not be an earlier version of the candidate's own work. Naming the alternative that lost (another model, a standard method) gives the reader the comparison without implying a history they do not know. Be consistent within one resume: either name the model wherever one is central to the bullet, or nowhere; generic words where the model is incidental.
 - **Sources:**
   - techinterview.org, ML engineer resume guide (community/career site): https://www.techinterview.org/post/3233474619/ml-engineer-resume/
@@ -13,5 +14,9 @@
   - Resumly, AI model evaluation with clear performance benchmarks (vendor blog): https://resumly.ai/blog/ai-model-evaluation-with-clear-performance-benchmarks
   - Jobscan, machine learning resume examples (vendor): https://www.jobscan.co/resume-examples/computer-engineering/machine-learning-resume
   - Carleton University career services, Data Science / AI / ML handout (university career centre): https://carleton.ca/career/wp-content/uploads/sites/87/2026/08/Data-Science-AI-ML.pdf
-- **Limits:** Career sites and vendor blogs, read through search summaries; no study of how readers react to model names. Nothing specific to research-residency postings.
+  - Resumly, highlighting technical stack versions (vendor blog): https://resumly.ai/blog/tips-for-highlighting-technical-stack-versions-to-show-uptodate-expertise
+  - NRWA Resume Experts, listing outdated technology on a resume (professional association): https://resumeexperts.thenrwa.org/listing-outdated-technology-on-a-resume
+  - Dice, key tips for upgrading a tech resume (job board): https://www.dice.com/career-advice/key-tips-upgrading-tech-resume
+  - Hireflow, ATS-friendly project descriptions (vendor blog): https://hireflow.net/blog/how-to-write-ats-friendly-project-descriptions-with-examples
+- **Limits:** Career sites and vendor blogs, read through search summaries; no study of how readers react to model names. The outdated-tools sources are about legacy software in general (none about LLM versions), and the advice to drop old tools aims at skills lists and long careers, not at a dated project from one or two years ago. Nothing specific to research-residency postings.
 - **Checked:** 2026-11-10
