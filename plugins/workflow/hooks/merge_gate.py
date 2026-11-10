@@ -4,7 +4,11 @@ For a command that runs `gh pr merge` (or merges through `gh api`), it refuses:
 - `--admin`, and any merge through `gh api`;
 - any merge in a repository whose CLAUDE.md does not declare the solo-fast tier (read from the
   repository named by `--repo` when given, otherwise from the local checkout);
-- a pull request touching a user-merge path;
+- a pull request touching a user-merge path: a path the repository's CODEOWNERS file on the base
+  branch gives an owner (the copy GitHub enforces), or the default list below when the repository
+  has no CODEOWNERS; secret files are refused either way (user's decision, 2026-11-11, after this
+  hook refused a dev-stack compose file that the project's CODEOWNERS and the pr-review skill both
+  leave to the reviewer);
 - a pull request with a check that has not passed, or with no checks yet in a repository that has
   workflows;
 - `--auto` when no check is required, because then nothing makes GitHub wait for CI (standard:
@@ -33,18 +37,24 @@ from collections.abc import Sequence
 from pathlib import Path
 from urllib.parse import quote
 
-# Paths the user merges (`workflow:pr-review`). `.claude/` is drawn by risk there, which needs a
-# reading of the diff, so the hook refuses all of it and the user decides.
-USER_MERGE_PATTERNS: tuple[tuple[str, str], ...] = (
-    (r"^\.github/workflows/", "CI config (.github/workflows/)"),
-    (r"^\.claude/", "agent settings and hooks (.claude/)"),
-    (r"^infra/", "infra/"),
-    (r"(^|/)Dockerfile[^/]*$", "deploy config (Dockerfile)"),
-    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "deploy config (compose)"),
+# Secret files: refused in every repository, whatever its CODEOWNERS says (Hard limits).
+SECRET_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"(^|/)\.env(?!\.example$)(\..*)?$", "secrets (.env)"),
     (r"\.(pem|key)$", "secrets (key file)"),
     (r"(^|/)credentials[^/]*\.json$", "secrets (credentials)"),
 )
+# Paths the user merges in a repository without CODEOWNERS (`workflow:pr-review`). `.claude/` is
+# drawn by risk there, which needs a reading of the diff, so the hook refuses all of it and the
+# user decides. A dev-stack compose file is not deploy config (pr-review), so it is not listed.
+DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"^\.github/workflows/", "CI config (.github/workflows/)"),
+    (r"^\.claude/", "agent settings and hooks (.claude/)"),
+    (r"^infra/", "infra/"),
+    (r"(^|/)Dockerfile[^/]*$", "deploy config (Dockerfile)"),
+)
+USER_MERGE_PATTERNS = DEFAULT_PATTERNS + SECRET_PATTERNS
+# Where GitHub looks for CODEOWNERS, in its order.
+CODEOWNERS_PATHS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")
 
 _SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|&\n()`]")
 # A merge through the API: the REST `.../pulls/N/merge` endpoint, or the GraphQL mutations.
@@ -112,8 +122,7 @@ class Gh:
             return []
         raise RuntimeError(result.stderr.strip() or f"gh exited with {result.returncode}")
 
-    def required_checks(self, pr_args: Sequence[str]) -> list[str]:
-        """Names of the checks the PR's base branch requires: rulesets plus classic protection."""
+    def _repo_and_base(self, pr_args: Sequence[str]) -> tuple[str, str]:
         view = _gh(["pr", "view", *pr_args, "--json", "baseRefName,url"], self.cwd)
         if view.returncode != 0:
             raise RuntimeError(view.stderr.strip() or f"gh exited with {view.returncode}")
@@ -121,7 +130,27 @@ class Gh:
         match = _PR_URL.search(info.get("url", ""))
         if not match:
             raise RuntimeError(f"cannot read the repository from {info.get('url')!r}")
-        repo, base = match.group(1), quote(info["baseRefName"], safe="")
+        return match.group(1), info["baseRefName"]
+
+    def codeowners(self, pr_args: Sequence[str]) -> str | None:
+        """The CODEOWNERS file on the PR's base branch, or None when the repository has none."""
+        repo, base = self._repo_and_base(pr_args)
+        for path in CODEOWNERS_PATHS:
+            result = _gh(
+                ["api", f"repos/{repo}/contents/{path}?ref={quote(base, safe='')}",
+                 "-H", "Accept: application/vnd.github.raw"],
+                self.cwd,
+            )
+            if result.returncode == 0:
+                return result.stdout
+            if "404" not in result.stderr and "Not Found" not in result.stderr:
+                raise RuntimeError(result.stderr.strip() or f"gh exited with {result.returncode}")
+        return None
+
+    def required_checks(self, pr_args: Sequence[str]) -> list[str]:
+        """Names of the checks the PR's base branch requires: rulesets plus classic protection."""
+        repo, base_name = self._repo_and_base(pr_args)
+        base = quote(base_name, safe="")
         names: list[str] = []
         rules = _gh(["api", f"repos/{repo}/rules/branches/{base}"], self.cwd)
         if rules.returncode != 0:
@@ -228,15 +257,62 @@ def _pr_args(merge_args: Sequence[str]) -> list[str]:
     return [*selector, *repo]
 
 
-def user_merge_hits(files: Sequence[str]) -> list[tuple[str, str]]:
-    """(file, reason) for every changed file on the user-merge list."""
+def _glob_regex(pattern: str) -> re.Pattern[str]:
+    """A CODEOWNERS pattern (gitignore rules) as a regex over a repository-relative path."""
+    anchored = pattern.startswith("/") or "/" in pattern.rstrip("/")
+    body = pattern.strip("/")
+    out = ""
+    i = 0
+    while i < len(body):
+        if body.startswith("**/", i):
+            out += "(?:.*/)?"
+            i += 3
+        elif body.startswith("**", i):
+            out += ".*"
+            i += 2
+        elif body[i] == "*":
+            out += "[^/]*"
+            i += 1
+        elif body[i] == "?":
+            out += "[^/]"
+            i += 1
+        else:
+            out += re.escape(body[i])
+            i += 1
+    # A pattern also matches everything under a directory of that name.
+    return re.compile(("^" if anchored else "^(?:.*/)?") + out + "(?:/.*)?$")
+
+
+def codeowners_rules(text: str) -> list[tuple[re.Pattern[str], bool]]:
+    """(pattern, has owners) per CODEOWNERS line, in file order. A line without owners makes its
+    paths unowned again, so the last matching line decides, as on GitHub."""
+    rules: list[tuple[re.Pattern[str], bool]] = []
+    for line in text.splitlines():
+        parts = line.split("#", 1)[0].split()
+        if parts:
+            rules.append((_glob_regex(parts[0]), len(parts) > 1))
+    return rules
+
+
+def user_merge_hits(
+    files: Sequence[str], codeowners: str | None = None
+) -> list[tuple[str, str]]:
+    """(file, reason) for every changed file on the user-merge list: the secret files, plus the
+    paths CODEOWNERS gives an owner, or the default list when there is no CODEOWNERS."""
+    rules = codeowners_rules(codeowners) if codeowners is not None else None
+    patterns = SECRET_PATTERNS if rules is not None else USER_MERGE_PATTERNS
     hits: list[tuple[str, str]] = []
     for name in files:
         normalized = name.replace("\\", "/")
-        for pattern, reason in USER_MERGE_PATTERNS:
-            if re.search(pattern, normalized, flags=re.IGNORECASE):
-                hits.append((name, reason))
-                break
+        reason = next(
+            (r for p, r in patterns if re.search(p, normalized, flags=re.IGNORECASE)), None
+        )
+        if reason is None and rules is not None:
+            owned = [has_owner for regex, has_owner in rules if regex.match(normalized)]
+            if owned and owned[-1]:
+                reason = "has an owner in CODEOWNERS"
+        if reason:
+            hits.append((name, reason))
     return hits
 
 
@@ -281,7 +357,7 @@ def check(command: str, gh: Gh) -> str | None:
                     "CLAUDE.md. Here the user merges: label the PR `needs-you` and request their "
                     "review."
                 )
-            hits = user_merge_hits(gh.files(pr_args))
+            hits = user_merge_hits(gh.files(pr_args), gh.codeowners(pr_args))
             if hits:
                 lines = "\n".join(f"  - {name}: {reason}" for name, reason in hits)
                 return (

@@ -17,9 +17,10 @@ GREEN = [{"name": "core", "bucket": "pass"}]
 
 class FakeGh:
     def __init__(self, *, solo=True, files=("src/a.py",), checks=GREEN, required=(), workflows=True,
-                 error=None):
+                 error=None, codeowners=None):
         self.solo, self.file_list, self.all_checks = solo, list(files), list(checks)
         self.required, self.workflows, self.error = list(required), workflows, error
+        self.owners_file = codeowners
         self.seen: list[list[str]] = []
 
     def _fail(self):
@@ -44,6 +45,10 @@ class FakeGh:
 
     def has_workflows(self, pr_args):
         return self.workflows
+
+    def codeowners(self, pr_args):
+        self._fail()
+        return self.owners_file
 
 
 def test_green_pr_in_a_solo_fast_repo_merges() -> None:
@@ -88,7 +93,7 @@ def test_disable_auto_is_not_a_merge() -> None:
 @pytest.mark.parametrize(
     "path",
     [".github/workflows/ci.yml", ".claude/settings.json", "infra/main.tf", "app/Dockerfile",
-     "docker-compose.dev.yml", ".env", "conf/.env.prod", "certs/server.pem", "credentials.json"],
+     ".env", "conf/.env.prod", "certs/server.pem", "credentials.json"],
 )
 def test_user_merge_paths_are_refused(path: str) -> None:
     reason = merge_gate.check("gh pr merge 4 --squash", FakeGh(files=[path]))
@@ -98,10 +103,58 @@ def test_user_merge_paths_are_refused(path: str) -> None:
 @pytest.mark.parametrize(
     "path",
     ["CLAUDE.md", "README.md", ".github/CODEOWNERS", ".env.example", "src/permissions.py",
-     "uv.lock"],
+     "uv.lock", "compose.yaml", "docker-compose.dev.yml"],
 )
 def test_ordinary_paths_merge(path: str) -> None:
     assert merge_gate.check("gh pr merge 4 --squash", FakeGh(files=[path])) is None
+
+
+# The CODEOWNERS of a real solo-fast project (comments trimmed): settings, infra, deploy files.
+OWNERS = """\
+# The paths the owner merges.
+/.claude/settings*.json  @owner
+/infra/             @owner
+/LICENSE            @owner
+**/Dockerfile*      @owner
+**/neon.ts          @owner
+"""
+
+
+@pytest.mark.parametrize(
+    "path",
+    [".claude/settings.json", ".claude/settings.local.json", "infra/db/init.sql", "LICENSE",
+     "apps/api/Dockerfile", "Dockerfile.dev", "web/neon.ts",
+     ".env", "certs/server.pem"],  # secrets: refused whatever CODEOWNERS says
+)
+def test_codeowners_paths_are_refused(path: str) -> None:
+    reason = merge_gate.check("gh pr merge 4 --squash", FakeGh(files=[path], codeowners=OWNERS))
+    assert reason and path in reason and "needs-you" in reason
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["compose.yaml", "compose.reranker.yaml", ".claude/hooks/merge_gate.py",
+     ".github/workflows/ci.yml", "src/infra/x.py", "docs/LICENSE", "README.md"],
+)
+def test_codeowners_replaces_the_default_list(path: str) -> None:
+    assert merge_gate.check(
+        "gh pr merge 4 --squash", FakeGh(files=[path], codeowners=OWNERS)
+    ) is None
+
+
+def test_a_later_line_without_owners_unowns_a_path() -> None:
+    owners = "/docs/ @owner\n/docs/notes/\n"
+    assert merge_gate.user_merge_hits(["docs/a.md"], owners)
+    assert merge_gate.user_merge_hits(["docs/notes/a.md"], owners) == []
+
+
+def test_unanchored_pattern_matches_at_any_depth() -> None:
+    assert merge_gate.user_merge_hits(["a/b/vercel.json"], "vercel.json @owner")
+    assert merge_gate.user_merge_hits(["a/b/vercel.json"], "/vercel.json @owner") == []
+
+
+def test_an_empty_codeowners_leaves_only_secrets() -> None:
+    assert merge_gate.user_merge_hits(["infra/main.tf", ".env"], "") == [(".env", "secrets (.env)")]
 
 
 def test_outside_a_solo_fast_repo_every_merge_is_refused() -> None:
@@ -273,3 +326,35 @@ def test_main_fails_closed_on_a_bug(monkeypatch, capsys) -> None:
 def test_main_ignores_other_tools(monkeypatch, capsys) -> None:
     out = run_main(monkeypatch, capsys, {"tool_name": "Read", "tool_input": {"file_path": "merge"}})
     assert out == ""
+
+
+def _owners_api(answers: dict):
+    """A fake _gh: `pr view` names o/r and base main; CODEOWNERS reads answer from `answers`."""
+
+    def fake(args, cwd):
+        if args[:2] == ["pr", "view"]:
+            return _Result('{"baseRefName":"main","url":"https://github.com/o/r/pull/4"}')
+        return answers.get(args[1], _Result(stderr="HTTP 404: Not Found", returncode=1))
+
+    return fake
+
+
+def test_codeowners_is_read_from_the_base_branch_in_githubs_order(monkeypatch) -> None:
+    monkeypatch.setattr(merge_gate, "_gh", _owners_api(
+        {"repos/o/r/contents/CODEOWNERS?ref=main": _Result("/infra/ @o\n")}
+    ))
+    assert merge_gate.Gh().codeowners(["4"]) == "/infra/ @o\n"
+
+
+def test_no_codeowners_file_means_the_default_list(monkeypatch) -> None:
+    monkeypatch.setattr(merge_gate, "_gh", _owners_api({}))
+    assert merge_gate.Gh().codeowners(["4"]) is None
+
+
+def test_codeowners_read_error_refuses(monkeypatch) -> None:
+    monkeypatch.setattr(merge_gate, "_gh", _owners_api(
+        {"repos/o/r/contents/.github/CODEOWNERS?ref=main":
+         _Result(stderr="HTTP 502: Bad Gateway", returncode=1)}
+    ))
+    with pytest.raises(RuntimeError):
+        merge_gate.Gh().codeowners(["4"])
