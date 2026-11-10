@@ -38,6 +38,10 @@ class FakeGh:
         self._fail()
         return self.required if required else self.all_checks
 
+    def required_checks(self, pr_args):
+        self._fail()
+        return [c["name"] for c in self.required]
+
     def has_workflows(self, pr_args):
         return self.workflows
 
@@ -170,6 +174,54 @@ class _Result:
 def test_checks_reads_gh_whatever_its_exit_code(monkeypatch, result, expected) -> None:
     monkeypatch.setattr(merge_gate, "_gh", lambda args, cwd: result)
     assert merge_gate.Gh().checks(["4"]) == expected
+
+
+def test_auto_is_allowed_before_ci_reports_when_the_branch_requires_checks() -> None:
+    # 2026-11-10: right after a push no check had reported, and the gate wrongly said the
+    # repository required none, though its ruleset required three.
+    gh = FakeGh(checks=[], required=GREEN)
+    assert merge_gate.check("gh pr merge 4 --auto --squash", gh) is None
+
+
+def _api(responses: dict):
+    """A fake _gh answering `pr view` and `api <path>` calls from `responses`."""
+
+    def fake(args, cwd):
+        if args[:2] == ["pr", "view"]:
+            return _Result('{"baseRefName":"main","url":"https://github.com/o/r/pull/4"}')
+        return responses[args[1]]
+
+    return fake
+
+
+RULES = "repos/o/r/rules/branches/main"
+BRANCH = "repos/o/r/branches/main"
+RULESET = ('[{"type":"pull_request"},{"type":"required_status_checks","parameters":'
+           '{"required_status_checks":[{"context":"web"},{"context":"python"}]}}]')
+CLASSIC = '{"protected":true,"protection":{"required_status_checks":{"contexts":["lint"]}}}'
+
+
+@pytest.mark.parametrize(
+    ("rules", "branch", "expected"),
+    [
+        (RULESET, '{"protected":true,"protection":{}}', ["python", "web"]),
+        ("[]", CLASSIC, ["lint"]),
+        (RULESET, CLASSIC, ["lint", "python", "web"]),
+        ("[]", '{"protected":false}', []),
+    ],
+)
+def test_required_checks_reads_rulesets_and_classic_protection(
+    monkeypatch, rules, branch, expected
+) -> None:
+    monkeypatch.setattr(merge_gate, "_gh", _api({RULES: _Result(rules), BRANCH: _Result(branch)}))
+    assert merge_gate.Gh().required_checks(["4"]) == expected
+
+
+def test_required_checks_raises_when_the_rules_cannot_be_read(monkeypatch) -> None:
+    responses = {RULES: _Result("", "HTTP 404: Not Found", 1), BRANCH: _Result("{}")}
+    monkeypatch.setattr(merge_gate, "_gh", _api(responses))
+    with pytest.raises(RuntimeError, match="404"):
+        merge_gate.Gh().required_checks(["4"])
 
 
 def test_checks_raises_on_a_real_gh_error(monkeypatch) -> None:

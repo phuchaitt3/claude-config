@@ -10,7 +10,10 @@ For a command that runs `gh pr merge` (or merges through `gh api`), it refuses:
 - `--auto` when no check is required, because then nothing makes GitHub wait for CI (standard:
   standards/auto-merge-without-protection, checked 2026-11-05).
 
-With `--auto` and required checks, GitHub holds the merge, so pending checks are allowed.
+With `--auto` and required checks, GitHub holds the merge, so pending checks are allowed. Whether
+checks are required is read from the base branch's rules (rulesets and classic protection), not
+from the checks the PR has reported: right after a push CI has reported nothing, and gh then says
+"no required checks reported" even where checks are required (wrong refusal on 2026-11-10).
 If gh cannot answer, or the hook itself fails, the merge is refused. A hook timeout still lets the
 command through.
 
@@ -28,6 +31,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from urllib.parse import quote
 
 # Paths the user merges (`workflow:pr-review`). `.claude/` is drawn by risk there, which needs a
 # reading of the diff, so the hook refuses all of it and the user decides.
@@ -72,6 +76,7 @@ _VALUE_FLAGS = {
 
 _PASSED = {"pass", "skipping"}
 _NO_CHECKS = re.compile(r"no (required )?checks reported", re.I)
+_PR_URL = re.compile(r"github\.com/([^/]+/[^/]+)/pull/")
 _SOLO_FAST = re.compile(r"tier:\s*\**\s*solo-fast", re.I)
 
 
@@ -106,6 +111,31 @@ class Gh:
         if _NO_CHECKS.search(result.stderr + result.stdout):
             return []
         raise RuntimeError(result.stderr.strip() or f"gh exited with {result.returncode}")
+
+    def required_checks(self, pr_args: Sequence[str]) -> list[str]:
+        """Names of the checks the PR's base branch requires: rulesets plus classic protection."""
+        view = _gh(["pr", "view", *pr_args, "--json", "baseRefName,url"], self.cwd)
+        if view.returncode != 0:
+            raise RuntimeError(view.stderr.strip() or f"gh exited with {view.returncode}")
+        info = json.loads(view.stdout)
+        match = _PR_URL.search(info.get("url", ""))
+        if not match:
+            raise RuntimeError(f"cannot read the repository from {info.get('url')!r}")
+        repo, base = match.group(1), quote(info["baseRefName"], safe="")
+        names: list[str] = []
+        rules = _gh(["api", f"repos/{repo}/rules/branches/{base}"], self.cwd)
+        if rules.returncode != 0:
+            raise RuntimeError(rules.stderr.strip() or f"gh exited with {rules.returncode}")
+        for rule in json.loads(rules.stdout):
+            if rule.get("type") == "required_status_checks":
+                params = rule.get("parameters") or {}
+                names += [c.get("context", "") for c in params.get("required_status_checks", [])]
+        branch = _gh(["api", f"repos/{repo}/branches/{base}"], self.cwd)
+        if branch.returncode != 0:
+            raise RuntimeError(branch.stderr.strip() or f"gh exited with {branch.returncode}")
+        protection = json.loads(branch.stdout).get("protection") or {}
+        names += (protection.get("required_status_checks") or {}).get("contexts") or []
+        return sorted({n for n in names if n})
 
     def has_workflows(self, pr_args: Sequence[str]) -> bool:
         repo = list(pr_args[pr_args.index("--repo") :][:2]) if "--repo" in pr_args else []
@@ -213,11 +243,12 @@ def user_merge_hits(files: Sequence[str]) -> list[tuple[str, str]]:
 def ci_refusal(merge_args: Sequence[str], pr_args: Sequence[str], gh: Gh) -> str | None:
     """Why CI blocks this merge, or None."""
     if "--auto" in merge_args:
-        if gh.checks(pr_args, required=True):
+        if gh.required_checks(pr_args):
             return None  # GitHub holds the merge until the required checks pass
         return (
-            "`--auto` is not a gate here: this repository has no required checks, so nothing "
-            "makes GitHub wait for CI. Run `gh pr checks <n> --watch`, then merge without `--auto`."
+            "`--auto` is not a gate here: the base branch requires no checks (no ruleset or branch "
+            "protection names one), so nothing makes GitHub wait for CI. Run "
+            "`gh pr checks <n> --watch`, then merge without `--auto`."
         )
     checks = gh.checks(pr_args)
     if not checks:

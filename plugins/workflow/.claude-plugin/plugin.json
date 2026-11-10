@@ -1,5 +1,5 @@
 {
   "name": "workflow",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "description": "Multi-chat coordination: worktree per task, shared inbox, handoff reports, messaging between chats; on-demand skills for pull requests, new projects, rule changes, subagents, self-driving loops, ADR writing and experiments that may replace a working design; hooks that keep chats in sync with GitHub (state line on each message, no force-push, no push to the default branch or a merged branch, no red merge), keep main checkouts current (the chat's own repository and any other it reads from) and a multi-chat project's free of git work, remove worktrees whose PR merged, release claims of closed chats, and name each chat after its repository and folder."
 }
