@@ -145,6 +145,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/stale_claim.py\"",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }
