@@ -1,0 +1,16 @@
+# Resume tailoring: cutting bullets without losing what a project is
+
+- **Question:** When a resume is cut to fit one page for a posting, does keeping only the bullets relevant to that posting leave project entries fragmented, so a reader no longer knows what each project was for? Is that accepted practice?
+- **Finding:**
+  - **Cutting less relevant detail is the standard way to tailor.** MIT's career toolkit says to tailor "by emphasizing the most relevant information by removing less relevant details or duplicative tasks", or "condensing descriptions to fit the page limit". A summary of The Muse's tailoring advice (the page itself returned 403) says to keep less relevant experience but "pull out the relevant bits" in its bullets.
+  - **Each kept entry still says what the project was.** MIT's PAR advice starts with "briefly describe the task or project you were involved in". UNL's business career centre template for a project entry is a "Summary Statement (provides program details)" bullet, then "Project Phase or Task/Result" bullets. So the cut removes task bullets, not the line that frames the project.
+  - **Relevance sets the bullet budget per entry.** Simplify's count of 11,819 jobs on resumes edited on its site (12 months to July 2026) has a median of 4 bullets per job: 5 for the first listed, 3 from the third down, and about 21% with two or fewer. Its *recommendation*, which the data does not test, is five to six bullets for the most relevant role, three to four for related ones, and one to two or none for unrelated ones.
+  - *Checker's inference:* a fragmented entry is a real risk, but the guides answer it with a framing line kept on every entry, not by keeping unrelated bullets. When an entry would fall below its framing line plus one relevant bullet, cutting the whole entry reads better than a fragment. An entry whose first bullet already states the goal ("Led a team of 3 to build X for Y") has its framing line; its stack line names the tools.
+- **Sources:**
+  - [MIT CAPD, Crafting an effective resume](https://capd.mit.edu/resources/career-toolkit-crafting-an-effective-resume/) (university career centre; read in full).
+  - [UNL Business Career Center, Tailoring your résumé](https://business.unl.edu/business-career-center/tailoring-your-resume/) (university career centre; read in full).
+  - [Simplify, bullets per job, 11,819 jobs](https://simplify.jobs/blog/how-many-bullet-points-per-job-resume) (vendor data from its own users; read in full; method thinly described).
+  - [The Muse, what it really means to tailor your resume](https://www.themuse.com/advice/what-it-really-means-to-tailor-your-resume) (career site; 403, seen through a search summary only).
+  - [Utah Valley University, resume preparation](https://www.uvu.edu/career-internship/students/resume-preparation.html) (university career centre; 3–5 bullets per experience entry; through a search summary only).
+- **Limits:** No source addresses fragmentation after cutting head-on; the framing-line answer is drawn from layout templates. Bullet counts are about jobs, applied to projects by analogy. No study measures whether tailored resumes do better. All sources are US-based.
+- **Checked:** 2026-11-10
