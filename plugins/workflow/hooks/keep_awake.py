@@ -22,9 +22,10 @@ Skipped (no hold): `pnpm|npm|yarn [run] dev`, `next dev`, `--reload`, `--watch`,
 `docker compose up` without `-d`. A `# keepawake: on` or `# keepawake: off` marker in the command
 overrides. The power plan is never changed, and a closed lid still sleeps the machine.
 
-Known gap: two background calls in one batch race for the first matching shell. For Bash the words
-in the command line tell them apart; two background PowerShell calls in one batch may swap
-processes, so one hold can end early (it never lasts past both). Windows only; elsewhere a no-op.
+Two background calls in one batch race for matching shells. Each holder claims its shell with an
+exclusive file in `claims/`, so no two holders watch the same one and every shell is covered. Two
+PowerShell calls cannot be told apart (no command text on their command lines), so their holders
+may swap, which only swaps the command names in the status line. Windows only; elsewhere a no-op.
 
 Fails open: any error prints nothing and exits 0. Holder decisions are logged in
 `~/.claude/hook-cache/keep_awake/holder.log`.
@@ -43,6 +44,7 @@ from pathlib import Path
 
 CACHE_DIR = Path.home() / ".claude" / "hook-cache" / "keep_awake"
 HOLDS_DIR = CACHE_DIR / "holds"
+CLAIMS_DIR = CACHE_DIR / "claims"
 DISCOVER_S = 90.0  # other PreToolUse hooks may run up to 30 s before the tool's shell starts
 POLL_S = 0.25
 LONG_HOLD_H = 4.0
@@ -219,6 +221,34 @@ def log(message: str) -> None:
         pass
 
 
+def claim_shell(shell: int, holder: int, claims: Path, is_alive=None) -> bool:
+    """Take `shell` for this holder, so two holders never watch the same shell.
+
+    The claim is a file created exclusively. A claim left by a dead holder (a crash, or a reused
+    PID) is removed and taken over. With distinct shells per holder, every background shell is
+    watched, so a swap between two same-batch calls cannot end a hold early.
+    """
+    is_alive = is_alive or alive
+    claims.mkdir(parents=True, exist_ok=True)
+    path = claims / f"{shell}.claim"
+    for _ in range(2):
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                owner = int(path.read_text(encoding="utf-8").strip() or 0)
+            except (OSError, ValueError):
+                owner = 0
+            if owner and is_alive(owner):
+                return False
+            path.unlink(missing_ok=True)
+            continue
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(str(holder))
+        return True
+    return False
+
+
 def find_shell(claude: int, tool: str, words: list[str], before: set[int]) -> int | None:
     deadline = time.monotonic() + DISCOVER_S
     checked: set[int] = set()
@@ -226,9 +256,12 @@ def find_shell(claude: int, tool: str, words: list[str], before: set[int]) -> in
         for pid, (parent, name) in processes().items():
             if parent != claude or pid in before or pid in checked:
                 continue
-            checked.add(pid)
-            if matches_shell(tool, name, command_line(pid), words):
+            if not matches_shell(tool, name, command_line(pid), words):
+                checked.add(pid)
+                continue
+            if claim_shell(pid, os.getpid(), CLAIMS_DIR):
                 return pid
+            # Another holder took it first; look again on the next pass, in case it lets go.
         time.sleep(POLL_S)
     return None
 
@@ -240,6 +273,7 @@ def hold(spec_path: str) -> int:
     before = set(spec["before"])
     k32.SetThreadExecutionState(0x80000000 | 0x1)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
     record = HOLDS_DIR / f"{os.getpid()}.json"
+    shell: int | None = None
     try:
         shell = find_shell(spec["claude"], spec["tool"], spec["words"], before)
         if shell is None:
@@ -260,6 +294,8 @@ def hold(spec_path: str) -> int:
     finally:
         k32.SetThreadExecutionState(0x80000000)
         record.unlink(missing_ok=True)
+        if shell is not None:
+            (CLAIMS_DIR / f"{shell}.claim").unlink(missing_ok=True)
 
 
 def pythonw() -> str:

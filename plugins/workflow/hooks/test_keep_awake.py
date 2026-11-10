@@ -176,3 +176,16 @@ def test_status_repeats_while_a_hold_is_long(monkeypatch, tmp_path, capsys):
     ka.status({"session_id": "s2"})
     ka.status({"session_id": "s2"})
     assert capsys.readouterr().out.count("keep-awake: 1 hold") == 2
+
+
+def test_two_holders_never_claim_the_same_shell(tmp_path):
+    live = {101, 102}
+    assert ka.claim_shell(500, 101, tmp_path, live.__contains__)
+    assert not ka.claim_shell(500, 102, tmp_path, live.__contains__)  # taken by a live holder
+    assert ka.claim_shell(501, 102, tmp_path, live.__contains__)      # so it takes the next shell
+
+
+def test_claim_left_by_a_dead_holder_is_taken_over(tmp_path):
+    (tmp_path / "500.claim").write_text("999", encoding="utf-8")
+    assert ka.claim_shell(500, 101, tmp_path, lambda pid: pid == 101)
+    assert (tmp_path / "500.claim").read_text(encoding="utf-8") == "101"
