@@ -5,6 +5,7 @@
   - **No single metric is enough**, but for first-pass RAG retrieval the usual headline is **Recall@k** at a k matched to how many chunks reach the model (5 or 10 is common): a generator can ignore a wrong chunk but cannot use a missing one.
   - **Hit@k** (did any relevant chunk reach the top k) is the most quoted RAG figure. With one relevant chunk per question it equals Recall@k; with several, it can look good while coverage is poor.
   - **MRR** (how high the first relevant chunk sits) is reported beside it to show ranking quality, and matters most when tuning rerankers. **nDCG@k** is for graded relevance labels.
+  - *Checker's inference:* Recall@k fits when a question needs several **distinct** relevant chunks (each adds evidence). When the extra gold chunks are **alternative copies** of the same evidence (for example the same sentence in two overlapping chunks), any one of them is enough, and Hit@k is the correct measure; Recall@k would count a correct retrieval as a partial miss.
   - Retrieval metrics are paired with answer metrics (correctness, faithfulness) for the whole system.
   - *Checker's inference:* on a resume, one retrieval number is enough if it is named plainly ("top-5 hit rate") and its k matches what the system feeds the model; MRR and the answer metrics belong in the interview.
 - **Sources:**
