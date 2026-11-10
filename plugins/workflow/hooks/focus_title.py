@@ -4,9 +4,8 @@ Peers pick a reviewer from `ListAgents`, which shows names and not the Role colu
 so a focus chat (never a reviewer, see the `workflow:focus` skill) was sometimes asked for a
 review. When the user's prompt is "focus mode", "talk mode", "conversation chat", `/focus` or
 `/talk`, this hook sets the session title (Claude Code docs, hooks reference, UserPromptSubmit
-decision control: `sessionTitle`) to `focus-<label>`, where the label is `chat_title`'s folder label
-(`<repo>-<folder>` inside the `<repo>/main` layout), so `ListAgents` can show the role and the
-repository. A chat already titled `focus-...` is left alone.
+decision control: `sessionTitle`) to `focus-<name of the working folder>`, so `ListAgents` can show
+the role. A chat already titled `focus-...` is left alone.
 
 Fails open: any error prints nothing and exits 0.
 """
@@ -18,9 +17,6 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from chat_title import folder_label  # noqa: E402
-
 TRIGGER = re.compile(r"^\s*(/focus|/talk|focus mode|talk mode|conversation chat)\b", re.IGNORECASE)
 PREFIX = "focus-"
 
@@ -29,7 +25,8 @@ def title_for(prompt: str, cwd: str, current_title: str) -> str | None:
     """The title to set, or None when the prompt is not a focus start or the title already fits."""
     if not TRIGGER.match(prompt) or current_title.lower().startswith(PREFIX):
         return None
-    return PREFIX + folder_label(cwd)
+    folder = re.sub(r"[^A-Za-z0-9._-]+", "-", Path(cwd).name).strip("-") or "chat"
+    return PREFIX + folder
 
 
 def main() -> None:
