@@ -86,6 +86,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [llm-batch-size-selection](llm-batch-size-selection.md) | How is the batch size for LLM inference chosen (search and pick rule): largest that fits, fastest, or the knee? | 2026-11-11 |
 | [length-bucketed-batch-sizing](length-bucketed-batch-sizing.md) | When batches are sorted or bucketed by length, how is the batch size picked, and what sample should a timing sweep use? | 2026-11-11 |
 | [vllm-custom-attention-bias](vllm-custom-attention-bias.md) | Can vLLM apply a custom, per-request bias to pre-softmax attention scores, and what would it take? | 2026-11-11 |
+| [lora-vs-qlora](lora-vs-qlora.md) | For fine-tuning a small language model, 16-bit LoRA or QLoRA, and which is more in demand in research and hiring? | 2026-11-12 |
 
 ### Career
 
