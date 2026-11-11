@@ -119,7 +119,7 @@ def test_claude_pid_walks_up_to_claude():
 
 
 def _run_hook(monkeypatch, payload, started):
-    monkeypatch.setattr(ka, "start_holder", lambda p: started.append(p))
+    monkeypatch.setattr(ka, "start_holder", lambda p, timer=0.0: started.append((p, timer)))
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload)))
     monkeypatch.setattr(sys, "platform", "win32")
     assert ka.main([]) == 0
@@ -135,9 +135,12 @@ def test_hook_starts_holder_only_for_background_jobs(monkeypatch):
     server = {"tool_name": "PowerShell", "tool_input": {"command": "pnpm dev", "run_in_background": True}}
     _run_hook(monkeypatch, server, started)
     assert len(started) == 1
-    other = {"tool_name": "Monitor", "tool_input": {"command": "pytest", "run_in_background": True}}
+    other = {"tool_name": "Read", "tool_input": {"file_path": "x", "run_in_background": True}}
     _run_hook(monkeypatch, other, started)
     assert len(started) == 1
+    wake = {"tool_name": "ScheduleWakeup", "tool_input": {"delaySeconds": 1200}}
+    _run_hook(monkeypatch, wake, started)
+    assert started[-1][1] == 1200 + ka.TIMER_SLACK_S
 
 
 def test_hook_fails_open(monkeypatch, capsys):
@@ -232,3 +235,50 @@ def test_status_line_names_holds_in_grace():
     holds = [{"started": 0.0, "command": "python run.py", "exited": 50.0}, {"started": 10.0, "command": "x"}]
     line = ka.status_line(holds, now=60.0)
     assert "2 holds, 1 past its command until the next turn ends" in line
+
+
+# --- timer holds (ScheduleWakeup, CronCreate, Monitor) ------------------------------------------
+
+from datetime import datetime
+
+NOW = datetime(2026, 11, 12, 22, 10, 30)  # a Thursday
+
+
+@pytest.mark.parametrize("tool_input, expected", [
+    ({"delaySeconds": 1200}, 1200 + ka.TIMER_SLACK_S),
+    ({"delaySeconds": 5}, 60 + ka.TIMER_SLACK_S),          # clamped up
+    ({"delaySeconds": 99999}, 3600 + ka.TIMER_SLACK_S),    # clamped down
+    ({"stop": True}, None),
+    ({}, None),
+])
+def test_schedulewakeup(tool_input, expected):
+    assert ka.timer_seconds("ScheduleWakeup", tool_input, NOW) == expected
+
+
+def test_monitor_uses_timeout_capped_at_30_min():
+    assert ka.timer_seconds("Monitor", {"timeout_ms": 600_000}) == 600 + ka.TIMER_SLACK_S
+    assert ka.timer_seconds("Monitor", {"timeout_ms": 3_600_000}) == 1800 + ka.TIMER_SLACK_S
+    assert ka.timer_seconds("Monitor", {}) == 300 + ka.TIMER_SLACK_S
+
+
+def test_cron_recurring_holds_to_the_cap_and_oneshot_to_the_next_match():
+    assert ka.timer_seconds("CronCreate", {"cron": "*/20 * * * *"}, NOW) == ka.TIMER_RECURRING_CAP_S
+    one = {"cron": "30 23 12 11 *", "recurring": False}
+    assert ka.timer_seconds("CronCreate", one, NOW) == 80 * 60 - 30 + ka.TIMER_SLACK_S
+    assert ka.timer_seconds("CronCreate", {"cron": "bad", "recurring": False}, NOW) == ka.TIMER_RECURRING_CAP_S
+
+
+def test_other_tools_do_not_hold():
+    assert ka.timer_seconds("Read", {"delaySeconds": 60}) is None
+
+
+@pytest.mark.parametrize("cron, seconds", [
+    ("*/5 * * * *", 4 * 60 + 30),
+    ("0 23 * * *", 49 * 60 + 30),
+    ("0 9 * * 1-5", 10 * 3600 + 49 * 60 + 30),   # Friday 09:00 (Thursday 22:10 now)
+    ("0 9 * * 0", 2 * 86400 + 10 * 3600 + 49 * 60 + 30),  # Sunday 09:00
+    ("61 * * * *", None),
+    ("* * *", None),
+])
+def test_next_cron_delay(cron, seconds):
+    assert ka.next_cron_delay(cron, NOW) == seconds

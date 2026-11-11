@@ -22,6 +22,10 @@ Three entry points, one file:
   start (UserPromptSubmit, which also fires for a task notification) after the exit, then a turn
   end (Stop) after that start. It also releases when claude.exe exits, or GRACE_CAP_S after the exit
   (a turn cut off by Esc or an API error may fire no Stop). It polls the turn marks every GRACE_POLL_S.
+- **Timer holds** (user's decision, 2026-11-12, after a review found that a chat idling on a timer
+  held nothing): PreToolUse on `ScheduleWakeup`, `CronCreate` and `Monitor` starts the same
+  holder with a `timer` in its spec instead of a shell to watch. It holds until the wake time
+  (`timer_seconds`) and then the same grace. A recurring `CronCreate` job holds TIMER_RECURRING_CAP_S.
 - `stop` (Stop): records the turn end for the session.
 - `status` (UserPromptSubmit): records the turn start for the session, and adds `keep-awake: N holds (oldest 9 h: <command>)` to the chat's
   context when the set of holds changed since this session's last line, or while one is over
@@ -48,7 +52,7 @@ import re
 import subprocess
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 CACHE_DIR = Path.home() / ".claude" / "hook-cache" / "keep_awake"
@@ -60,6 +64,8 @@ LONG_HOLD_H = 4.0
 GRACE_CAP_S = 3600.0
 GRACE_POLL_S = 5.0
 LOG_MAX = 200_000
+TIMER_SLACK_S = 120.0
+TIMER_RECURRING_CAP_S = 12 * 3600.0  # a recurring CronCreate job holds this long at most
 
 _MARKER = re.compile(r"#\s*keepawake:\s*(on|off)\b", re.IGNORECASE)
 _SERVERS = [
@@ -89,6 +95,87 @@ def wants_hold(command: str) -> bool:
         if not _DETACH.search(match.group(1)):
             return False
     return True
+
+
+def _cron_field(spec: str, lo: int, hi: int) -> set[int] | None:
+    """Values matched by one cron field (`*`, `*/n`, `a`, `a-b`, `a-b/n`, comma lists), or None."""
+    out: set[int] = set()
+    try:
+        for part in spec.split(","):
+            rng, _, step = part.partition("/")
+            step_n = int(step) if step else 1
+            if rng == "*":
+                a, b = lo, hi
+            elif "-" in rng:
+                a, b = (int(x) for x in rng.split("-", 1))
+            else:
+                a = int(rng)
+                b = hi if step else a
+            if step_n < 1 or a < lo or b > hi or a > b:
+                return None
+            out.update(range(a, b + 1, step_n))
+    except ValueError:
+        return None
+    return out
+
+
+def next_cron_delay(cron: str, now: datetime) -> float | None:
+    """Seconds from `now` (local, naive) to the next minute that matches a 5-field cron
+    expression within 8 days, or None when it cannot be parsed or never matches."""
+    fields = cron.split()
+    if len(fields) != 5:
+        return None
+    bounds = [(0, 59), (0, 23), (1, 31), (1, 12), (0, 7)]
+    sets = [_cron_field(f, lo, hi) for f, (lo, hi) in zip(fields, bounds)]
+    if any(s is None for s in sets):
+        return None
+    minute, hour, dom, month, dow = sets
+    dow = {d % 7 for d in dow}
+    dom_any, dow_any = fields[2] == "*", fields[4] == "*"
+    probe = now.replace(second=0, microsecond=0)
+    for step in range(1, 8 * 24 * 60):
+        t = probe + timedelta(minutes=step)
+        if t.minute not in minute or t.hour not in hour or t.month not in month:
+            continue
+        in_dom, in_dow = t.day in dom, (t.weekday() + 1) % 7 in dow
+        if not dom_any and not dow_any:
+            ok = in_dom or in_dow  # standard cron: either one when both are restricted
+        else:
+            ok = in_dom and in_dow
+        if ok:
+            return (t - now).total_seconds()
+    return None
+
+
+def timer_seconds(tool: str | None, tool_input: dict, now: datetime | None = None) -> float | None:
+    """How long a waiting tool call should hold the machine awake, or None for no hold.
+
+    The chat is idle while it waits, so no background shell holds the machine: `ScheduleWakeup`
+    (delay clamped to 60-3600 s), `Monitor` (its timeout, at most 30 min) and `CronCreate` (to the
+    next match; a recurring job holds for TIMER_RECURRING_CAP_S, since each firing starts a turn
+    and then the chat is idle again). TIMER_SLACK_S covers scheduler jitter."""
+    if tool == "ScheduleWakeup":
+        if tool_input.get("stop") or "delaySeconds" not in tool_input:
+            return None
+        try:
+            delay = float(tool_input["delaySeconds"])
+        except (TypeError, ValueError):
+            return None
+        return min(max(delay, 60.0), 3600.0) + TIMER_SLACK_S
+    if tool == "Monitor":
+        try:
+            timeout = float(tool_input.get("timeout_ms", 300_000)) / 1000
+        except (TypeError, ValueError):
+            timeout = 300.0
+        return min(max(timeout, 1.0), 1800.0) + TIMER_SLACK_S
+    if tool == "CronCreate":
+        if tool_input.get("recurring", True):
+            return TIMER_RECURRING_CAP_S
+        delay = next_cron_delay(str(tool_input.get("cron", "")), now or datetime.now())
+        if delay is None:
+            return TIMER_RECURRING_CAP_S
+        return min(delay, TIMER_RECURRING_CAP_S) + TIMER_SLACK_S
+    return None
 
 
 def fingerprint(command: str, limit: int = 4) -> list[str]:
@@ -335,25 +422,36 @@ def hold(spec_path: str) -> int:
     record = HOLDS_DIR / f"{os.getpid()}.json"
     shell: int | None = None
     try:
-        shell = find_shell(spec["claude"], spec["tool"], spec["words"], before)
-        if shell is None:
-            log(f"no {spec['tool']} shell found in {DISCOVER_S:.0f} s; no hold: {spec['command'][:120]!r}")
-            return 0
+        timer = float(spec.get("timer") or 0)
+        if not timer:
+            shell = find_shell(spec["claude"], spec["tool"], spec["words"], before)
+            if shell is None:
+                log(f"no {spec['tool']} shell found in {DISCOVER_S:.0f} s; no hold: {spec['command'][:120]!r}")
+                return 0
         HOLDS_DIR.mkdir(parents=True, exist_ok=True)
         data = {
             "holder": os.getpid(), "shell": shell, "tool": spec["tool"], "command": spec["command"],
             "cwd": spec.get("cwd", ""), "session": spec.get("session", ""), "started": time.time(),
         }
         record.write_text(json.dumps(data), encoding="utf-8")
-        log(f"holding for {spec['tool']} shell {shell}: {spec['command'][:120]!r}")
-        handle = k32.OpenProcess(0x00100000, False, shell)  # SYNCHRONIZE
-        if handle:
-            k32.WaitForSingleObject(handle, 0xFFFFFFFF)  # INFINITE
-            k32.CloseHandle(handle)
-        exited = time.time()
-        log_run(spec, exited)
-        record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
-        log(f"shell {shell} exited; holding until the next turn ends")
+        if timer:
+            log(f"holding {timer:.0f} s for {spec['tool']}: {spec['command'][:120]!r}")
+            deadline = time.time() + timer
+            while time.time() < deadline and alive(spec["claude"]):
+                time.sleep(min(GRACE_POLL_S, max(deadline - time.time(), 0.1)))
+            exited = time.time()
+            record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
+            log(f"{spec['tool']} wait over; holding until the next turn ends")
+        else:
+            log(f"holding for {spec['tool']} shell {shell}: {spec['command'][:120]!r}")
+            handle = k32.OpenProcess(0x00100000, False, shell)  # SYNCHRONIZE
+            if handle:
+                k32.WaitForSingleObject(handle, 0xFFFFFFFF)  # INFINITE
+                k32.CloseHandle(handle)
+            exited = time.time()
+            log_run(spec, exited)
+            record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
+            log(f"shell {shell} exited; holding until the next turn ends")
         while True:
             if not alive(spec["claude"]):
                 reason = "claude.exe exited"
@@ -377,9 +475,12 @@ def pythonw() -> str:
     return str(candidate if candidate.is_file() else exe)
 
 
-def start_holder(payload: dict) -> None:
+def start_holder(payload: dict, timer: float = 0.0) -> None:
     tool_input = payload.get("tool_input") or {}
     command = str(tool_input.get("command", ""))
+    if timer:  # a waiting tool call: label the hold for the status line
+        label = tool_input.get("cron") or tool_input.get("description") or tool_input.get("reason") or ""
+        command = f"{payload.get('tool_name')} wait, {timer / 60:.0f} min: {label}"
     procs = processes()
     claude = claude_pid(procs, os.getppid())
     if claude is None:
@@ -391,7 +492,7 @@ def start_holder(payload: dict) -> None:
         "claude": claude, "tool": payload.get("tool_name"), "command": command,
         "words": fingerprint(command), "before": sorted(procs),
         "cwd": payload.get("cwd", ""), "session": payload.get("session_id", ""),
-        "launched": time.time(),
+        "launched": time.time(), "timer": timer,
     }), encoding="utf-8")
     flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED | NEW_PROCESS_GROUP | NO_WINDOW
     args = [pythonw(), str(Path(__file__).resolve()), "hold", str(spec)]
@@ -403,10 +504,15 @@ def start_holder(payload: dict) -> None:
 
 
 def pre_tool_use(payload: dict) -> None:
-    if payload.get("tool_name") not in ("Bash", "PowerShell"):
-        return
     tool_input = payload.get("tool_input")
-    if not isinstance(tool_input, dict) or not tool_input.get("run_in_background"):
+    if not isinstance(tool_input, dict):
+        return
+    if payload.get("tool_name") in ("ScheduleWakeup", "CronCreate", "Monitor"):
+        seconds = timer_seconds(payload.get("tool_name"), tool_input)
+        if seconds:
+            start_holder(payload, seconds)
+        return
+    if payload.get("tool_name") not in ("Bash", "PowerShell") or not tool_input.get("run_in_background"):
         return
     if wants_hold(str(tool_input.get("command", ""))):
         start_holder(payload)
