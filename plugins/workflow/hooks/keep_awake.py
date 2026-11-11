@@ -11,10 +11,19 @@ Three entry points, one file:
   finds the tool's shell: the first process started after the holder that is a direct child of
   `claude.exe` and is either `bash.exe` whose command line holds the command's words (Bash tool) or
   `cmd.exe` launching `CLAUDE_CODE_SHELL_LAUNCHER_SCRIPT` (PowerShell tool, whose script travels in
-  an environment variable). It waits for that process to exit (an event wait, no polling) and exits,
-  which releases the hold. Windows drops the hold when the holder dies, too (tested 2026-11-11,
-  claude-config#6). No time estimate, no cap. If no shell turns up within DISCOVER_S, it gives up.
-- `status` (UserPromptSubmit): adds `keep-awake: N holds (oldest 9 h: <command>)` to the chat's
+  an environment variable). It waits for that process to exit (an event wait, no polling), then
+  keeps the hold through the agent's next turn (grace, below) and exits, which releases the hold.
+  Windows drops the hold when the holder dies, too (tested 2026-11-11, claude-config#6). No time
+  estimate for the command itself. If no shell turns up within DISCOVER_S, it gives up.
+- **Grace** (user's decision, 2026-11-11, after a laptop slept one second after a run ended and the
+  agent's next step waited 5.5 hours): between a command's exit and the next command's own hold,
+  the agent is reading the result, and an idle timer that ran out long ago sleeps the machine in
+  that gap. So after its command exits the holder waits for the session's next turn to end: a turn
+  start (UserPromptSubmit, which also fires for a task notification) after the exit, then a turn
+  end (Stop) after that start. It also releases when claude.exe exits, or GRACE_CAP_S after the exit
+  (a turn cut off by Esc or an API error may fire no Stop). It polls the turn marks every GRACE_POLL_S.
+- `stop` (Stop): records the turn end for the session.
+- `status` (UserPromptSubmit): records the turn start for the session, and adds `keep-awake: N holds (oldest 9 h: <command>)` to the chat's
   context when the set of holds changed since this session's last line, or while one is over
   LONG_HOLD_H hours old, so a forgotten hold is seen. Holds are machine-wide, so all are listed.
 
@@ -48,6 +57,8 @@ CLAIMS_DIR = CACHE_DIR / "claims"
 DISCOVER_S = 90.0  # other PreToolUse hooks may run up to 30 s before the tool's shell starts
 POLL_S = 0.25
 LONG_HOLD_H = 4.0
+GRACE_CAP_S = 3600.0
+GRACE_POLL_S = 5.0
 LOG_MAX = 200_000
 
 _MARKER = re.compile(r"#\s*keepawake:\s*(on|off)\b", re.IGNORECASE)
@@ -98,6 +109,40 @@ def matches_shell(tool: str, name: str, cmdline: str, words: list[str]) -> bool:
     return False
 
 
+def grace_over(exited: float, marks: dict, now: float, cap: float = GRACE_CAP_S) -> str | None:
+    """Why a hold whose command exited at `exited` may end now, or None to keep holding.
+    `marks` holds the session's last turn start (`prompt`) and turn end (`stop`) times."""
+    prompt, stop = marks.get("prompt", 0.0), marks.get("stop", 0.0)
+    if prompt > exited and stop > prompt:
+        return "the next turn ended"
+    if now - exited >= cap:
+        return f"no turn end within {cap / 60:.0f} min"
+    return None
+
+
+def session_key(session: object) -> str:
+    return re.sub(r"[^\w-]", "", str(session))[:64] or "unknown"
+
+
+def marks_path(session: object) -> Path:
+    return CACHE_DIR / f"turns-{session_key(session)}.json"
+
+
+def read_marks(session: object) -> dict:
+    try:
+        data = json.loads(marks_path(session).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def write_mark(session: object, kind: str, when: float | None = None) -> None:
+    marks = read_marks(session)
+    marks[kind] = time.time() if when is None else when
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    marks_path(session).write_text(json.dumps(marks), encoding="utf-8")
+
+
 def status_line(holds: list[dict], now: float) -> str:
     if not holds:
         return ""
@@ -108,9 +153,11 @@ def status_line(holds: list[dict], now: float) -> str:
     if len(command) > 80:
         command = command[:77] + "..."
     noun = "hold" if len(holds) == 1 else "holds"
+    grace = sum(1 for h in holds if h.get("exited"))
+    after = f", {grace} past its command until the next turn ends" if grace else ""
     return (
-        f"keep-awake: {len(holds)} {noun} (oldest {age}: {command}). Each ends when its background "
-        "command exits; stop a forgotten one with TaskStop."
+        f"keep-awake: {len(holds)} {noun}{after} (oldest {age}: {command}). Each ends when its "
+        "command exits and the next turn ends; stop a forgotten one with TaskStop."
     )
 
 
@@ -280,16 +327,28 @@ def hold(spec_path: str) -> int:
             log(f"no {spec['tool']} shell found in {DISCOVER_S:.0f} s; no hold: {spec['command'][:120]!r}")
             return 0
         HOLDS_DIR.mkdir(parents=True, exist_ok=True)
-        record.write_text(json.dumps({
+        data = {
             "holder": os.getpid(), "shell": shell, "tool": spec["tool"], "command": spec["command"],
             "cwd": spec.get("cwd", ""), "session": spec.get("session", ""), "started": time.time(),
-        }), encoding="utf-8")
+        }
+        record.write_text(json.dumps(data), encoding="utf-8")
         log(f"holding for {spec['tool']} shell {shell}: {spec['command'][:120]!r}")
         handle = k32.OpenProcess(0x00100000, False, shell)  # SYNCHRONIZE
         if handle:
             k32.WaitForSingleObject(handle, 0xFFFFFFFF)  # INFINITE
             k32.CloseHandle(handle)
-        log(f"released: shell {shell} exited")
+        exited = time.time()
+        record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
+        log(f"shell {shell} exited; holding until the next turn ends")
+        while True:
+            if not alive(spec["claude"]):
+                reason = "claude.exe exited"
+                break
+            reason = grace_over(exited, read_marks(spec.get("session", "")), time.time())
+            if reason:
+                break
+            time.sleep(GRACE_POLL_S)
+        log(f"released: shell {shell} exited, {reason}")
         return 0
     finally:
         k32.SetThreadExecutionState(0x80000000)
@@ -356,9 +415,10 @@ def active_holds() -> list[dict]:
 
 
 def status(payload: dict) -> None:
+    write_mark(payload.get("session_id", ""), "prompt")
     holds = active_holds()
     now = time.time()
-    session = re.sub(r"[^\w-]", "", str(payload.get("session_id", "")))[:64] or "unknown"
+    session = session_key(payload.get("session_id", ""))
     seen_file = CACHE_DIR / f"seen-{session}.json"
     key = sorted(int(h["holder"]) for h in holds)
     try:
@@ -396,6 +456,8 @@ def main(argv: list[str]) -> int:
     try:
         if argv[:1] == ["status"]:
             status(payload)
+        elif argv[:1] == ["stop"]:
+            write_mark(payload.get("session_id", ""), "stop")
         else:
             pre_tool_use(payload)
     except Exception as exc:  # never get in the way of a tool call

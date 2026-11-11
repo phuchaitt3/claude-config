@@ -189,3 +189,46 @@ def test_claim_left_by_a_dead_holder_is_taken_over(tmp_path):
     (tmp_path / "500.claim").write_text("999", encoding="utf-8")
     assert ka.claim_shell(500, 101, tmp_path, lambda pid: pid == 101)
     assert (tmp_path / "500.claim").read_text(encoding="utf-8") == "101"
+
+
+# --- grace: hold through the turn that reads the result ---------------------------------------
+
+def test_grace_waits_for_a_turn_that_starts_after_the_exit():
+    exited = 100.0
+    # The turn that launched the command ended before the exit: keep holding.
+    assert ka.grace_over(exited, {"prompt": 50.0, "stop": 60.0}, now=110.0) is None
+    # A turn started after the exit (the task notification) but has not ended.
+    assert ka.grace_over(exited, {"prompt": 105.0, "stop": 60.0}, now=110.0) is None
+    # That turn ended.
+    assert ka.grace_over(exited, {"prompt": 105.0, "stop": 120.0}, now=125.0) == "the next turn ended"
+    # A stop after the exit without a new turn start (the launching turn ends late) is not enough.
+    assert ka.grace_over(exited, {"prompt": 50.0, "stop": 120.0}, now=125.0) is None
+
+
+def test_grace_has_a_cap():
+    assert ka.grace_over(100.0, {}, now=100.0 + ka.GRACE_CAP_S - 1) is None
+    assert ka.grace_over(100.0, {}, now=100.0 + ka.GRACE_CAP_S).startswith("no turn end")
+
+
+def test_marks_round_trip(tmp_path, monkeypatch):
+    monkeypatch.setattr(ka, "CACHE_DIR", tmp_path)
+    ka.write_mark("abc-123", "prompt", 5.0)
+    ka.write_mark("abc-123", "stop", 7.0)
+    ka.write_mark("other", "prompt", 9.0)
+    assert ka.read_marks("abc-123") == {"prompt": 5.0, "stop": 7.0}
+    assert ka.read_marks("../evil") == {}
+    assert ka.marks_path("../evil").parent == tmp_path
+
+
+def test_stop_entry_writes_the_turn_end(tmp_path, monkeypatch):
+    monkeypatch.setattr(ka, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"session_id": "s1"})))
+    assert ka.main(["stop"]) == 0
+    assert ka.read_marks("s1")["stop"] > 0
+
+
+def test_status_line_names_holds_in_grace():
+    holds = [{"started": 0.0, "command": "python run.py", "exited": 50.0}, {"started": 10.0, "command": "x"}]
+    line = ka.status_line(holds, now=60.0)
+    assert "2 holds, 1 past its command until the next turn ends" in line
