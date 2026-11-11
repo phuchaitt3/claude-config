@@ -13,8 +13,8 @@ Three entry points, one file:
   `cmd.exe` launching `CLAUDE_CODE_SHELL_LAUNCHER_SCRIPT` (PowerShell tool, whose script travels in
   an environment variable). It waits for that process to exit (an event wait, no polling), then
   keeps the hold through the agent's next turn (grace, below) and exits, which releases the hold.
-  Windows drops the hold when the holder dies, too (tested 2026-11-11, claude-config#6). No time
-  estimate for the command itself. If no shell turns up within DISCOVER_S, it gives up.
+  Windows drops the hold when the holder dies, too (tested 2026-11-11, claude-config#6). It
+  logs the command's actual run time (run_estimate.py). If no shell turns up within DISCOVER_S, it gives up.
 - **Grace** (user's decision, 2026-11-11, after a laptop slept one second after a run ended and the
   agent's next step waited 5.5 hours): between a command's exit and the next command's own hold,
   the agent is reading the result, and an idle timer that ran out long ago sleeps the machine in
@@ -313,6 +313,19 @@ def find_shell(claude: int, tool: str, words: list[str], before: set[int]) -> in
     return None
 
 
+def log_run(spec: dict, exited: float) -> None:
+    """Log the command's actual run time next to its `# estimate:` marker (run_estimate.py)."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import run_estimate
+
+        launched = float(spec.get("launched") or 0)
+        if launched:
+            run_estimate.record(spec["tool"], True, spec["command"], exited - launched)
+    except Exception as exc:  # noqa: BLE001  logging must never end the hold early
+        log(f"run_estimate error: {exc!r}")
+
+
 def hold(spec_path: str) -> int:
     k32 = _win()[2]
     spec = json.loads(Path(spec_path).read_text(encoding="utf-8"))
@@ -338,6 +351,7 @@ def hold(spec_path: str) -> int:
             k32.WaitForSingleObject(handle, 0xFFFFFFFF)  # INFINITE
             k32.CloseHandle(handle)
         exited = time.time()
+        log_run(spec, exited)
         record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
         log(f"shell {shell} exited; holding until the next turn ends")
         while True:
@@ -377,6 +391,7 @@ def start_holder(payload: dict) -> None:
         "claude": claude, "tool": payload.get("tool_name"), "command": command,
         "words": fingerprint(command), "before": sorted(procs),
         "cwd": payload.get("cwd", ""), "session": payload.get("session_id", ""),
+        "launched": time.time(),
     }), encoding="utf-8")
     flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED | NEW_PROCESS_GROUP | NO_WINDOW
     args = [pythonw(), str(Path(__file__).resolve()), "hold", str(spec)]

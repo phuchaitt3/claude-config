@@ -8,6 +8,7 @@ Loaded in every session through `~/.claude/CLAUDE.md`. This file holds only what
 - Never read, write or delete credential files (`~/.kaggle`, `.env` files holding secrets, tokens, `~/.claude/.credentials.json`). Read and update `.env.example` instead.
 - Ask before a long paid or cloud job. The default threshold is 30 minutes; a project may set another.
 - Background commands keep the machine awake automatically: the `keep_awake` hook holds off idle sleep until each one exits and the turn that reads its result ends, skips recognised long-lived servers (`# keepawake: on|off` overrides), and lists active holds in the prompt status line. A long job started any other way (foreground, Task Scheduler, a separate terminal) goes through the keep-awake wrapper (`keepawake.ps1` in `workflow:scaling-test`). Never change the user's power plan (user's decision, 2026-11-09, after a laptop sleep spoiled a benchmark repeat; hook replaces the 10-minute threshold, 2026-11-11; hold through the next turn, 2026-11-11, after the laptop slept one second after a run and the next step waited 5.5 hours; standard: standards/keep-awake-long-jobs, checked 2026-11-11).
+- **Run-time estimates** (user's decision, 2026-11-11): a command expected to take over 10 minutes carries `# estimate: <N>m` (also `s`, `h`). The `run_estimate` hook logs estimate and actual time to `~/.claude/run-estimates.jsonl` (local, never committed) and, once three tagged runs exist, shows the past actual/estimate ratio; apply any approval threshold to the estimate scaled by that ratio.
 
 ## Decision rights
 
