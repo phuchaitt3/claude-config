@@ -6,6 +6,7 @@
   - Each listed hard skill should have a proof point in the experience or project bullets; the skills block is a scan index (recruiters and ATS keyword search read it), the bullets are the evidence. Tools that matter to the posting should appear in both.
   - Rough size: 8–15 skills grouped by category (guides differ; convention, not a measured limit). Soft skills go in bullets, not the list.
   - Project stack lines follow the same logic: trim to the core tools the posting cares about and the bullets mention (see [resume-project-stack-line](resume-project-stack-line.md)).
+  - **"Backed" does not mean its own bullet.** Libraries and frameworks are normally listed in a grouped skills row (languages, frameworks/libraries, tools) and named where used: in a project's stack line or inside an outcome bullet ("fine-tuned with QLoRA via Unsloth and TRL"). No guide asks for a bullet per library; a bullet written only to mention a tool reads as filler. The test is that the candidate used it and can discuss it. Universal tools (Git, Jupyter) add little to a skills row; domain libraries carry the signal. Guides split on breadth: one says default to including more keywords (cheap, ATS benefit), others say a long list of loosely known tools looks unfocused.
   - *Checker's inference:* a tool kept in the skills section with no bullet behind it is acceptable when the posting names it and the candidate really used it; otherwise, when its only bullet is cut, drop it too. Cutting must not make a project's remaining bullets mention a tool that no longer appears anywhere else, or vice versa.
 - **Sources:**
   - Resumonk, writing a skills section (career site): https://www.resumonk.com/articles/writing-resume-skills-section
@@ -13,5 +14,8 @@
   - SeekerScore, skills section guide (career site): https://www.seekerscore.com/guides/skills-section
   - Codecademy, technical resume (education blog): https://www.codecademy.com/resources/blog/technical-resume/
   - Interview Kickstart, skills-first resume for engineers (vendor blog): https://interviewkickstart.com/blogs/articles/build-a-skills-first-resume
+  - Design Gurus, listing technical skills on a software engineer resume (vendor Q&A): https://designgurus.io/answers/detail/how-do-you-list-technical-skills-on-a-software-engineer-resume
+  - techinterview.org, skills section signal vs dead weight (community post): https://www.techinterview.org/post/3233474612/skills-section-engineering-resume/
+  - Codecademy, developer resume skills (education blog): https://www.codecademy.com/resources/blog/developer-resume-skills
 - **Limits:** Career sites and vendor blogs only; no study measures the effect of trimming. Read through search summaries, not every page in full. A minority view drops the skills section and weaves skills into bullets.
 - **Checked:** 2026-11-11
