@@ -105,5 +105,6 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [resume-high-school-after-degree](resume-high-school-after-degree.md) | After a university degree, does a prestigious or selective high school stay on the resume? | 2026-11-11 |
 | [resume-academic-honor-placement](resume-academic-honor-placement.md) | Where does a top academic honor (valedictorian, Latin honors) go so it is seen, and may it go in the summary? | 2026-11-10 |
 | [resume-accuracy-vs-concision](resume-accuracy-vs-concision.md) | When shortening a line would make it read wider than the fact, does accuracy or brevity come first? | 2026-11-11 |
+| [resume-submission-readiness](resume-submission-readiness.md) | What are the final refinement steps, and how do you know a resume is ready to submit? | 2026-11-11 |
 | [resume-degree-name-abbreviation](resume-degree-name-abbreviation.md) | Must a resume spell out "Bachelor of Science in …" for ATS, or can it be abbreviated? | 2026-11-11 |
 | [resume-english-score-vietnam-it](resume-english-score-vietnam-it.md) | How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume? | 2026-11-09 |
