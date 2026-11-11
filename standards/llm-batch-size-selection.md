@@ -15,7 +15,7 @@
   - Accelerate, memory utilities (official docs): https://huggingface.co/docs/accelerate/main/usage_guides/memory
   - DeepSpeed autotuning (official tutorial): https://www.deepspeed.ai/tutorials/autotuning/
   - Recasens et al., "Mind the Memory Gap: Unveiling GPU Bottlenecks in Large-Batch LLM Inference" (paper, arXiv 2503.08311v2, Section VI): https://arxiv.org/abs/2503.08311
-  - SLIM, saturation-aware performance modelling for LLM serving (paper, arXiv 2607.29575; read via a search summary only): https://arxiv.org/abs/2607.29575
+  - SLIM, saturation-aware performance modelling for LLM serving (paper, arXiv 2607.29575v1): https://arxiv.org/abs/2607.29575
 - **Limits:**
   - All sources are serving or training systems (continuous batching, paged KV cache). Offline padded batching with Hugging Face `generate` has no such scheduler, so padding and sorting matter more there.
   - Recasens et al. measure on vLLM with a 64 GB GPU and report no repeats or variance.
