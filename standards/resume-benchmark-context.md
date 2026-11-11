@@ -1,0 +1,19 @@
+# Benchmark context in resume bullets
+
+- **Question:** How much benchmark detail (sample size, batch size, hardware, input length) should a resume bullet carry with a performance number, and must every benchmark bullet list the same fields?
+- **Finding:**
+  - **A number needs its baseline and its scope, in one line.** Guides treat a before-and-after pair with units as the credible form ("from 320ms to 84ms") and add the scope that frames it: percentile ("p99"), population ("on median devices"), test size ("n=12M sessions over 4 weeks"), scale ("2.4B searches/day"). One primary metric per bullet, an optional secondary one; more numbers dilute it. Round to two significant figures; false precision ("73.4%") reads as invented.
+  - **Context earns its place by credibility, not completeness.** Guides say to include dataset size or hardware when it makes the result more believable or meaningful, and keep the bullet readable. No resume source asks for a full benchmark setup (batch size, repeats, software versions); full disclosure is the rule for papers and benchmark reports ([benchmark-setup-consistency](benchmark-setup-consistency.md), [llm-inference-memory-calibration](llm-inference-memory-calibration.md)), not for resumes.
+  - **Claim only what you can defend.** Overclaiming surfaces in phone screens; be ready to explain how a number was measured. The full setup belongs in the interview answer or a linked write-up.
+  - **Consistency means one style, not one field list.** Guides ask for consistent punctuation, tense, verb-first structure and layout across bullets. None asks every metric bullet to list the same benchmark fields.
+  - *Checker's inference:* a condition goes in the bullet when leaving it out would make the number read wider than the fact (the rule in [resume-accuracy-vs-concision](resume-accuracy-vs-concision.md)): e.g. the input length a memory saving was measured at, the small sample or modest hardware a speedup came from. A field that only lets someone reproduce the run (batch size, repeats, warm-up) and that no reader would misread without goes to the write-up. Which conditions qualify differs by metric (a peak-memory figure depends on input shape, not sample count; a throughput figure depends on the sample), so bullets on one resume share a format and a position for the conditions, not the same fields.
+- **Sources:**
+  - techinterview.org, quantifying impact on engineering resumes (community/career site; page read): https://www.techinterview.org/post/3233474604/quantifying-impact-engineering-resume/
+  - techinterview.org, ML engineer resume (community/career site; search summary): https://www.techinterview.org/post/3233474619/ml-engineer-resume/
+  - ResumeGeni, machine learning engineer resume guide (vendor guide; search summary): https://resumegeni.com/resume-guides/machine-learning-engineer
+  - Resumly, highlighting ML model metrics in resume bullets (vendor blog; search summary): https://resumly.ai/blog/how-to-highlight-ml-model-metrics-in-resume-bullets
+  - Taro, stating a runtime optimization on a resume (community Q&A; page read; says tie it to impact, silent on setup detail): https://jointaro.com/question/1OBdk0Nl3su4BnIMGSnQ/saying-you-optimized-some-amount-of-runtime-in-a-resume
+  - Monster, resume bullet points (career site; search summary): https://www.monster.com/career-advice/resume/resume-bullet-points
+  - Pongo, consistent bullet lists (vendor blog; search summary): https://pongoresume.com/blogPosts/439/3-easy-tips-for-perfect-bullet-lists-on-your-resume.cfm
+- **Limits:** Career sites and vendor blogs only; no recruiter study. No source discusses benchmark fields such as batch size or sample count directly; the "which conditions qualify" rule is the checker's inference built on resume-accuracy-vs-concision. Examples are from production services, not personal or research benchmarks.
+- **Checked:** 2026-11-11
