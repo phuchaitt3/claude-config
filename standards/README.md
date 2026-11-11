@@ -92,6 +92,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [resume-dates-revisited-projects](resume-dates-revisited-projects.md) | Should a project revisited after a gap show "start -- Present" or its separate periods? | 2026-11-10 |
 | [resume-ml-model-names-and-baselines](resume-ml-model-names-and-baselines.md) | Should an ML bullet name the specific model (including an outdated one in an older project), and give a result against a baseline or alone? | 2026-11-10 |
 | [resume-project-stack-line](resume-project-stack-line.md) | How many technologies should a project's stack line list; is "at most 4–5" a rule? | 2026-11-10 |
+| [resume-llm-api-listing](resume-llm-api-listing.md) | Is naming a hosted LLM API (OpenAI, DeepSeek) on a resume worth it, and which APIs should be named? | 2026-11-11 |
 | [resume-skills-section-tailoring](resume-skills-section-tailoring.md) | When tailoring, should the skills section and stack lines keep every tool, or only relevant ones backed by bullets? | 2026-11-11 |
 | [resume-tailoring-project-context](resume-tailoring-project-context.md) | When tailoring cuts bullets, does an entry lose what the project was, and is that accepted practice? | 2026-11-10 |
 | [resume-summary-entry-level](resume-summary-entry-level.md) | Does an entry-level resume need a summary, what should it say, and may it restate the top entry? | 2026-11-10 |
