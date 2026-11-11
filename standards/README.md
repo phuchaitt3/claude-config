@@ -80,6 +80,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | Topic | Question | Checked |
 |---|---|---|
 | [llm-inference-memory-calibration](llm-inference-memory-calibration.md) | How do inference systems size the batch token budget, how is it calibrated, where does a bigger batch stop paying, and what must an inference benchmark report? | 2026-11-09 |
+| [llm-batch-size-selection](llm-batch-size-selection.md) | How is the batch size for LLM inference chosen (search and pick rule): largest that fits, fastest, or the knee? | 2026-11-11 |
 
 ### Career
 

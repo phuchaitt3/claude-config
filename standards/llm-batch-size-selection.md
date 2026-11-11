@@ -1,0 +1,22 @@
+# How is the batch size for LLM inference chosen: largest that fits, fastest, or the knee?
+
+- **Question:** How do inference tools and papers pick a batch size for a given model, GPU and workload: how do they search, and which rule picks the winner?
+- **Finding:**
+  - **Search: an empirical sweep per workload, usually over powers of 2.** Triton Model Analyzer's brute search sweeps max batch size 1 to 128 in powers of 2 (quick mode hill-climbs; Optuna mode stops after N trials without improvement, 15 in the example). TensorRT-LLM's tuning guide says to test several max-batch-size and max-num-tokens values for your own workload (max-num-tokens: powers of 2 from 1024), ideally as a grid since they interact; in its case study 512 beat both 64 (bottleneck) and the 2048 default. DeepSpeed autotuning measures throughput per configuration (its own timers, so higher than end to end).
+  - **Memory finders are a different tool.** PyTorch Lightning `BatchSizeFinder` doubles until out-of-memory (`power`), optionally bisects (`binsearch`, with a 5% `margin`); Accelerate `find_executable_batch_size` halves on out-of-memory. Both find the largest batch that fits, not the fastest.
+  - **Selection rules in use:** (a) best throughput, optionally under a latency constraint (Triton objectives and constraints; TensorRT-LLM); (b) Recasens et al. 2025 define B_opt = argmax T(B) subject to L(B) ≤ SLO and T(B) / (B·T(1)) > ε (ε = 0.1), and show that past the throughput knee a larger batch adds little: for OPT-1.3B, B_opt = 96 kept 83% of max-batch throughput, near the knee, with most of the KV cache left free; (c) SLIM (2026) fits a throughput and latency model from a few points and picks the largest batch inside the pre-saturation region that meets the SLO.
+  - **No source documents "the smallest batch within X% of peak throughput"** (checker's inference). It is a reasonable rule for offline batch jobs with no latency target where memory headroom has value (shared GPU, longer prompts later), but it departs from the serving tools, which take the fastest setting.
+  - Reporting practice (warm-up, repeats, spread) is in [llm-inference-memory-calibration](llm-inference-memory-calibration.md); no source here states a repeat count for the sweep.
+- **Sources:**
+  - Triton Model Analyzer, config search (official docs): https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/model_analyzer/docs/config_search.html
+  - TensorRT-LLM, tuning max batch size and max num tokens (official docs): https://nvidia.github.io/TensorRT-LLM/performance/performance-tuning-guide/tuning-max-batch-size-and-max-num-tokens.html
+  - PyTorch Lightning `BatchSizeFinder` (official API docs): https://lightning.ai/docs/pytorch/latest/api/lightning.pytorch.callbacks.BatchSizeFinder.html
+  - Accelerate, memory utilities (official docs): https://huggingface.co/docs/accelerate/main/usage_guides/memory
+  - DeepSpeed autotuning (official tutorial): https://www.deepspeed.ai/tutorials/autotuning/
+  - Recasens et al., "Mind the Memory Gap: Unveiling GPU Bottlenecks in Large-Batch LLM Inference" (paper, arXiv 2503.08311v2, Section VI): https://arxiv.org/abs/2503.08311
+  - SLIM, saturation-aware performance modelling for LLM serving (paper, arXiv 2607.29575; read via a search summary only): https://arxiv.org/abs/2607.29575
+- **Limits:**
+  - All sources are serving or training systems (continuous batching, paged KV cache). Offline padded batching with Hugging Face `generate` has no such scheduler, so padding and sorting matter more there.
+  - Recasens et al. measure on vLLM with a 64 GB GPU and report no repeats or variance.
+  - The SLIM paper and Triton quick-search's stopping rule were not read in full.
+- **Checked:** 2026-11-11
