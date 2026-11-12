@@ -58,6 +58,7 @@ The user does these once per repository, because they need admin and the bot has
 4. Run `gh repo edit <owner>/<repo> --delete-branch-on-merge`.
 5. Public repository: turn on secret-scanning push protection.
 6. Record the tier and mode at the top of the project's `CLAUDE.md`.
+7. If the project runs GPU or other heavy jobs on the user's laptop, say in its `CLAUDE.md` that they go through `~/claude-config/scripts/gpu_run.py` (Hard limits, "Laptop GPU"); no code is needed in the project.
 
 A direct-tier repository needs only step 6, plus step 1 when the bot does not own it: with no PRs, the ruleset, `CODEOWNERS` and delete-branch-on-merge have nothing to act on.
 
