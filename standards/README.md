@@ -89,6 +89,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [vllm-custom-attention-bias](vllm-custom-attention-bias.md) | Can vLLM apply a custom, per-request bias to pre-softmax attention scores, and what would it take? | 2026-11-11 |
 | [lora-vs-qlora](lora-vs-qlora.md) | For fine-tuning a small language model, 16-bit LoRA or QLoRA, and which is more in demand in research and hiring? | 2026-11-12 |
 | [quantized-large-vs-small-model](quantized-large-vs-small-model.md) | At a fixed memory budget, is a larger 4-bit model better than a smaller 16-bit one, and is 4-bit nearly free below 1B parameters? | 2026-11-12 |
+| [implementation-parity-testing](implementation-parity-testing.md) | When a model pipeline is re-implemented, how many samples and settings does a parity test need, and what counts as a match? | 2026-11-12 |
 | [quantization-in-practice](quantization-in-practice.md) | In real research and applications, when is quantization the natural choice, and how often do LLM job postings ask for it? | 2026-11-12 |
 
 ### Career
