@@ -333,7 +333,14 @@ def ci_refusal(merge_args: Sequence[str], pr_args: Sequence[str], gh: Gh) -> str
         return None
     bad = [f"{c.get('name')}: {c.get('bucket')}" for c in checks if c.get("bucket") not in _PASSED]
     if bad:
-        return "These checks have not passed, so the merge is refused:\n  - " + "\n  - ".join(bad)
+        reason = "These checks have not passed, so the merge is refused:\n  - " + "\n  - ".join(bad)
+        if any(c.get("bucket") == "pending" for c in checks):
+            reason += (
+                "\nThis gate reads the checks before the command starts, so a `gh pr checks <n> "
+                "--watch` earlier in the same command has not run yet. Run the watch as its own "
+                "command, then run `gh pr merge` as a separate, plain command."
+            )
+        return reason
     return None
 
 

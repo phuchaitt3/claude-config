@@ -62,6 +62,19 @@ def test_a_check_that_has_not_passed_blocks_the_merge(bucket: str) -> None:
     assert reason and f"lint: {bucket}" in reason
 
 
+def test_pending_refusal_says_to_watch_in_a_separate_command() -> None:
+    gh = FakeGh(checks=[{"name": "core", "bucket": "pending"}])
+    command = "gh pr checks 4 --watch | tail -1 && gh pr merge 4 --squash"
+    reason = merge_gate.check(command, gh)
+    assert reason and "separate" in reason and "--watch" in reason
+
+
+def test_failed_check_refusal_does_not_mention_the_watch_hint() -> None:
+    gh = FakeGh(checks=[{"name": "core", "bucket": "fail"}])
+    reason = merge_gate.check("gh pr merge 4 --squash", gh)
+    assert reason and "--watch" not in reason
+
+
 def test_a_skipped_check_does_not_block() -> None:
     gh = FakeGh(checks=[*GREEN, {"name": "docs", "bucket": "skipping"}])
     assert merge_gate.check("gh pr merge 4 --squash", gh) is None
