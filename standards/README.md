@@ -109,6 +109,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [resume-bullet-clarity](resume-bullet-clarity.md) | Should resume bullets be understandable in one read by someone new to the work, and what shape do guides recommend? | 2026-11-08 |
 | [resume-dates-revisited-projects](resume-dates-revisited-projects.md) | Should a project revisited after a gap show "start -- Present" or its separate periods? | 2026-11-10 |
 | [resume-ml-model-names-and-baselines](resume-ml-model-names-and-baselines.md) | Should an ML bullet name the specific model (including an outdated one in an older project), and give a result against a baseline or alone? | 2026-11-10 |
+| [resume-matching-published-baseline](resume-matching-published-baseline.md) | Does a bullet that matches a paper's published baseline read as replication rather than engineering or research, and is it a red flag? | 2026-11-12 |
 | [resume-project-stack-line](resume-project-stack-line.md) | How many technologies should a project's stack line list; is "at most 4–5" a rule? | 2026-11-10 |
 | [resume-llm-api-listing](resume-llm-api-listing.md) | Is naming a hosted LLM API (OpenAI, DeepSeek) on a resume worth it, and which APIs should be named? | 2026-11-11 |
 | [resume-skills-section-tailoring](resume-skills-section-tailoring.md) | When tailoring, should the skills section and stack lines keep every tool, or only relevant ones backed by bullets? | 2026-11-11 |

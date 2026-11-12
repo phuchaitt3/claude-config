@@ -1,0 +1,17 @@
+# Resume: a bullet that matches a published baseline
+
+- **Question:** Does a resume bullet that says a result is "on par with" a paper's published baseline read as replication work, not engineering or research, and is that a red flag?
+- **Finding:**
+  - **No direct evidence found.** Two searches (2026-11-12) turned up no hiring-manager data, survey or career-centre guidance on how a "matches the published baseline" bullet is read. Everything below is adjacent advice.
+  - **Reimplementing a known paper is a recognised project type, with a mixed signal.** One r/MachineLearning thread asks whether reimplementing well-known papers is worth listing; one commenter doubts it carries much weight with top-tier employers. That is one opinion, not a survey. A Towards AI guide, by contrast, recommends reimplementing a paper and recreating its results as a way to stand out.
+  - **Relevance to the target role is the stronger lever.** A Towards Data Science piece reports that the candidate hired had a project directly relevant to the problem the company works on. Guides add that recruiters click through to the linked repository, so a bullet should be backed by what is there.
+  - **A number needs a reference point.** Guides say to quantify and to give the comparison; a matching result against a named published baseline does that. See `resume-ml-model-names-and-baselines`.
+  - **Research or engineering track:** one guide says a resume of only architecture and accuracy scores reads as research-track, and one deployment bullet shifts it to engineering-track. Nothing found says a replicated baseline is penalised.
+  - *Checker's inference:* "on par with the published baseline" is honest (it also avoids "outperforming", which a comparison that is not like-for-like cannot support) and tells the reader the implementation is sound. It does not signal novelty. Where the entry's job is to show hands-on training, that is enough; novelty has to come from another bullet or entry. Honest wording beats a stronger one the numbers do not support.
+- **Sources:**
+  - [r/MachineLearning, reproducing and implementing research papers](https://redlib.ssps.io/r/MachineLearning/comments/1l5b6p4/d_reproducingimplementing_research_papers) (forum thread, through a mirror; one commenter's view).
+  - [Towards Data Science, the ML projects employers want to see](https://scour.ing/p/https://towardsdatascience.com/the-machine-learning-projects-employers-want-to-see) (practitioner publication, through an aggregator; hiring anecdote).
+  - [Towards AI, an ML project that gives an unfair advantage](https://towardsai.com/p/artificial-intelligence/this-ml-project-gives-you-an-unfair-advantage) (practitioner publication; reimplementing a paper).
+  - Also seen in the results, general ML resume guides with no point on this question: [Jobscan](https://www.jobscan.co/resume-examples/computer-engineering/machine-learning-resume), [scale.jobs](https://scale.jobs/blog/machine-learning-case-studies-resumes), [University of Rochester](https://careereducation.rochester.edu/blog/2022/09/01/how-to-build-a-strong-machine-learning-resume-samples/).
+- **Limits:** Read through search summaries, not the full pages. Most sources are career blogs, vendors and one forum thread; no survey of recruiters or hiring managers. Nothing found is specific to research-residency postings or to entry-level candidates. Some vendor pages carry unsourced example figures and were not used for numbers.
+- **Checked:** 2026-11-12
