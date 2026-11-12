@@ -41,7 +41,9 @@ def decide(event: str, told: str | None, mode: str, line: str) -> tuple[str | No
     if event == "SessionStart" or told != line:
         return line, (
             f"{line} Before merging a pull request, follow the `workflow:pr-review` skill, "
-            f'"Review modes", for `{mode}`; hard limits and user-merge paths apply in every mode.'
+            f'"Review modes", for `{mode}`; hard limits and user-merge paths apply in every mode. '
+            "In a confirmed solo-fast project, merging a PR that has passed that check and touches "
+            "no user-merge path is yours to do: do not ask the user."
         )
     return told, ""
 
