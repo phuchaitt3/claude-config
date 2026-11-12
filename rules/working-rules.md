@@ -37,24 +37,13 @@ When unsure, take the lower-asking tier if the action is reversible. Do not ask 
 
 ## Git
 
-- **Tasks:** one GitHub issue per task; its PR says `Closes #n` (user's decision, 2026-10-30). A repo without a GitHub remote keeps tickets in files; a direct-tier project needs no issue per task.
-- **Commit** on the current feature branch without asking; never on `main` (except the config repo and a confirmed direct-tier project). One commit is one coherent change with its tests and docs, staged with `git add <paths>`, committed once the project's lint and tests pass. Never commit run outputs, data, build artefacts, credentials, private identifiers, or changes you did not make (except a file the user asked you to edit in a direct-tier project: `workflow:new-project`). Message: imperative subject, a body with the why and known gaps, the harness's attribution trailer.
-- **Push** your own feature branch (`git push -u origin <branch>`, never `--force`) when it is green and the repo is private, or public with the user's standing approval in the project's `CLAUDE.md` and secret-scanning push protection on; otherwise ask. Push at a natural boundary. Once its PR has merged, follow-ups go on a new branch off the default branch (the `push_guard` hook refuses a push to a merged PR's branch).
-- **Switching machines** (user's decision, 2026-10-30): unfinished work may be committed as `wip: …` and pushed to your own feature branch; keep committing on top of it, never amend or reset it.
-- **GitHub identity:** agents write to GitHub as `phuchai-bot`. Check `gh auth status` before a write; never `gh auth switch`, `login` or `logout` yourself; if the bot is not active, ask.
-- **Config repo `~/claude-config`** (authorised by the user): commit and push to `main` after every change, without asking. It is public: check `git diff` for credentials, private paths and private-project identifiers first, and stop and ask if there are any. No force-push, no history rewrite. It keeps pushing as the user. A change under `plugins/` also bumps the plugin version in `plugin.json` (the installed cache is keyed by version, so an unchanged version is never refreshed), and after the push you refresh the installed copy and check that the new or changed skill appears in `~/.claude/plugins/cache/personal-config/<plugin>/<version>/` (user's decision, 2026-10-31, after `workflow:talk` was pushed but missing from running chats). A running chat keeps the plugin text it loaded until the user types `/reload-plugins`. If the change is **critical**, meaning a running chat on the old text would act wrongly in a way that is hard to undo or breaks coordination (a hard limit, merge or push gate, registry or messaging rule), also set `version`, `since` and `why` in `plugins/workflow/critical.json` in the same commit: the `plugin_notice` hook then tells each older running chat once to ask the user for `/reload-plugins`. Other changes wait for the next new session (user's decision, 2026-10-31; a hook, `commit_nudge`, reminds you when you commit under `plugins/`).
+- **Always:** one GitHub issue per task, its PR says `Closes #n`; commit on a feature branch, never on `main` (except the config repo and a confirmed direct-tier project); never `--force`; agents write to GitHub as `phuchai-bot` (check `gh auth status`, never `gh auth switch`). Load `workflow:git` before committing, pushing, opening a PR or issue, switching machines, or changing the config repo (commit rules, push conditions, wip commits, config-repo procedure).
 
 ## Model and effort
 
 The user picks the model and effort. At the start of each task, say in one line which it needs, tagged `[Sonnet, medium, no plan mode: reason]`, and say so if the current model is a poor fit; the same tag goes on every proposed next step and decision item. Sonnet is the default; prefer Sonnet at high effort before Opus. An Opus tag must name the specific difficulty (for example "bug unexplained after a Sonnet pass"); "new feature" or "important" is not a reason. `max` effort only when the user asks. Plan mode only when the design is still open.
 
-| Task | Model, effort |
-|---|---|
-| Inbox and handoff updates, commits, merges, routine runs, logs | Sonnet, low |
-| Small well-specified edits, tests for existing behaviour, lint | Sonnet, medium |
-| New features, ports, schema changes, docs and reports; first-pass debugging | Sonnet, high |
-| Bug unexplained after a Sonnet pass; bug needing several components held at once; open design question with a costly wrong answer (plan mode) | Opus, high (xhigh only if high failed) |
-| Final wording of thesis, paper or public claims | Opus, high |
+Table of model and effort by task type: `workflow:model-effort`.
 
 ## Context
 
@@ -69,6 +58,7 @@ Before searching the web for an established practice (software, research methods
 
 ## Skills to load (the `workflow` plugin)
 
+- `workflow:git`: before committing, pushing, opening a PR or issue, switching machines, or changing the config repo.
 - `workflow:pr-review`: before opening, reviewing or merging a pull request, or deferring work out of one.
 - `workflow:new-project`: at the start of a project (tier, mode, one-time GitHub setup, the bot's push config), or when adding environment settings or a `.env`.
 - `workflow:multi-chat`: when several chats share a repository, or the project's `CLAUDE.md` names an inbox or handoff folder.
