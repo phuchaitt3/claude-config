@@ -1,6 +1,6 @@
 ---
 name: multi-chat
-description: ALWAYS load this first, before any other work, when the repository has a handoff folder (.handoff/) or an INBOX.md, or when the project's CLAUDE.md names one. Coordination protocol for several Claude chats on one repository: chat table and claims, one worktree and branch per chat, the INBOX.md links page, tickets, DONE.md and handoff reports, messaging other chats with ListAgents/SendMessage, merging. Also use when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
+description: ALWAYS load this first, before any other work, when a SessionStart notice says other Claude chats are running on this machine, when the repository has a handoff folder (.handoff/) or an INBOX.md, or when the project's CLAUDE.md names one. Coordination protocol for several Claude chats on one repository: chat table and claims, one worktree and branch per chat, the INBOX.md links page, tickets, DONE.md and handoff reports, messaging other chats with ListAgents/SendMessage, merging. Also use when the user names your chat (for example "you are thesis-a2"), when another session messages you, or when setting up multi-chat work in a new project.
 ---
 
 # Several chats on one repository
