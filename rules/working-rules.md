@@ -61,7 +61,7 @@ Before searching the web for an established practice (software, research methods
 - `workflow:git`: before committing, pushing, opening a PR or issue, switching machines, or changing the config repo.
 - `workflow:pr-review`: before opening, reviewing or merging a pull request, or deferring work out of one.
 - `workflow:new-project`: at the start of a project (tier, mode, one-time GitHub setup, the bot's push config), or when adding environment settings or a `.env`.
-- `workflow:multi-chat`: when several chats share a repository, or the project's `CLAUDE.md` names an inbox or handoff folder.
+- `workflow:multi-chat`: when a SessionStart notice says other chats are running (any repository): the short core. `workflow:multi-chat-repo`: when several chats share a repository, or the project's `CLAUDE.md` names an inbox or handoff folder.
 - `workflow:rule-change`: before proposing or editing any rule, here or in a project, and for any proposal with more than about five items.
 - `workflow:subagents`: before dispatching a subagent (only when the user asks or a project rule allows).
 - `workflow:adr`: before writing, rewriting or editing an ADR, or answering a review question on one.
