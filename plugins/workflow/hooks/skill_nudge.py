@@ -30,11 +30,23 @@ def main_checkout(cwd: Path) -> Path | None:
 
 
 def handoff_folder(root: Path) -> Path | None:
-    """The handoff folder: `.handoff/`, or any folder with an INBOX.md that CLAUDE.md names."""
-    candidate = root / ".handoff"
-    if candidate.is_dir():
-        return candidate
+    """The handoff folder: `.handoff/`, a `handoff/` or `data/handoff/` folder, or a root INBOX.md.
+
+    A project may keep the folder anywhere and name it only in CLAUDE.md (for example a
+    git-ignored `data/handoff/`), so the common places are checked and, failing those, a
+    CLAUDE.md that names an `INBOX.md` or a "handoff folder" counts.
+    """
+    for relative in (".handoff", "data/handoff", "handoff"):
+        candidate = root / relative
+        if candidate.is_dir():
+            return candidate
     if (root / "INBOX.md").is_file():
+        return root
+    try:
+        text = (root / "CLAUDE.md").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if "INBOX.md" in text or "handoff folder" in text.lower():
         return root
     return None
 
@@ -42,7 +54,9 @@ def handoff_folder(root: Path) -> Path | None:
 def message(folder: Path) -> str:
     return (
         f"This repository has a handoff folder (`{folder}`). Before any other work, load the "
-        "`workflow:multi-chat` skill and follow its \"At the start of a chat\" steps."
+        "`workflow:multi-chat` skill and follow its \"At the start of a chat\" steps, including "
+        "`ListAgents` and a check of the target repository's recent commits for a chat already on "
+        "the same task. This applies to a task handed over from here for another repository too."
     )
 
 
