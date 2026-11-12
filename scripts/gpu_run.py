@@ -35,6 +35,8 @@ IDLE_UTIL_PCT = 10  # above this, or ...
 IDLE_MEM_MB = 300  # ... this much memory, with no holder, is "unguarded use"
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
+# nvidia-smi opens no console window when the check runs from a background task (pythonw)
+NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 
 
 def guard_dir() -> Path:
@@ -120,7 +122,7 @@ def smi(*query: str) -> list[list[str]] | None:
     try:
         out = subprocess.run(
             ["nvidia-smi", f"--query-gpu={','.join(query)}", "--format=csv,noheader,nounits"],
-            check=True, capture_output=True, text=True, timeout=15,
+            check=True, capture_output=True, text=True, timeout=15, **NO_WINDOW,
         ).stdout
     except (OSError, subprocess.SubprocessError):
         return None
@@ -135,6 +137,19 @@ def gpu_reading() -> dict | None:
         return {"util_pct": float(rows[0][0]), "mem_mb": float(rows[0][1])}
     except ValueError:
         return None
+
+
+def gpu_processes() -> list[str]:
+    """Compute processes nvidia-smi lists ("pid name"), to tell who used the GPU. Often empty under
+    the Windows WDDM driver, which hides per-process use."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-compute-apps=pid,process_name", "--format=csv,noheader"],
+            check=True, capture_output=True, text=True, timeout=15, **NO_WINDOW,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [" ".join(c.strip() for c in line.split(",")) for line in out.splitlines() if line.strip()]
 
 
 def describe(who: dict) -> str:
@@ -229,7 +244,7 @@ def cmd_check(_: argparse.Namespace) -> int:
         print(f"GPU {r['util_pct']:.0f}% busy, {r['mem_mb']:.0f} MB; lock held: guarded")
         return 0
     if r["util_pct"] >= IDLE_UTIL_PCT or r["mem_mb"] >= IDLE_MEM_MB:
-        log_event("unguarded", **r)
+        log_event("unguarded", **r, processes=gpu_processes())
         print(f"UNGUARDED GPU use: {r['util_pct']:.0f}% busy, {r['mem_mb']:.0f} MB, no lock held")
         return 1
     print("GPU idle, lock free")
