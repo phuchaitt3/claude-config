@@ -67,6 +67,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 |---|---|---|
 | [attention-steering-terminology](attention-steering-terminology.md) | Is "attention steering" or "attention intervention" the right term for an inference-time method that edits attention scores? | 2026-11-11 |
 | [research-improvement-size](research-improvement-size.md) | Is there a rule of thumb for how large an NLP/ML gain is good, and is a gain diluted by weak retrieval normal to report? | 2026-11-11 |
+| [research-baseline-design](research-baseline-design.md) | How is a research baseline built: same pipeline with the studied part switched off, or a separate plain version? | 2026-11-12 |
 | [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? | 2026-11-08 |
 | [rag-hypothetical-question-indexing](rag-hypothetical-question-indexing.md) | Is indexing LLM-generated questions per chunk, instead of the chunk text, an established RAG practice? | 2026-11-09 |
 | [rag-eval-confidence-intervals](rag-eval-confidence-intervals.md) | Do RAG and retrieval evaluations report bootstrap confidence intervals, and is it worth it on a small set? | 2026-11-10 |

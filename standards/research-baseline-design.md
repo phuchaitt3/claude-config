@@ -1,0 +1,20 @@
+# Research baseline design
+
+- **Question:** How is the baseline for a research comparison built, and should it share the implementation (code path, numerics) with the new method or be a separate, plain version?
+- **Finding:**
+  - Sources agree on the principle: a baseline gets the same treatment as the new method (same tuning, same compute budget), and an ablation changes exactly one thing at a time. Implementation details that the paper never mentions can move results as much as the method does, and a gain is credited to the method when it comes from tuning or a code detail. So the comparison is only clean when baseline and method share everything except the thing under study.
+  - Checkers' reading (inference, no source states it for this case): for a method that patches or hooks a model at inference time, the cleanest control is the same pipeline with the intervention switched off (strength zero, or hook installed and idle), not a different attention implementation or a separate plain model. If it differs from the plain unpatched model, the gap between the two is an implementation effect and is reported, not hidden. A separate unmodified reference run is a useful extra check, not a replacement.
+  - Checkers' inference: an identity check, "hooked at zero strength equals unhooked within numeric tolerance, on logits", is the natural test that the hook itself changes nothing. Sources found only describe the nearby practice of comparing a modified model's token distribution with the original (KL or cross-entropy) as a sanity check.
+  - Report what the baseline is: implementation details, hyperparameter ranges and the selection method, the number of tuning trials, and compute budget (reproducibility checklists, derived from the one adopted by NeurIPS).
+  - Include a simple, well-known baseline as well as the strongest one; under-tuned or weak baselines change the conclusion.
+- **Sources:**
+  - [COSEAL guidelines for empirical meta-algorithmic research, 2025](https://arxiv.org/pdf/2512.16491) (research-network guidelines): same treatment and budget for baselines, include a simple baseline.
+  - [Lipton and Steinhardt, Troubling Trends in ML Scholarship, 2018](https://arxiv.org/pdf/1807.03341v2.pdf) (position paper): gains credited to the method that come from tuning.
+  - [Henderson et al., Deep Reinforcement Learning that Matters](https://arxiv.org/pdf/1709.06560) (paper): the same algorithm in different codebases gives different results; recommends enumerating implementation details and checking new baselines against the original code.
+  - [Engstrom et al., Implementation Matters in Deep Policy Gradients](https://alphaxiv.org/abs/2005.12729) (paper): undocumented code-level optimisations drive gains.
+  - [Dacrema et al., A Troubling Analysis of Reproducibility and Progress in Recommender Systems Research](https://arxiv.org/pdf/1911.07698) (paper): tune all baselines, even the simplest; report the selection method.
+  - [Reproducibility in NLP: What Have We Learned from the Checklist?](https://arxiv.org/html/2306.09562v1) (paper): checklist items on search trials and selection method.
+  - [NeurIPS 2021 paper checklist](https://neurips.cc/Conferences/2021/PaperInformation/PaperChecklist) (conference): main results include the new method and baselines.
+  - [Inference-Time Intervention, 2023](https://arxiv.org/pdf/2306.03341) and [Non-Linear Inference Time Intervention](https://arxiv.org/pdf/2403.18680) (papers): intervention strength as a parameter; the second uses KL and cross-entropy against the original model as a sanity check.
+- **Limits:** No source found states "build the baseline by running the same hooked code path with the intervention off" for inference-time methods, or an exact zero-strength identity test; those two points are the checker's inference from the general principle. Several search results were blog posts or aggregators (an experimental-design blog, a skills page) and were not used as support. The official text of the original ML Reproducibility Checklist was not retrieved; its items were read from papers that cite it.
+- **Checked:** 2026-11-12
