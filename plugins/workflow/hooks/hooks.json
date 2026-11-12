@@ -37,6 +37,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/review_mode.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/stray_procs.py\"",
+            "timeout": 25
           }
         ]
       }
@@ -78,6 +83,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/gpu_watch.py\"",
             "timeout": 8
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/stray_procs.py\"",
+            "timeout": 25
           }
         ]
       }
@@ -95,6 +105,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/push_guard.py\"",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/search_guard.py\"",
+            "timeout": 5
           },
           {
             "type": "command",
