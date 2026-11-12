@@ -61,7 +61,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
 | [keep-awake-long-jobs](keep-awake-long-jobs.md) | How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled? | 2026-11-11 |
 | [agent-state-freshness](agent-state-freshness.md) | When should a long-running agent re-check state others can change: every step, end of turn, on a timer, or before acting? | 2026-11-11 |
-| [agent-process-and-resource-control](agent-process-and-resource-control.md) | How are runaway or orphaned shell processes from AI agents stopped, and how are CPU and memory limited when several agents share one machine? | 2026-11-12 |
+| [agent-process-and-resource-control](agent-process-and-resource-control.md) | How are runaway or orphaned shell processes from AI agents stopped, how are CPU and memory limited when several agents share one machine, and is that sharing normally hard? | 2026-11-12 |
 
 ### Research methods
 
