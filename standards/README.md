@@ -94,6 +94,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [quantized-large-vs-small-model](quantized-large-vs-small-model.md) | At a fixed memory budget, is a larger 4-bit model better than a smaller 16-bit one, and is 4-bit nearly free below 1B parameters? | 2026-11-12 |
 | [implementation-parity-testing](implementation-parity-testing.md) | When a model pipeline is re-implemented, how many samples and settings does a parity test need, and what counts as a match? | 2026-11-12 |
 | [kaggle-environment-pinning](kaggle-environment-pinning.md) | Can a Kaggle notebook be pinned to its original software environment, and from the command line? | 2026-11-12 |
+| [precision-across-model-sizes](precision-across-model-sizes.md) | When comparing one model family at several sizes, is numeric precision (fp32, fp16, bf16) held fixed or chosen per model, and what if a model overflows in fp16? | 2026-11-12 |
 | [quantization-in-practice](quantization-in-practice.md) | In real research and applications, when is quantization the natural choice, and how often do LLM job postings ask for it? | 2026-11-12 |
 
 ### Career
