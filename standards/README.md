@@ -105,6 +105,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 | [resume-projects-as-experience](resume-projects-as-experience.md) | With no formal work history, should projects be formatted like jobs and carry job titles, and may a class project carry a lead title? | 2026-11-09 |
 | [thesis-as-research-experience](thesis-as-research-experience.md) | Can an undergraduate thesis be listed as "Research Experience" on a resume? | 2026-11-05 |
 | [resume-one-page-fill](resume-one-page-fill.md) | Must a one-page resume fill the page, or may it stay partly empty when no relevant bullets are left? | 2026-11-12 |
+| [resume-benchmark-range-reporting](resume-benchmark-range-reporting.md) | May a result measured on several setups be reported as a range, or only the best one? | 2026-11-12 |
 | [resume-bullet-clarity](resume-bullet-clarity.md) | Should resume bullets be understandable in one read by someone new to the work, and what shape do guides recommend? | 2026-11-08 |
 | [resume-dates-revisited-projects](resume-dates-revisited-projects.md) | Should a project revisited after a gap show "start -- Present" or its separate periods? | 2026-11-10 |
 | [resume-ml-model-names-and-baselines](resume-ml-model-names-and-baselines.md) | Should an ML bullet name the specific model (including an outdated one in an older project), and give a result against a baseline or alone? | 2026-11-10 |
