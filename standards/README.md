@@ -84,6 +84,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `standa
 |---|---|---|
 | [llm-inference-memory-calibration](llm-inference-memory-calibration.md) | How do inference systems size the batch token budget, how is it calibrated, where does a bigger batch stop paying, and what must an inference benchmark report? | 2026-11-09 |
 | [benchmark-setup-consistency](benchmark-setup-consistency.md) | Must every benchmark run on the same hardware and configuration, or may results come from different setups? | 2026-11-11 |
+| [benchmark-local-vs-shared-gpu](benchmark-local-vs-shared-gpu.md) | Is a personal laptop a worse place to time a benchmark than a free shared cloud GPU, and what keeps a timing number trustworthy on either? | 2026-11-12 |
 | [llm-batch-size-selection](llm-batch-size-selection.md) | How is the batch size for LLM inference chosen (search and pick rule): largest that fits, fastest, or the knee? | 2026-11-11 |
 | [length-bucketed-batch-sizing](length-bucketed-batch-sizing.md) | When batches are sorted or bucketed by length, how is the batch size picked, and what sample should a timing sweep use? | 2026-11-11 |
 | [vllm-custom-attention-bias](vllm-custom-attention-bias.md) | Can vLLM apply a custom, per-request bias to pre-softmax attention scores, and what would it take? | 2026-11-11 |
