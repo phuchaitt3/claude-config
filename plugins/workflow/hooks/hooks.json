@@ -187,6 +187,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/loop_route_guard.py\" pre",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [

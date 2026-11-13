@@ -1,12 +1,14 @@
-"""PostToolUse hook (Edit|Write|NotebookEdit): keep a self-drive loop chat from doing the work itself.
+"""PreToolUse and PostToolUse hook (Edit|Write|NotebookEdit): keep a self-drive loop chat from doing the work itself.
 
 Self-drive step 3 routes each task to a worker subagent, a `claude --bg` session, or (only for a
 couple-of-tool-calls task) the loop chat. A text rule is dropped in a long loop (standard:
 findings/agent-loop-control-enforcement, checked 2026-11-14); the first overnight run did every
 task in the loop chat, so its context grew with every task. This hook counts the loop chat's own
 file edits since its last delegation (an `Agent` call or a `claude --bg` command) and, from
-`THRESHOLD` edits on, nudges once per `EVERY` further edits. It never blocks. Silent in an ordinary
-chat (no live /loop), and on any error.
+`NUDGE_AT` edits on, nudges once per `EVERY` further edits (PostToolUse); at `BLOCK_AT` edits it
+denies the next edit (PreToolUse, "pre" argument) until the chat delegates. Edits to handoff and
+summary notes are exempt. Bash edits (sed, redirects) are not covered. Silent in an ordinary chat
+(no live /loop), and on any error: a broken hook must never trap a turn.
 """
 
 from __future__ import annotations
@@ -16,8 +18,10 @@ import json
 import sys
 from pathlib import Path
 
-THRESHOLD = 8
-EVERY = 4
+NUDGE_AT = 5
+EVERY = 3
+BLOCK_AT = 9
+EXEMPT = ("handoff", "overnight-", "INBOX", "DONE.md")
 EDIT_TOOLS = {"Edit", "Write", "NotebookEdit"}
 
 _spec = importlib.util.spec_from_file_location(
@@ -66,9 +70,26 @@ def should_nudge(entries: list[dict]) -> int:
     if not loop_guard.loop_live(entries):
         return 0
     n = edits_since_delegation(entries)
-    if n >= THRESHOLD and (n - THRESHOLD) % EVERY == 0:
+    if n >= NUDGE_AT and (n - NUDGE_AT) % EVERY == 0:
         return n
     return 0
+
+
+def should_block(entries: list[dict], file_path: str) -> int:
+    if any(x in file_path for x in EXEMPT) or not loop_guard.loop_live(entries):
+        return 0
+    n = edits_since_delegation(entries)
+    return n if n >= BLOCK_AT else 0
+
+
+def deny_text(n: int) -> str:
+    return (
+        f"Self-drive routing: blocked. This loop chat has made {n} file edits without delegating. "
+        "Hand the rest of this task to one worker subagent (Agent tool, isolation worktree, "
+        "Sonnet, brief with the issue, files and the check to run, report of at most 10 lines), "
+        "or a long run to `claude --bg`. The Agent call lifts this block. Notes in the handoff "
+        "folder are exempt."
+    )
 
 
 def main() -> int:
@@ -76,7 +97,17 @@ def main() -> int:
         payload = json.load(sys.stdin)
         if not isinstance(payload, dict) or not payload.get("transcript_path"):
             return 0
-        n = should_nudge(loop_guard.read_entries(str(payload["transcript_path"])))
+        entries = loop_guard.read_entries(str(payload["transcript_path"]))
+        if len(sys.argv) > 1 and sys.argv[1] == "pre":
+            path = str((payload.get("tool_input") or {}).get("file_path", ""))
+            n = should_block(entries, path)
+            if not n:
+                return 0
+            json.dump({"hookSpecificOutput": {
+                "hookEventName": "PreToolUse", "permissionDecision": "deny",
+                "permissionDecisionReason": deny_text(n)}}, sys.stdout)
+            return 0
+        n = should_nudge(entries)
         if not n:
             return 0
     except Exception:
