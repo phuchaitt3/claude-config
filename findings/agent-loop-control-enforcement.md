@@ -1,0 +1,21 @@
+# Keeping an agent loop going: text rule vs enforced control
+
+- **Question:** In a long agent loop, does a text instruction ("end every turn by scheduling the next one") get skipped as task context grows, and what more automatic ways keep the loop going?
+- **Finding:**
+  - **Text instructions get less reliable as the context grows.** Chroma's "Context Rot" report (July 2025, 18 models including Claude 4) held task difficulty fixed and changed only input length. Performance became less reliable as the input got longer, even on trivial instruction-following tasks. Instruction count matters too (IFScale, arXiv 2507.11538: compliance falls as the number of instructions rises). No source measured skipping a specific end-of-turn instruction in a coding loop; that application is the checker's inference.
+  - **Common advice: put the loop in code, not in the prompt.** Several practitioner posts and two preprints argue that deterministic code should own looping and branching, with the model called inside each step. Their reasoning: control-flow mistakes are architectural, and a better prompt cannot guarantee them away. The trade-off is that code-owned flows take more engineering and are slower to change.
+  - **Claude Code has three enforcement layers for `/loop`** (official docs, checked 2026-11-14):
+    1. **Harness fallback:** since 2.1.319, a turn that ends without `ScheduleWakeup` ends the loop. `CLAUDE_CODE_LOOP_KEEPALIVE=1` restores one fallback wakeup about 20 minutes later (changelog).
+    2. **Stop hook:** runs when the main agent finishes responding. Its input has `session_crons`, the pending wakeups from `ScheduleWakeup`, `CronCreate` and `/loop`, and `background_tasks`, so a hook can tell "done" from "paused, waiting to be woken". Returning `decision: "block"` with a `reason`, or `additionalContext`, makes Claude continue the turn, for example to call `ScheduleWakeup`. Guards: `stop_hook_active` is true when the turn is already continuing because of a stop hook, and Claude Code caps consecutive continuations at 8 (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`). `/goal` is a built-in prompt-based Stop hook. The hook cannot tell on its own whether the session is in a loop that should continue, so it needs a marker, such as a state file the loop's skill writes at start and removes on a deliberate stop.
+    3. **Outer loop in code:** a shell loop that starts a fresh `claude -p` per round (the "Ralph" pattern; see `overnight-agent-runs`). Control flow lives entirely in code, and each round starts with a fresh context (see `long-agent-run-context`). Costs: permissions must be set in advance, and there is no shared conversation between rounds.
+  - *Checker's inference:* for a self-paced loop, layer 1 bounds a missed reschedule to about 20 minutes of idle time, and layer 2 catches it at the end of the turn that missed it. Text stays as the first layer, and the hook enforces it.
+- **Evidence strength:** *official standard* for the Claude Code mechanisms (hooks reference, changelog); *sample or survey* for context rot (one vendor research report, 18 models, controlled lengths); *anecdotal* for "control flow in code" (practitioner blogs and preprints that agree).
+- **Sources:**
+  - [Claude Code hooks reference, Stop input and decision control](https://code.claude.com/docs/en/hooks) (official docs)
+  - [Claude Code changelog, 2.1.319](https://code.claude.com/docs/en/changelog) (official)
+  - [Chroma, Context Rot](https://research.trychroma.com/context-rot) (vendor research report)
+  - [Blueprint First, Model Second (arXiv 2508.02721)](https://arxiv.org/pdf/2508.02721) (preprint)
+  - [Agents need control flow, not more prompts](https://bsuh.bearblog.dev/agents-need-control-flow/) (practitioner blog)
+  - [agentpatterns.ai, deterministic orchestration](https://www.agentpatterns.ai/agent-design/deterministic-orchestration-structured-modernization/) (community pattern site)
+- **Limits:** Context-rot results come from retrieval and repetition tasks, not agent loops. The control-flow sources are opinion and preprints, with one small comparison. The Stop hook guidance is from documentation, not tested here. The hooks page was read in parts, and the marker-file design is the checker's own.
+- **Checked:** 2026-11-14
