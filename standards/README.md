@@ -1,6 +1,6 @@
-# Industry-standard register
+# Findings register
 
-What agents checked against industry practice, kept so the next chat answers from it instead of searching the web again. Rule: `rules/working-rules.md`, "Industry practice".
+What agents checked outside this repository (industry practice, published research, hiring-market data, tool behaviour), kept so the next chat answers from it instead of searching the web again. An entry records a dated check and how strong its evidence is; it is not necessarily an established standard. Rule: `rules/working-rules.md`, "Industry practice".
 
 The repository is public: an entry names no project and holds no private detail.
 
@@ -17,6 +17,7 @@ One file per topic, `standards/<topic>.md`:
 
 - **Question:** what was asked, in one line.
 - **Finding:** the answer in a few lines, as the sources say it. Mark what is the checker's own inference.
+- **Evidence strength:** one of: *official standard* (a standards body or the tool's own docs), *common practice* (several independent reputable sources agree), *vendor or single source* (one company or author), *sample or survey* (counts from a sample such as job postings; say its size and how it was drawn), *anecdotal* (blog or forum reports), *no data found*. Entries written before 2026-11-13 lack this field; add it when one is next touched.
 - **Sources:** links, each with its kind (official docs, standard body, vendor blog, community post).
 - **Limits:** what the sources do not cover, and any source that is secondary or low quality.
 - **Checked:** date.
