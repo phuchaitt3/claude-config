@@ -71,3 +71,10 @@ def test_cycle_does_not_loop() -> None:
     issues = [issue(1, blocking=[2], blocked_by=[2]), issue(2, blocking=[1], blocked_by=[1])]
     ranked, _ = next_task.rank(issues)
     assert ranked == []
+
+
+def test_render_says_how_many_issues_the_limit_cut() -> None:
+    ranked, _ = next_task.rank([issue(n) for n in range(1, 5)])
+    assert next_task.render(ranked, 2)[-1] == "... 2 more not shown (--limit)"
+    assert len(next_task.render(ranked, 10)) == 4
+    assert next_task.render([], 10) == ["no startable issue"]

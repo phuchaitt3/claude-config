@@ -116,6 +116,19 @@ def rank(issues: list[dict]) -> tuple[list[dict], list[str]]:
     return ranked, fixups
 
 
+def render(ranked: list[dict], limit: int) -> list[str]:
+    """One line per startable issue up to `limit`, then how many were cut, so none look absent."""
+    names = ["now", "next", "later", "unlabelled"]
+    lines = [
+        f"#{r['number']}\t{names[r['tier']]}\tblocks {r['blocks']}\t{r['title']}" for r in ranked[:limit]
+    ]
+    if len(ranked) > limit:
+        lines.append(f"... {len(ranked) - limit} more not shown (--limit)")
+    if not ranked:
+        lines.append("no startable issue")
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--limit", type=int, default=10)
@@ -127,11 +140,8 @@ def main() -> int:
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
         print(f"next_task: cannot read GitHub: {exc}", file=sys.stderr)
         return 1
-    names = ["now", "next", "later", "unlabelled"]
-    for r in ranked[: args.limit]:
-        print(f"#{r['number']}\t{names[r['tier']]}\tblocks {r['blocks']}\t{r['title']}")
-    if not ranked:
-        print("no startable issue")
+    for line in render(ranked, args.limit):
+        print(line)
     for line in fixups:
         print(f"fix: {line}")
     return 0
