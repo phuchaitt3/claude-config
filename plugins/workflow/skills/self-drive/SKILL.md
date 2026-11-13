@@ -1,6 +1,6 @@
 ---
 name: self-drive
-description: Load this when the user asks a chat to "self-drive", "loop", "pick tasks on its own" or "work without prompts", or types /self-drive. Starts a /loop in which this one chat reviews open PRs, then takes eligible issues without being prompted, and says when to skip an issue and when to stop. Never starts on its own; only the user starts it, per chat.
+description: Load this when the user asks a chat to "self-drive", "loop", "pick tasks on its own" or "work without prompts", or types /self-drive; also for "self-drive overnight" (unattended night run). Starts a /loop in which this one chat reviews open PRs, then takes eligible issues without being prompted, and says when to skip an issue and when to stop. Never starts on its own; only the user starts it, per chat.
 ---
 
 # Self-driving chat
@@ -36,3 +36,13 @@ When nothing is eligible, stop rather than poll. Never schedule waits shorter th
 ## Stopping
 
 The user stops it by telling the chat to stop. The chat then ends the loop and finishes or parks its current task (commit as `wip:` on its own branch if unfinished).
+
+## Overnight mode (user's decision, 2026-11-13)
+
+The user starts it by asking a chat to "self-drive overnight". It is the loop above with the extra rules below. The project's merge mode, user-merge paths and `needs-you` queue limit all still apply, so a solo-fast project merges after its usual check. There is no cap on PRs, rounds or hours: the loop ends when nothing eligible is left, CI fails twice on one task, or the user stops it (Esc while the chat waits; otherwise tell it to stop). (Departs from standard: findings/overnight-agent-runs recommends caps on iterations, spend and time; the user chose none, relying on the harness suspending a chat at its usage limit, 2026-11-13.)
+
+**Before the first round**, check what you can and say in one line what the user must do: `gh auth status` shows the bot, the working tree is clean, the `keep-awake` status line shows a hold. Usage credits must be off (the user checks at claude.ai/settings/usage; you cannot see it), so a usage limit pauses the run instead of billing it. Never turn on usage or API credits.
+
+**Dependent work.** If the next task needs a PR that is waiting for the user, branch from that PR's branch and open the new PR against it (stacked). When the lower PR changes or merges, bring its changes into yours with `git merge`, never a rebase and never a force-push (the `push_guard` hook refuses every force). If the merge conflicts and you cannot settle it in the round, leave the PR for the user and say so in the summary. Skip the task if the lower PR is not yours. (standard: findings/agent-autonomy-tiers, checked 2026-11-13)
+
+**Morning summary.** Write `overnight-<date>.md` in the project's handoff folder (none: put it in the final message): per PR the link, merged or waiting, key decisions, what was skipped and why, the stop reason, the time of the last round, the undo. The last-round time shows whether the loop ended at a usage limit, which no source settles (the docs say nothing on whether a loop wakeup resumes after a limit resets). End with one line pointing to it. (standard: findings/overnight-agent-runs, checked 2026-11-13)
