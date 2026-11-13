@@ -1,0 +1,25 @@
+# Tailoring by cutting down a master resume
+
+- **Question:** Is cutting a full master resume down, piece by piece, until a one-page version remains the best way to tailor a resume to a posting? How much time should it take, and should every posting get its own version?
+- **Finding:**
+  - Common advice is to keep one complete master resume and never send it. Copy it for each application, then cut and reorder rather than write new text. The master is the pool of true bullets to choose from; tailoring changes what is selected and emphasised, not the facts. One page is the norm under about ten years of experience. Fit it by cutting, not by shrinking the font.
+  - Effort goes where readers look: the top third of page one (summary, skills, first entry and its first bullets).
+  - Time per application, once a solid master exists: 5–15 minutes (a resume writer quoted by Rezi says 10–15; master-resume guides say 5–10). A full rewrite takes 30–60 minutes. These figures come from career and resume-tool sites, not measurements.
+  - Fewer versions is a supported alternative. Keep 1–3 variants, one for each genuinely different role type, and send the closest one. Do the light 5–10 minute pass only for top-choice postings. The source admits there is no audited benchmark showing that per-job tailoring raises interview rates.
+  - A coach who argues "your master resume is killing your job search" is arguing against sending the master unchanged. His fix is the same: cut irrelevant duties and match the posting's keywords.
+  - *Checker's inference:*
+    - The sources describe the cut as one pass: decide every cut against the posting, then trim. None of them describes asking for approval before each cut and re-measuring the page after each one.
+    - That slow loop pays off once, while the first variant for a role type is built and the master is also being fact-checked and reworded.
+    - A second variant for a similar role type should start from the closest existing variant, or remove whole irrelevant entries in one batch, then fine-trim. It should take minutes to an hour, not days.
+- **Evidence strength:** common practice (several independent career sources agree on master-and-cut and on one page). Time figures and the "1–3 variants" view are *vendor or single source*.
+- **Sources:**
+  - Master, copy, cut down to one page: [DEV Community, pickuma](https://dev.to/pickuma/how-to-tailor-a-job-application-without-rewriting-your-whole-resume-57bm) (community post); [4 Corner Resources](https://www.4cornerresources.com/career-advice/tailor-your-resume/) (staffing firm blog); [CVOwl, one-page tailoring](https://www.cvowl.com/blog/how-to-tailor-a-one-page-resume-for-different-jobs) (vendor blog); [Hyring glossary, tailored resume](https://hyring.com/jobseeker-toolkit/career-glossary/tailored-resume) (vendor; top-third focus).
+  - Time per application: [Rezi](https://rezi.ai/posts/how-to-tailor-your-resume) (vendor, quotes a resume writer); [CareerCheck](https://www.careercheck.io/blog/how-long-tailor-resume-each-job) (vendor).
+  - Few variants instead of per-job tailoring: [Careery](https://careery.pro/blog/resume-applications/should-you-tailor-resume-for-each-job) (vendor blog; states no benchmark exists).
+  - Against sending a master unchanged: [Jeff Altman, The Big Game Hunter](https://thebiggamehunter.us/why-your-master-resume-is-killing-your-job-search/) (career coach; promotes his services).
+- **Limits:**
+  - Nearly all sources sell resume tools or coaching.
+  - No source measures interview rates by tailoring method.
+  - The sources are US-centred, with no Vietnam-specific source.
+  - They are written for people with work history; entry-level project resumes are not treated separately.
+- **Checked:** 2026-11-13.

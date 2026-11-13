@@ -116,6 +116,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [resume-project-stack-line](resume-project-stack-line.md) | How many technologies should a project's stack line list; is "at most 4–5" a rule? | 2026-11-10 |
 | [resume-llm-api-listing](resume-llm-api-listing.md) | Is naming a hosted LLM API (OpenAI, DeepSeek) on a resume worth it, and which APIs should be named? | 2026-11-11 |
 | [resume-skills-section-tailoring](resume-skills-section-tailoring.md) | When tailoring, should the skills section and stack lines keep every tool, or only relevant ones backed by bullets? | 2026-11-11 |
+| [resume-master-subtractive-tailoring](resume-master-subtractive-tailoring.md) | Is cutting a master resume down to one page the best way to tailor, how long should it take, and should every posting get its own version? | 2026-11-13 |
 | [resume-tailoring-project-context](resume-tailoring-project-context.md) | When tailoring cuts bullets, does an entry lose what the project was, and is that accepted practice? | 2026-11-10 |
 | [resume-summary-entry-level](resume-summary-entry-level.md) | Does an entry-level resume need a summary, what should it say, and may it restate the top entry? | 2026-11-10 |
 | [ats-keyword-matching](ats-keyword-matching.md) | Does an ATS match only the posting's keywords, or also assumed skills (Git, Jupyter) the posting omits? | 2026-11-11 |
