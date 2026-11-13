@@ -1,12 +1,16 @@
 """PreToolUse hook: refuse a config-repo commit that cites a register entry that does not exist.
 
-A point checked against industry practice carries `(standard: standards/<topic>, checked DATE)`, and
-the finding lives in `standards/<topic>.md` (rules/working-rules.md, "Industry practice"). A tag with
+A point checked against industry practice carries `(standard: findings/<topic>, checked DATE)`, and
+the finding lives in `findings/<topic>.md` (rules/working-rules.md, "Industry practice"). A tag with
 no entry means the next chat finds nothing and searches again. This hook reads the added lines of the
-staged diff in a repository that has `plugins/workflow/` and `standards/` (the config repo) and
-denies the commit when a `standards/<topic>` reference has no `standards/<topic>.md` file. URLs such
-as `.../standards/architecture-decisions.html` are not references: the name must not follow `/`, `.`,
+staged diff in a repository that has `plugins/workflow/` and `findings/` (the config repo) and
+denies the commit when a `findings/<topic>` reference has no `findings/<topic>.md` file. The register
+folder was called `standards/` until 2026-11-13; that prefix is still accepted and resolved against
+`findings/`, because tags in other repositories were not rewritten. URLs such as
+`.../standards/architecture-decisions.html` are not references: the name must not follow `/`, `.`,
 `-` or a word character.
+
+The folder name is set once, in REGISTER_DIR.
 
 Fails open: any error prints nothing and exits 0.
 """
@@ -21,7 +25,11 @@ from pathlib import Path
 
 _COMMIT = re.compile(r"\bgit\b(?:\s+-\S+(?:\s+\S+)?)*\s+commit\b")
 _CD = re.compile(r"\b(?:cd|pushd|Set-Location|sl)\s+(?:\"([^\"]+)\"|'([^']+)'|([^\s;&|]+))")
-_REF = re.compile(r"(?<![\w/.-])standards/([a-z0-9][a-z0-9-]*)(?![\w/-]*\.\w)")
+REGISTER_DIR = "findings"
+LEGACY_DIRS = ("standards",)
+_REF = re.compile(
+    r"(?<![\w/.-])(?:" + "|".join(re.escape(d) for d in (REGISTER_DIR, *LEGACY_DIRS)) + r")/([a-z0-9][a-z0-9-]*)(?![\w/-]*\.\w)"
+)
 _PLACEHOLDER = {"topic"}
 
 
@@ -51,11 +59,11 @@ def check(command: str, cwd: str) -> list[str]:
         return []
     folder = workdir(command, cwd)
     top = git(["rev-parse", "--show-toplevel"], folder).strip()
-    if not top or not (Path(top) / "plugins" / "workflow").is_dir() or not (Path(top) / "standards").is_dir():
+    if not top or not (Path(top) / "plugins" / "workflow").is_dir() or not (Path(top) / REGISTER_DIR).is_dir():
         return []
     diff = git(["diff", "--cached", "-U0", "--no-color"], folder).splitlines()
     added = [line[1:] for line in diff if line.startswith("+") and not line.startswith("+++")]
-    return missing_entries(added, Path(top) / "standards")
+    return missing_entries(added, Path(top) / REGISTER_DIR)
 
 
 def main() -> int:
@@ -74,14 +82,14 @@ def main() -> int:
     except Exception:  # never get in the way of a commit
         return 0
     if missing:
-        names = ", ".join(f"standards/{t}" for t in missing)
+        names = ", ".join(f"{REGISTER_DIR}/{t}" for t in missing)
         json.dump({"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": (
-                f"This commit cites {names}, but no such entry exists in standards/. Add the entry "
-                "(question, finding, sources, limits, date) and list it in standards/README.md in "
-                "this commit, or fix the tag. A tag with no entry makes the next chat search again."
+                f"This commit cites {names}, but no such entry exists in {REGISTER_DIR}/. Add the entry "
+                f"(question, finding, sources, limits, date) and list it in {REGISTER_DIR}/README.md in "
+                f"this commit, or fix the tag. A tag with no entry makes the next chat search again."
             ),
         }}, sys.stdout)
     return 0

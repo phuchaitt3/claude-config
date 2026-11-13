@@ -5,7 +5,7 @@ stays "open" in their memory. On each user message this hook reads the repo's op
 needs-you items, the PRs merged in the last 24 hours, the PR of the branch checked out in the
 chat's folder, and the open PRs in the owner's other repositories (all chats share one bot account,
 so this per-owner list stands in for GitHub's per-person review queue; standard:
-standards/multi-repo-agent-review, checked 2026-11-01). It adds a line to the chat's context only when that differs from what it last told
+findings/multi-repo-agent-review, checked 2026-11-01). It adds a line to the chat's context only when that differs from what it last told
 this session, so quiet turns cost nothing. Two things make it a sync mechanism, not just a report:
 
 - a PR merged since the last line adds the `workflow:pr-review` skill's "after a merge" steps (update your own

@@ -6,14 +6,14 @@ The repository is public: an entry names no project and holds no private detail.
 
 ## How to use it
 
-- Before a web search about an industry practice, look for the topic below. If an entry covers the question and is under 12 months old, answer from it and cite it as `standards/<topic>`.
-- After a search that checks a practice, add or update the entry in the same turn, list it in the matching section of the index below with its Checked date (add a section only when no existing one fits), and tag the point where it is written: `(standard: standards/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: <reason>)`.
-- A hook (`tag_check.py` in the workflow plugin) refuses a commit in this repo that cites `standards/<topic>` with no `standards/<topic>.md`. It checks that the entry exists, not that it supports the claim.
+- Before a web search about an industry practice, look for the topic below. If an entry covers the question and is under 12 months old, answer from it and cite it as `findings/<topic>`.
+- After a search that checks a practice, add or update the entry in the same turn, list it in the matching section of the index below with its Checked date (add a section only when no existing one fits), and tag the point where it is written: `(standard: findings/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: <reason>)`.
+- A hook (`tag_check.py` in the workflow plugin) refuses a commit in this repo that cites `findings/<topic>` with no `findings/<topic>.md`. It checks that the entry exists, not that it supports the claim.
 - An entry older than 12 months, a source that has changed, or a new fact that contradicts it means check again and update the entry.
 
 ## Entry format
 
-One file per topic, `standards/<topic>.md`:
+One file per topic, `findings/<topic>.md`:
 
 - **Question:** what was asked, in one line.
 - **Finding:** the answer in a few lines, as the sources say it. Mark what is the checker's own inference.
@@ -24,7 +24,7 @@ One file per topic, `standards/<topic>.md`:
 
 ## Index
 
-Grouped by area so a lookup reads one section; the files stay flat, so a `standards/<topic>` tag never changes when an entry moves section (standard: standards/knowledge-register-layout, checked 2026-11-08).
+Grouped by area so a lookup reads one section; the files stay flat, so a `findings/<topic>` tag never changes when an entry moves section (standard: findings/knowledge-register-layout, checked 2026-11-08).
 
 ### Software process
 

@@ -22,19 +22,19 @@ def test_web_search_gets_the_reminder() -> None:
 
 def test_after_search_points_at_the_register() -> None:
     result = run(json.dumps({"hook_event_name": "PostToolUse", "tool_name": "WebSearch", "tool_input": {}}))
-    assert "standards/" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "findings/" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
 
 
 def test_before_search_says_to_read_the_register_first() -> None:
     result = run(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "WebSearch", "tool_input": {}}))
     out = json.loads(result.stdout)["hookSpecificOutput"]
     assert out["hookEventName"] == "PreToolUse"
-    assert "standards/README.md" in out["additionalContext"]
+    assert "findings/README.md" in out["additionalContext"]
 
 
 def test_before_fetch_gets_the_reminder() -> None:
     result = run(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "WebFetch", "tool_input": {}}))
-    assert "standards/README.md" in result.stdout
+    assert "findings/README.md" in result.stdout
 
 
 def test_web_fetch_gets_the_reminder() -> None:

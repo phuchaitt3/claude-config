@@ -2,7 +2,7 @@
 
 A shell tool call that times out or is stopped kills the shell but not its children on Windows, so a
 `find`, `grep` or `rg` can keep running for hours with no parent (standard:
-standards/agent-process-and-resource-control, checked 2026-11-12). This hook looks at most once every
+findings/agent-process-and-resource-control, checked 2026-11-12). This hook looks at most once every
 ten minutes. It ends a process from a short list of search tools when it is older than 15 minutes
 and its parent no longer exists, logs the kill to `~/.claude/stray-procs.log`, and tells the chat in
 one line. A search tool whose parent is alive is only reported once it has run over an hour, because

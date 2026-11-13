@@ -8,7 +8,7 @@ the check at the point of use: when the chat's final message tells the user to a
 and if it is already merged or closed it blocks the stop once, so the chat posts a correction.
 
 Turns with no such line make no `gh` call. A `gh` failure lets the turn end (a guard against a
-slip, not a gate). Standard: standards/agent-state-freshness, checked 2026-11-11 (check at the
+slip, not a gate). Standard: findings/agent-state-freshness, checked 2026-11-11 (check at the
 point of use, cheap and targeted, not by refreshing everything).
 """
 

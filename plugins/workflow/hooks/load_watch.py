@@ -3,7 +3,7 @@
 `gpu_watch.py` covers the GPU. This covers the rest of a shared laptop: a chat that starts a heavy
 local job (a big test run, a data build, a model load into system RAM) while memory is nearly gone
 or the CPU is saturated slows every other chat and can crash the machine (standard:
-standards/agent-process-and-resource-control, checked 2026-11-12). The hook samples at most once
+findings/agent-process-and-resource-control, checked 2026-11-12). The hook samples at most once
 every two minutes, using two Windows API calls (no subprocess), and tells the chat in one line when
 free memory is low or the CPU averaged high since the last sample. At most one line per ten minutes
 while the load lasts. It never blocks or kills anything. Silent when the machine is fine, on other

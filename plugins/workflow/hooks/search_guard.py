@@ -5,7 +5,7 @@ machine. Under Git Bash on Windows they take hours; if the shell call times out,
 running as an orphan and holds CPU and disk (two `find /` processes ran 5-6 hours and made a shared
 laptop lag). The agent's own Glob and Grep tools, or a search scoped to a project folder, answer the
 same questions. Fails open: it guards a known mistake and is not a security boundary (standard:
-standards/agent-process-and-resource-control, checked 2026-11-12; standards/agent-permission-enforcement,
+findings/agent-process-and-resource-control, checked 2026-11-12; findings/agent-permission-enforcement,
 checked 2026-11-05).
 """
 

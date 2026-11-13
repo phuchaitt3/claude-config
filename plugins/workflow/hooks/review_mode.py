@@ -3,7 +3,7 @@
 The user picks how pull requests are checked before an agent merges them, once for every project, in
 `~/claude-config/settings/review.json` (`mode`, `since`, `why`). The modes and what each one asks are
 in the `workflow:pr-review` skill, "Review modes"; this hook only announces the live value, so no
-prose copy of the setting can drift (standard: standards/policy-single-source, checked 2026-11-01).
+prose copy of the setting can drift (standard: findings/policy-single-source, checked 2026-11-01).
 
 SessionStart always announces the mode. UserPromptSubmit announces it again only when the file says
 something different from what this session was last told. A missing, broken or unknown setting

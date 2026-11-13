@@ -12,7 +12,7 @@ For a command that runs `gh pr merge` (or merges through `gh api`), it refuses:
 - a pull request with a check that has not passed, or with no checks yet in a repository that has
   workflows;
 - `--auto` when no check is required, because then nothing makes GitHub wait for CI (standard:
-  standards/auto-merge-without-protection, checked 2026-11-05).
+  findings/auto-merge-without-protection, checked 2026-11-05).
 
 With `--auto` and required checks, GitHub holds the merge, so pending checks are allowed. Whether
 checks are required is read from the base branch's rules (rulesets and classic protection), not
@@ -23,7 +23,7 @@ command through.
 
 This is a guard against mistakes, not a security boundary: a merge in a form it does not parse gets
 past it, and a push that adds a protected file after `--auto` is merged unseen (standard:
-standards/agent-permission-enforcement, checked 2026-11-05).
+findings/agent-permission-enforcement, checked 2026-11-05).
 """
 
 from __future__ import annotations

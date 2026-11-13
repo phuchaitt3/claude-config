@@ -14,7 +14,7 @@ Issues that are blocked by an open issue, or labelled `claimed` or `needs-you`, 
 It also prints two kinds of fix-up for the chat to make: a bottleneck not labelled
 `priority:now`, and a "Blocked by #n" line in an issue body with no matching dependency link
 (text is invisible to GitHub's `is:blocking` search and to this script).
-(standard: standards/bottleneck-tasks, checked 2026-11-01)
+(standard: findings/bottleneck-tasks, checked 2026-11-01)
 """
 
 from __future__ import annotations

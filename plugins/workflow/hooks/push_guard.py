@@ -11,7 +11,7 @@
   branch: open PR -> allow; merged and none open -> deny; no PR, or gh unavailable -> allow.
 
 All of it fails open: this guards against known mistakes and is not a security boundary (standard:
-standards/agent-permission-enforcement, checked 2026-11-05).
+findings/agent-permission-enforcement, checked 2026-11-05).
 """
 
 from __future__ import annotations

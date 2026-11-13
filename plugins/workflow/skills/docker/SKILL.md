@@ -5,7 +5,7 @@ description: Load before building images, pruning, bringing up a Compose stack, 
 
 # Docker disk space
 
-Added 2026-11-01 after a Docker data disk grew to 49 GB on a laptop's system drive and filled it, which broke image builds and local models. (standard: standards/docker-disk, checked 2026-11-01)
+Added 2026-11-01 after a Docker data disk grew to 49 GB on a laptop's system drive and filled it, which broke image builds and local models. (standard: findings/docker-disk, checked 2026-11-01)
 
 ## Before heavy Docker work
 

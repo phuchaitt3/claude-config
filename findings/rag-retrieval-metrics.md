@@ -13,6 +13,6 @@
   - Future AGI, how to evaluate RAG systems (vendor guide): https://futureagi.substack.com/p/how-to-evaluate-rag-systems-the-complete
   - LayerLens, RAG evaluation framework for production (vendor blog): https://layerlens.ai/blog/rag-evaluation-framework-for-production-ai-systems
   - Hamel Husain, evaluate-RAG skill (practitioner material): https://kortix.com/marketplace/hamelsmu--evals-skills/evaluate-rag
-  - See also standards/rag-retrieval-eval-without-benchmark (golden sets, synthetic questions).
+  - See also findings/rag-retrieval-eval-without-benchmark (golden sets, synthetic questions).
 - **Limits:** Practitioner and vendor sources, read through search summaries; no peer-reviewed comparison of metric choice was read.
 - **Checked:** 2026-11-10
