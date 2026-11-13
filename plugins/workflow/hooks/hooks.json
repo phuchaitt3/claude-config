@@ -211,6 +211,11 @@
           },
           {
             "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/loop_guard.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/keep_awake.py\" stop",
             "timeout": 5
           }
