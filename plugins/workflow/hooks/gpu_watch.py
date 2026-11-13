@@ -39,8 +39,8 @@ def decide(
         names = ", ".join(m["name"] for m in ollama or [])
         text = (
             f"GPU memory ({reading['mem_mb']:.0f} MB) is Ollama's loaded models ({names}), outside the "
-            "machine-wide lock. Before a GPU job, run it with `gpu_run.py run --stop-ollama` (or `hold`) "
-            "if no other chat is using Ollama now."
+            "machine-wide lock. A GPU job started with `gpu_run.py run` (or `hold`) unloads them when it "
+            "takes the lock."
         )
     else:
         text = (

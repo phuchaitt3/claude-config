@@ -5,8 +5,8 @@ timings. This wrapper takes a machine-wide lock, runs the command, releases the 
 command ends, and appends every start, wait, refusal and end to a log, so overuse shows up in a
 report instead of in a mysterious slowdown. Standard library only; no per-repository code.
 
-    python gpu_run.py run [--wait] [--purpose TEXT] [--stop-ollama] -- <command ...>   a GPU job
-    python gpu_run.py hold [--wait] [--purpose TEXT] [--stop-ollama] [--max-minutes N] -- <start command ...>
+    python gpu_run.py run [--wait] [--purpose TEXT] [--keep-ollama] -- <command ...>   a GPU job
+    python gpu_run.py hold [--wait] [--purpose TEXT] [--keep-ollama] [--max-minutes N] -- <start command ...>
                                                      a GPU service: hold the lock until its containers stop
                                                      (with --max-minutes: `docker stop` them at the deadline)
     python gpu_run.py status                                            who holds the GPU now
@@ -24,9 +24,16 @@ start command, finds the GPU containers it started, and keeps the lock until the
 (standard: findings/shared-gpu-one-machine, checked 2026-11-13). Run it in the background; stopping
 the containers (``docker stop``, ``docker compose down``) releases the lock.
 
-Ollama loads models onto the GPU on demand, outside this lock. ``run`` and ``hold`` list what it has
-loaded; ``--stop-ollama`` unloads those models first. ``check`` reports GPU memory that Ollama
-accounts for as "ollama", not as unguarded use.
+Ollama loads models onto the GPU on demand, outside this lock. When ``run`` or ``hold`` takes the lock
+it unloads whatever Ollama has on the GPU (keep_alive 0, as Ollama's FAQ documents) and logs an
+``ollama_unload`` event per model; ``--keep-ollama`` leaves them loaded and only lists them
+(``--stop-ollama`` is still accepted and does nothing, since unloading is now the default). The
+levers that stop Ollama taking GPU memory in the first place are settings, not this script
+(standard: findings/shared-gpu-one-machine, checked 2026-11-13): ``OLLAMA_KEEP_ALIVE`` (for example
+``30s``; the default is 5 minutes) shortens how long an idle model stays loaded, and
+``OLLAMA_MAX_LOADED_MODELS`` (default 3 per GPU) caps how many load at once. Both are user-level
+environment variables read by the Ollama server at start, so setting them needs the user's yes.
+``check`` reports GPU memory that Ollama accounts for as "ollama", not as unguarded use.
 """
 
 from __future__ import annotations
@@ -221,19 +228,25 @@ def ollama_unload(name: str) -> bool:
         return False
 
 
-def ollama_note(stop: bool) -> None:
+def ollama_note(keep: bool) -> None:
+    """Unload the models Ollama has on the GPU (the lock holder gets the GPU); with `keep`, list them."""
     models = [m for m in ollama_models() if m["vram_mb"]]
     if not models:
         return
     names = ", ".join(f"{m['name']} ({m['vram_mb']} MB)" for m in models)
-    if stop:
-        for m in models:
-            ok = ollama_unload(m["name"])
-            log_event("ollama_unload", model=m["name"], vram_mb=m["vram_mb"], ok=ok)
-        print(f"gpu_run: unloaded Ollama models: {names}", file=sys.stderr)
-    else:
-        print(f"gpu_run: Ollama holds GPU memory outside the lock: {names}. Another chat may be using "
-              "it; rerun with --stop-ollama to unload first.", file=sys.stderr)
+    if keep:
+        print(f"gpu_run: Ollama holds GPU memory outside the lock: {names} (left loaded: --keep-ollama).",
+              file=sys.stderr)
+        return
+    failed = []
+    for m in models:
+        ok = ollama_unload(m["name"])
+        log_event("ollama_unload", model=m["name"], vram_mb=m["vram_mb"], ok=ok)
+        if not ok:
+            failed.append(m["name"])
+    print(f"gpu_run: unloaded Ollama models: {names}", file=sys.stderr)
+    if failed:
+        print(f"gpu_run: could not unload {', '.join(failed)}; they still hold GPU memory.", file=sys.stderr)
 
 
 def classify(reading: dict | None, locked: bool, ollama_mb: float) -> str:
@@ -310,7 +323,7 @@ def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[Lo
     waited_s = round(time.time() - started_wait) if waited else 0
     log_event("start", **{k: info[k] for k in ("pid", "kind", "purpose", "cmd", "cwd")},
               waited_s=waited_s)
-    ollama_note(getattr(args, "stop_ollama", False))
+    ollama_note(getattr(args, "keep_ollama", False))
     return lock, info
 
 
@@ -507,7 +520,8 @@ def cmd_report(args: argparse.Namespace) -> int:
     print(f"  services held (GPU containers kept the lock): {len(holds)}   "
           f"time: {sum(r.get('seconds', 0) for r in holds) / 3600:.1f} h")
     ollama = [r for r in rows if r["event"] == "ollama"]
-    print(f"  Ollama models seen on the GPU outside the lock: {len(ollama)}")
+    print(f"  Ollama models seen on the GPU outside the lock: {len(ollama)}   "
+          f"unloaded at lock take: {sum(1 for r in rows if r['event'] == 'ollama_unload' and r.get('ok'))}")
     print(f"  UNGUARDED use seen (GPU busy, no lock held): {len(unguarded)}")
     for r in unguarded[-5:]:
         who = f"  containers: {', '.join(r['containers'])}" if r.get("containers") else ""
@@ -528,7 +542,9 @@ def main(argv: list[str] | None = None) -> int:
         r = sub.add_parser(name, help=text)
         r.add_argument("--wait", action="store_true", help="queue behind the holder instead of failing")
         r.add_argument("--purpose", help="short label shown to whoever is refused (default: program)")
-        r.add_argument("--stop-ollama", action="store_true", help="unload Ollama's models first")
+        r.add_argument("--keep-ollama", action="store_true",
+                       help="leave Ollama's loaded models alone (default: unload them when the lock is taken)")
+        r.add_argument("--stop-ollama", action="store_true", help=argparse.SUPPRESS)  # old name; now the default
         if name == "hold":
             r.add_argument("--max-minutes", type=float,
                            help="docker stop the held containers after this long, then release the lock")

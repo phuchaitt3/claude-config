@@ -8,7 +8,7 @@ SCRIPT = str(HERE / "gpu_run.py")
 
 
 def run(tmp, *args, **kw):
-    env = {**__import__("os").environ, "GPU_GUARD_DIR": str(tmp)}
+    env = {**__import__("os").environ, "GPU_GUARD_DIR": str(tmp), "OLLAMA_HOST": "127.0.0.1:1"}
     return subprocess.run([sys.executable, SCRIPT, *args], env=env, capture_output=True, text=True, **kw)
 
 
@@ -34,7 +34,7 @@ def test_second_job_is_refused_and_logged(tmp_path):
     holder = subprocess.Popen(
         [sys.executable, SCRIPT, "run", "--purpose", "first", "--", sys.executable, "-c",
          "import time;time.sleep(6)"],
-        env={**__import__("os").environ, "GPU_GUARD_DIR": str(tmp_path)},
+        env={**__import__("os").environ, "GPU_GUARD_DIR": str(tmp_path), "OLLAMA_HOST": "127.0.0.1:1"},
     )
     try:
         import time
@@ -86,7 +86,7 @@ def test_hold_keeps_lock_until_its_containers_stop(tmp_path, monkeypatch):
 
     monkeypatch.setattr(g, "gpu_containers", fake_containers)
     args = argparse.Namespace(command=["--", sys.executable, "-c", "pass"], purpose="svc", wait=False,
-                              stop_ollama=False)
+                              keep_ollama=False)
     assert g.cmd_hold(args) == 0
     assert seen["status_while_held"] is True
     assert not g.Lock().is_held()
@@ -102,7 +102,7 @@ def test_hold_releases_when_no_new_gpu_container(tmp_path, monkeypatch):
     monkeypatch.setattr(g, "ollama_models", lambda: [])
     monkeypatch.setattr(g, "gpu_containers", lambda: {"old": "other"})
     args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False,
-                              stop_ollama=False)
+                              keep_ollama=False)
     assert g.cmd_hold(args) == 0
     assert [e["event"] for e in events(tmp_path)] == ["start", "end"]
     assert not g.Lock().is_held()
@@ -127,8 +127,60 @@ def test_hold_stops_containers_at_the_deadline(tmp_path, monkeypatch):
     monkeypatch.setattr(g, "gpu_containers", fake_containers)
     monkeypatch.setattr(g, "stop_containers", fake_stop)
     args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False,
-                              stop_ollama=False, max_minutes=1e-9)
+                              keep_ollama=False, max_minutes=1e-9)
     assert g.cmd_hold(args) == 124
     assert state["stopped"] == ["new"]
     assert [e["event"] for e in events(tmp_path)] == ["start", "hold", "deadline", "end"]
     assert not g.Lock().is_held()
+
+
+def test_taking_the_lock_unloads_ollama_models_and_logs_each(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    unloaded = []
+    monkeypatch.setattr(g, "ollama_models", lambda: [{"name": "qwen3:4b", "vram_mb": 3900},
+                                                     {"name": "cpu-only", "vram_mb": 0}])
+    monkeypatch.setattr(g, "ollama_unload", lambda name: unloaded.append(name) or True)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="job", wait=False,
+                              keep_ollama=False)
+    assert g.cmd_run(args) == 0
+    assert unloaded == ["qwen3:4b"]
+    ev = events(tmp_path)
+    assert [e["event"] for e in ev] == ["start", "ollama_unload", "end"]
+    assert ev[1]["model"] == "qwen3:4b" and ev[1]["ok"] is True
+
+
+def test_keep_ollama_lists_but_does_not_unload(tmp_path, monkeypatch, capsys):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "ollama_models", lambda: [{"name": "qwen3:4b", "vram_mb": 3900}])
+
+    def boom(name):
+        raise AssertionError("unloaded")
+
+    monkeypatch.setattr(g, "ollama_unload", boom)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="job", wait=False,
+                              keep_ollama=True)
+    assert g.cmd_run(args) == 0
+    assert "left loaded" in capsys.readouterr().err
+    assert [e["event"] for e in events(tmp_path)] == ["start", "end"]
+
+
+def test_failed_unload_is_logged_and_said_but_the_job_still_runs(tmp_path, monkeypatch, capsys):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "ollama_models", lambda: [{"name": "m", "vram_mb": 100}])
+    monkeypatch.setattr(g, "ollama_unload", lambda name: False)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="job", wait=False,
+                              keep_ollama=False)
+    assert g.cmd_run(args) == 0
+    assert "could not unload m" in capsys.readouterr().err
+    assert events(tmp_path)[1]["ok"] is False
+
+
+def test_old_stop_ollama_flag_is_still_accepted(tmp_path):
+    r = run(tmp_path, "run", "--stop-ollama", "--", sys.executable, "-c", "pass")
+    assert r.returncode == 0
