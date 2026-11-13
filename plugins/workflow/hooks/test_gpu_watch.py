@@ -22,3 +22,11 @@ def test_unguarded_use_is_logged_and_told_once_per_window():
     assert not log2 and text2 == ""
     _, text3, log3 = gpu_watch.decide(state, 1000.0 + gpu_watch.LOG_EVERY_S, BUSY, False, True)
     assert log3 and text3
+
+
+def test_ollama_memory_is_named_not_called_unguarded():
+    models = [{"name": "qwen3:4b", "vram_mb": 3900}]
+    _, text, log = gpu_watch.decide({}, 1000.0, BUSY, False, True, models)
+    assert log and "qwen3:4b" in text and "--stop-ollama" in text
+    _, text, _ = gpu_watch.decide({}, 1000.0, BUSY, False, True, [{"name": "s", "vram_mb": 500}])
+    assert "outside `gpu_run.py`" in text

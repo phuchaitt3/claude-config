@@ -48,3 +48,61 @@ def test_second_job_is_refused_and_logged(tmp_path):
         assert "refused (GPU taken, did not wait): 1" in run(tmp_path, "report").stdout
     finally:
         holder.wait()
+
+
+def _module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("gpu_run_mod", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_classify_names_ollama_only_when_it_accounts_for_the_memory():
+    g = _module()
+    busy = {"util_pct": 50.0, "mem_mb": 3000.0}
+    assert g.classify(None, False, 0) == "none"
+    assert g.classify(busy, True, 0) == "guarded"
+    assert g.classify({"util_pct": 0.0, "mem_mb": 100.0}, False, 0) == "idle"
+    assert g.classify(busy, False, 2900) == "ollama"
+    assert g.classify(busy, False, 1000) == "unguarded"
+    assert g.classify(busy, False, 0) == "unguarded"
+
+
+def test_hold_keeps_lock_until_its_containers_stop(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "HOLD_POLL_SECONDS", 0)
+    monkeypatch.setattr(g, "ollama_models", lambda: [])
+    seen = {"status_while_held": None}
+    calls = iter([{"old": "other"}, {"old": "other", "new": "rr"}, {"old": "other", "new": "rr"}, {"old": "other"}])
+
+    def fake_containers():
+        c = next(calls)
+        if c == {"old": "other", "new": "rr"} and seen["status_while_held"] is None:
+            seen["status_while_held"] = g.Lock().is_held()
+        return c
+
+    monkeypatch.setattr(g, "gpu_containers", fake_containers)
+    args = argparse.Namespace(command=["--", sys.executable, "-c", "pass"], purpose="svc", wait=False,
+                              stop_ollama=False)
+    assert g.cmd_hold(args) == 0
+    assert seen["status_while_held"] is True
+    assert not g.Lock().is_held()
+    ev = events(tmp_path)
+    assert [e["event"] for e in ev] == ["start", "hold", "end"]
+    assert ev[1]["containers"] == ["rr"] and ev[2]["kind"] == "service"
+
+
+def test_hold_releases_when_no_new_gpu_container(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "ollama_models", lambda: [])
+    monkeypatch.setattr(g, "gpu_containers", lambda: {"old": "other"})
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False,
+                              stop_ollama=False)
+    assert g.cmd_hold(args) == 0
+    assert [e["event"] for e in events(tmp_path)] == ["start", "end"]
+    assert not g.Lock().is_held()
