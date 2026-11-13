@@ -49,8 +49,8 @@ Table of model and effort by task type: `workflow:model-effort`.
 
 The user sees the context meter in the status line; you do not. Suggest once per task boundary (work committed and recorded; opening, reviewing or merging a PR counts), in one line at the end of the message, never in the middle of a debugging thread:
 
-- `/clear` with a resume prompt (chat name, folder, branch, next task with its tag) when the next task is unrelated and this chat did more than about 15 tool calls, when the chat passed about 40 tool calls, or when quality is slipping (the same correction twice). Do not start the next task in that turn.
-- `/compact <what to keep>` only when the task continues and its state cannot be written to files yet; write ruled-out causes to a file first, because a summary can distort them.
+- `/clear` with a resume prompt (chat name, folder, branch, next task with its tag) when the next task is unrelated (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) and this chat did more than about 15 tool calls, when the chat passed about 40 tool calls (the 15 and 40 are the user's own; departs from standard: the docs give no tool-call count, only "between unrelated tasks"), or when quality is slipping (the same correction twice; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13). Do not start the next task in that turn.
+- `/compact <what to keep>` only when the task continues (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) and its state cannot be written to files yet; write ruled-out causes to a file first, because a summary can distort them (the last two clauses are the user's own; no source found).
 
 ## Industry practice (user's decision, 2026-11-01)
 
