@@ -83,6 +83,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [rag-hybrid-fusion](rag-hybrid-fusion.md) | How do hybrid search systems merge vector and keyword results; is RRF the default? | 2026-11-10 |
 | [rag-reranker-only-small-pool](rag-reranker-only-small-pool.md) | Is scoring every chunk with a cross-encoder, with no first-stage retriever, established practice, and when does it fit? | 2026-11-10 |
 | [rag-retrieval-metrics](rag-retrieval-metrics.md) | Which metric leads when reporting RAG retrieval: Hit@k, Recall@k, MRR or nDCG? | 2026-11-13 |
+| [rag-retrieval-score-ranges](rag-retrieval-score-ranges.md) | Is a top-5 hit rate near 100% normal, or a sign of evaluation bias? What drives retrieval scores up? | 2026-11-13 |
 | [rag-retrieval-relevance-without-llm](rag-retrieval-relevance-without-llm.md) | Without an LLM judge, how is a retrieved chunk labelled relevant (gold evidence, answer string, keyword recall), and how reliable is each? | 2026-11-10 |
 | [rag-retrieval-eval-without-benchmark](rag-retrieval-eval-without-benchmark.md) | With no benchmark that fits, how do teams evaluate RAG retrieval, and can LLM-generated test questions be trusted? | 2026-11-09 |
 | [llm-judge-vs-em-f1](llm-judge-vs-em-f1.md) | Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers? | 2026-11-09 |
