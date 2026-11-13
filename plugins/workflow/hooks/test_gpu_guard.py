@@ -89,3 +89,36 @@ def test_hook_output_denies_and_ignores_other_tools(proj):
     assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
     assert call({"tool_name": "Read", "tool_input": {"command": "docker run --gpus all x"}}) == ""
     assert call({"tool_name": "Bash", "tool_input": {"command": "ls"}}) == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "timeout 280 docker run --rm --gpus all --name t img",
+        "timeout 60 docker run --rm postgres:17",
+        "timeout -k 5 60 docker container run --rm img",
+        "gtimeout 60 docker run img",
+        "timeout 600 docker compose -f gpu/compose.yaml up",
+        "timeout 600 docker compose -p x run --rm api pytest",
+        "timeout 600 docker-compose up",
+        "timeout 300 python gpu_run.py run -- docker run --gpus all --name t img",
+    ],
+)
+def test_timeout_around_foreground_container_is_refused(command, proj):
+    assert "time limit on the docker client" in gpu_guard.refusal(command, str(proj))
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "timeout 60 docker ps",
+        "timeout 60 docker run -d --name t postgres:17",
+        "timeout 120 docker compose up -d",
+        "timeout 120 docker compose up --wait",
+        "timeout 60 docker logs t",
+        "timeout 30 docker stop t",
+        "timeout 60 curl -s localhost:8080/health",
+    ],
+)
+def test_timeout_without_foreground_container_is_allowed(command, proj):
+    assert gpu_guard.refusal(command, str(proj)) == ""

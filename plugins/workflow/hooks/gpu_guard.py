@@ -9,7 +9,12 @@ GPU container carries a `--name` or `--label` naming its task so it can be trace
 
 This hook refuses:
 - a GPU container start whose command does not go through `gpu_run.py hold` or `gpu_run.py run`;
-- a `docker run --gpus` with neither `--name` nor `--label`.
+- a `docker run --gpus` with neither `--name` nor `--label`;
+- `timeout` (or `gtimeout`) around a foreground `docker run`, `docker compose run` or `docker compose
+  up`, GPU or not. Killing the docker client does not stop the container, and `--rm` never fires
+  because the container never exits; on Windows every timeout kills the client outright. The orphan
+  that started this hook came from `timeout 280 docker run --rm --gpus all ...` (standard:
+  findings/docker-run-timeout-cleanup, checked 2026-11-13; user's decision, 2026-11-13).
 
 It reads command text only, so it is a guardrail against mistakes, not a security boundary, and it
 fails open on anything it cannot parse or read (standard: findings/shared-gpu-one-machine, checked
@@ -43,6 +48,35 @@ _UNNAMED = (
     "`--label gpu-guard.task=<task>` so it can be traced to the task that started it, and stop it when "
     "the task is done. (Rule: working-rules, \"Laptop GPU\".)"
 )
+_TIMEOUT = (
+    "Refused: `{cmd}` puts a time limit on the docker client, not the container. Killing the client "
+    "leaves the container running (and `--rm` never fires), so it keeps its memory and GPU. Instead: "
+    "start it detached and named (`docker run -d --name <task>-<what> ...`), wait with your own "
+    "deadline (`docker wait <name>` or poll `docker ps`), and `docker stop <name>` in a finally step. "
+    "For a GPU container, `gpu_run.py hold --max-minutes N -- docker run -d --name ...` does all of "
+    "this and stops it at the deadline. (findings/docker-run-timeout-cleanup)"
+)
+_TIMEOUTS = {"timeout", "gtimeout"}
+_COMPOSE_VALUE_OPTS = {"-f", "--file", "-p", "--project-name", "--project-directory", "--profile",
+                       "--env-file", "--ansi", "--parallel", "--progress"}
+
+
+def _compose_subcommand(args: list[str]) -> tuple[str, list[str]]:
+    """('up', [args after it]) for `compose -f x up -d ...`; ('', []) when none is found."""
+    skip = False
+    for i, a in enumerate(args):
+        if skip:
+            skip = False
+        elif a in _COMPOSE_VALUE_OPTS:
+            skip = True
+        elif not a.startswith("-"):
+            return a, args[i + 1:]
+    return "", []
+
+
+def _detached(args: list[str]) -> bool:
+    return any(a in {"-d", "--detach", "--wait"} or (a.startswith("-") and not a.startswith("--")
+                                                      and "d" in a[1:] and len(a) <= 4) for a in args)
 
 
 def _segments(command: str) -> list[list[str]]:
@@ -134,9 +168,23 @@ def refusal(command: str, cwd: str) -> str:
         starts = [i for i, w in enumerate(words) if _name(w) in {"docker", "docker-compose"}]
         if not starts:
             continue
+        timed = any(_name(w) in _TIMEOUTS for w in words[: starts[0]])
         words = words[starts[0]:]
         head = _name(words[0])
         shown = " ".join(words)[:100]
+        if timed:
+            if head == "docker" and len(words) > 1:
+                rest = words[2:] if words[1] == "container" else words[1:]
+                if rest and rest[0] == "run" and not _detached(rest[1:]):
+                    return _TIMEOUT.format(cmd=shown)
+                if rest and rest[0] == "compose":
+                    sub, after = _compose_subcommand(rest[1:])
+                    if sub in {"run", "up"} and not _detached(after):
+                        return _TIMEOUT.format(cmd=shown)
+            elif head == "docker-compose":
+                sub, after = _compose_subcommand(words[1:])
+                if sub in {"run", "up"} and not _detached(after):
+                    return _TIMEOUT.format(cmd=shown)
         if head == "docker" and len(words) > 1:
             rest = words[1:]
             if rest[0] == "container" and len(rest) > 1:

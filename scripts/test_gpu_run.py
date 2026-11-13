@@ -106,3 +106,29 @@ def test_hold_releases_when_no_new_gpu_container(tmp_path, monkeypatch):
     assert g.cmd_hold(args) == 0
     assert [e["event"] for e in events(tmp_path)] == ["start", "end"]
     assert not g.Lock().is_held()
+
+
+def test_hold_stops_containers_at_the_deadline(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "HOLD_POLL_SECONDS", 0)
+    monkeypatch.setattr(g, "ollama_models", lambda: [])
+    state = {"n": 0, "stopped": None}
+
+    def fake_containers():
+        state["n"] += 1
+        return {} if state["n"] == 1 else {"new": "rr"}
+
+    def fake_stop(ids):
+        state["stopped"] = ids
+        return True
+
+    monkeypatch.setattr(g, "gpu_containers", fake_containers)
+    monkeypatch.setattr(g, "stop_containers", fake_stop)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False,
+                              stop_ollama=False, max_minutes=1e-9)
+    assert g.cmd_hold(args) == 124
+    assert state["stopped"] == ["new"]
+    assert [e["event"] for e in events(tmp_path)] == ["start", "hold", "deadline", "end"]
+    assert not g.Lock().is_held()

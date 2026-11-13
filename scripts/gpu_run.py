@@ -6,8 +6,9 @@ command ends, and appends every start, wait, refusal and end to a log, so overus
 report instead of in a mysterious slowdown. Standard library only; no per-repository code.
 
     python gpu_run.py run [--wait] [--purpose TEXT] [--stop-ollama] -- <command ...>   a GPU job
-    python gpu_run.py hold [--wait] [--purpose TEXT] [--stop-ollama] -- <start command ...>
+    python gpu_run.py hold [--wait] [--purpose TEXT] [--stop-ollama] [--max-minutes N] -- <start command ...>
                                                      a GPU service: hold the lock until its containers stop
+                                                     (with --max-minutes: `docker stop` them at the deadline)
     python gpu_run.py status                                            who holds the GPU now
     python gpu_run.py check                                             GPU busy with no holder?
     python gpu_run.py report [--days N]                                 usage, waits, refusals, unguarded use
@@ -353,6 +354,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     return code
 
 
+def stop_containers(ids: list[str]) -> bool:
+    """`docker stop` by id: the client-side deadline that `timeout docker run` cannot give
+    (standard: findings/docker-run-timeout-cleanup, checked 2026-11-13)."""
+    try:
+        subprocess.run(["docker", "stop", *ids], check=True, capture_output=True, timeout=120, **NO_WINDOW)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return True
+
+
 def cmd_hold(args: argparse.Namespace) -> int:
     """Run a start command that leaves GPU containers running; hold the lock until they stop."""
     command = _command(args)
@@ -383,12 +394,22 @@ def cmd_hold(args: argparse.Namespace) -> int:
         lock.update({**info, "containers": held})
         log_event("hold", pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
                   containers=sorted(held.values()))
+        deadline = t0 + args.max_minutes * 60 if getattr(args, "max_minutes", None) else None
+        until = f" (deadline: {args.max_minutes} min, then `docker stop`)" if deadline else ""
         print(f"gpu_run hold: holding the GPU lock while {', '.join(held.values())} run; stop them "
-              "to release it.", file=sys.stderr, flush=True)
+              f"to release it{until}.", file=sys.stderr, flush=True)
         while True:
             time.sleep(HOLD_POLL_SECONDS)
             running = gpu_containers()
             if running is not None and not set(held) & set(running):
+                break
+            if deadline and time.time() >= deadline:
+                ok = stop_containers(list(held))
+                log_event("deadline", pid=info["pid"], purpose=info["purpose"],
+                          containers=sorted(held.values()), stopped=ok)
+                print(f"gpu_run hold: deadline reached; stopped {', '.join(held.values())}.",
+                      file=sys.stderr)
+                code = 124  # what `timeout` returns
                 break
         return code
     except KeyboardInterrupt:
@@ -508,6 +529,9 @@ def main(argv: list[str] | None = None) -> int:
         r.add_argument("--wait", action="store_true", help="queue behind the holder instead of failing")
         r.add_argument("--purpose", help="short label shown to whoever is refused (default: program)")
         r.add_argument("--stop-ollama", action="store_true", help="unload Ollama's models first")
+        if name == "hold":
+            r.add_argument("--max-minutes", type=float,
+                           help="docker stop the held containers after this long, then release the lock")
         r.add_argument("command", nargs=argparse.REMAINDER)
     sub.add_parser("status")
     sub.add_parser("check")
