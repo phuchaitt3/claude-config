@@ -1,0 +1,19 @@
+# Interviews: depth on existing projects vs more projects
+
+- **Question:** For an entry-level engineering interview, does being able to explain an existing project in depth count for more than having more or newer projects?
+- **Finding:**
+  - **Interviews probe one or two projects in depth.** Interview reports and guides describe a "project deep dive": the candidate, or the interviewer picking from the resume, takes one project they contributed to substantially. They walk through the problem, their own role, key decisions, the alternatives considered and the trade-offs, the outcome, and what they would change. Reports cover Google, Tesla, Meta and Anthropic loops. This matches `entry-level-ai-engineer-market` (AI engineer loop part 4: "a deep dive on one project you shipped").
+  - **Not being able to defend your own project is a common red flag.** Hiring guides for data science and ML roles list "cannot justify their technical decisions" as a red flag, and suggest asking for three decisions and the reasoning behind each. Practitioner posts say a polished project the candidate cannot defend loses to a plainer one they understand fully. They also say "2–3 strong projects beat 10 weak ones" (a rule of thumb, not a measured threshold). Interviewers pick the project they are most curious about, so a weakly understood one is a liability.
+  - **Ownership:** for team work, separate the project from your own part, or interviewers may assume your role was smaller.
+  - *Checker's inference:* the claim "explaining existing work well beats adding more" is supported as **common practitioner advice**, for the interview stage only. It says nothing about whether a new project or feature helps at the **resume screen**, where a stronger bullet can still matter. It also does not rule out adding finished work, as long as the candidate can defend that work just as well.
+- **Evidence strength:** *anecdotal*. Candidate interview reports, prep-vendor pages and practitioner blogs agree; no survey or study was found.
+- **Sources:**
+  - [Ashby, engineer past-projects deep dive](https://www.ashbyhq.com/resources/engineer-past-projects-deep-dive) (ATS vendor interview guide)
+  - [Taro, project deep dive interviews](https://jointaro.com/question/wKU26ksyIkakgdhowa2K/project-deep-dive-interviews), [Taro, breadth vs depth as a junior engineer](https://jointaro.com/question/QG8K97uU9YjuoDUc9pCE/breadth-vs-depth-as-a-junior-engineer) (community Q&A)
+  - [PracHub, project deep dive: walkthrough, trade-offs](https://prachub.com/interview-questions/project-deep-dive-end-to-end-walkthrough-trade-offs-and-communicating-decisions) (candidate-reported questions)
+  - [igotanoffer, Meta project retrospective](https://igotanoffer.com/en/advice/meta-project-retrospective) (prep vendor; aimed at senior levels)
+  - [CoderPad, red flags when hiring data scientists](https://coderpad.io/blog/data-science/8-red-flags-to-watch-out-for-when-hiring-data-scientists/) (assessment vendor)
+  - [techinterview.org, the AI portfolio in 2026 interviews](https://www.techinterview.org/post/3233475399/ai-portfolio-built-with-ai-2026-interviews/) (career site)
+  - [Level Up, "The interviewer can't find you in your own project"](https://levelup.gitconnected.com/the-interviewer-cant-find-you-in-your-own-project-10e60440df55) (practitioner blog)
+- **Limits:** Two standard searches; pages were read through search summaries, not in full. Many deep-dive sources describe senior and staff loops; no source weighs depth against breadth specifically for junior or new-grad candidates. Everything found is US-based or from global tech firms, with nothing on Vietnamese employers or on residency programmes. No source compares adding a project right before an application deadline with preparing for the interview.
+- **Checked:** 2026-11-14
