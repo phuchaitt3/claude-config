@@ -184,3 +184,60 @@ def test_failed_unload_is_logged_and_said_but_the_job_still_runs(tmp_path, monke
 def test_old_stop_ollama_flag_is_still_accepted(tmp_path):
     r = run(tmp_path, "run", "--stop-ollama", "--", sys.executable, "-c", "pass")
     assert r.returncode == 0
+
+
+def test_ram_lock_is_separate_from_the_gpu_lock(tmp_path):
+    import time
+    holder = subprocess.Popen(
+        [sys.executable, SCRIPT, "run", "--resource", "ram", "--purpose", "suite", "--", sys.executable, "-c",
+         "import time;time.sleep(6)"],
+        env={**__import__("os").environ, "GPU_GUARD_DIR": str(tmp_path), "OLLAMA_HOST": "127.0.0.1:1"},
+    )
+    try:
+        for _ in range(40):
+            if "held" in run(tmp_path, "status", "--resource", "ram").stdout:
+                break
+            time.sleep(0.25)
+        assert "RAM held by suite" in run(tmp_path, "status", "--resource", "ram").stdout
+        assert "free" in run(tmp_path, "status").stdout  # the GPU lock is untouched
+        gpu = run(tmp_path, "run", "--", sys.executable, "-c", "pass")
+        assert gpu.returncode == 0
+        second = run(tmp_path, "run", "--resource", "ram", "--purpose", "build", "--", sys.executable, "-c", "pass")
+        assert second.returncode == 3 and "RAM/CPU lock is in use by suite" in second.stderr
+        out = run(tmp_path, "report", "--resource", "ram").stdout
+        assert "refused (lock taken, did not wait): 1" in out
+        assert "refused (GPU taken, did not wait): 0" in run(tmp_path, "report").stdout
+    finally:
+        holder.wait()
+    assert (tmp_path / "local-ram.lock").exists() and (tmp_path / "local-gpu.lock").exists()
+
+
+def test_ram_job_logs_its_resource_gets_its_own_env_and_skips_ollama(tmp_path):
+    code = "import os;print(os.environ['GPU_GUARD_RAM_HELD_BY'])"
+    r = run(tmp_path, "run", "--resource", "ram", "--", sys.executable, "-c", code)
+    pid = r.stdout.split()[0]
+    assert pid.isdigit()
+    ev = events(tmp_path)
+    assert [e["event"] for e in ev] == ["start", "end"] and {e["resource"] for e in ev} == {"ram"}
+    assert "peak_gpu_mem_mb" not in ev[1] or ev[1]["peak_gpu_mem_mb"] is None
+
+
+def test_ram_report_counts_only_ram_jobs_and_gpu_report_only_gpu_jobs(tmp_path):
+    run(tmp_path, "run", "--resource", "ram", "--", sys.executable, "-c", "pass")
+    run(tmp_path, "run", "--", sys.executable, "-c", "pass")
+    run(tmp_path, "run", "--", sys.executable, "-c", "pass")
+    assert "jobs run: 1" in run(tmp_path, "report", "--resource", "ram").stdout
+    assert "jobs run: 2" in run(tmp_path, "report").stdout
+
+
+def test_old_events_without_a_resource_count_as_gpu(tmp_path):
+    import datetime
+    ts = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+    (tmp_path / "events.jsonl").write_text(
+        json.dumps({"ts": ts, "event": "end", "cwd": "x", "seconds": 3600, "exit_code": 0}) + "\n")
+    assert "jobs run: 1" in run(tmp_path, "report").stdout
+    assert "jobs run: 0" in run(tmp_path, "report", "--resource", "ram").stdout
+
+
+def test_hold_does_not_take_a_resource_option(tmp_path):
+    assert run(tmp_path, "hold", "--resource", "ram", "--", sys.executable, "-c", "pass").returncode == 2

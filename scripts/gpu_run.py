@@ -6,12 +6,13 @@ command ends, and appends every start, wait, refusal and end to a log, so overus
 report instead of in a mysterious slowdown. Standard library only; no per-repository code.
 
     python gpu_run.py run [--wait] [--purpose TEXT] [--keep-ollama] -- <command ...>   a GPU job
+    python gpu_run.py run --resource ram [--wait] [--purpose TEXT] -- <command ...>   a RAM/CPU-heavy job
     python gpu_run.py hold [--wait] [--purpose TEXT] [--keep-ollama] [--max-minutes N] -- <start command ...>
                                                      a GPU service: hold the lock until its containers stop
                                                      (with --max-minutes: `docker stop` them at the deadline)
-    python gpu_run.py status                                            who holds the GPU now
+    python gpu_run.py status [--resource ram]                           who holds the GPU (or the RAM lock) now
     python gpu_run.py check                                             GPU busy with no holder?
-    python gpu_run.py report [--days N]                                 usage, waits, refusals, unguarded use
+    python gpu_run.py report [--days N] [--resource ram]                usage, waits, refusals, unguarded use
 
 The lock is an OS file lock, so it is released when the process dies and is never stale. It sits in
 ``$GPU_GUARD_DIR`` (default ``~/.gpu-guard``) next to ``events.jsonl``. The child process gets
@@ -23,6 +24,16 @@ GPU after its start command returns, so ``run`` would release the lock too early
 start command, finds the GPU containers it started, and keeps the lock until they have all stopped
 (standard: findings/shared-gpu-one-machine, checked 2026-11-13). Run it in the background; stopping
 the containers (``docker stop``, ``docker compose down``) releases the lock.
+
+A second lock, ``--resource ram``, makes RAM- or CPU-heavy jobs take turns the same way (a full test
+suite, a model load into system RAM, a data build): this laptop has 16 GB, and two unattended chats
+each starting one can push it into paging (standard: findings/agent-process-and-resource-control,
+checked 2026-11-12: memory, not CPU, limits how many agents fit; run the heavy steps one at a time).
+It is a separate lock file (``local-ram.lock``) with the same ``--wait``, queue messages and events
+(each carries ``resource``); ``report --resource ram`` shows its jobs, waits and refusals. The child
+gets ``GPU_GUARD_RAM_HELD_BY``. A job that needs both takes ``ram`` first and runs the GPU job inside
+it (``run --resource ram -- python gpu_run.py run -- ...``), never the reverse, so two chats cannot
+wait on each other. Nothing forces a job through it: whether it is a rule is the user's decision.
 
 Ollama loads models onto the GPU on demand, outside this lock. When ``run`` or ``hold`` takes the lock
 it unloads whatever Ollama has on the GPU (keep_alive 0, as Ollama's FAQ documents) and logs an
@@ -56,6 +67,7 @@ IDLE_UTIL_PCT = 10  # above this, or ...
 IDLE_MEM_MB = 300  # ... this much memory, with no holder, is "unguarded use"
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
+RESOURCES = {"gpu": "local GPU", "ram": "RAM/CPU lock"}  # name -> what a refused job is told
 # nvidia-smi opens no console window when the check runs from a background task (pythonw)
 NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 
@@ -66,6 +78,11 @@ def guard_dir() -> Path:
 
 def now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def env_held(resource: str) -> str:
+    """Environment variable the child of a lock holder gets: the old GPU name for gpu."""
+    return ENV_HELD if resource == "gpu" else f"GPU_GUARD_{resource.upper()}_HELD_BY"
 
 
 def log_event(event: str, **fields) -> None:
@@ -80,8 +97,9 @@ def log_event(event: str, **fields) -> None:
 
 
 class Lock:
-    def __init__(self) -> None:
-        self.path = guard_dir() / "local-gpu.lock"
+    def __init__(self, resource: str = "gpu") -> None:
+        self.resource = resource
+        self.path = guard_dir() / f"local-{resource}.lock"
         self.fd: int | None = None
 
     def _lock(self, fd: int) -> None:
@@ -140,7 +158,7 @@ class Lock:
 
     def is_held(self) -> bool:
         """True when some process holds the lock (tried and released at once)."""
-        probe = Lock()
+        probe = Lock(self.resource)
         if probe.try_acquire({"probe": True}):
             probe.release()
             return False
@@ -298,7 +316,9 @@ def _command(args: argparse.Namespace) -> list[str]:
 
 def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[Lock | None, dict]:
     """Take the lock (queueing with --wait); log start. (None, info) when refused."""
+    res = getattr(args, "resource", "gpu")
     info = {
+        "resource": res,
         "pid": os.getpid(),
         "kind": kind,
         "purpose": args.purpose or Path(command[0]).name,
@@ -306,24 +326,25 @@ def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[Lo
         "cwd": os.getcwd(),
         "since": now(),
     }
-    lock, waited, started_wait = Lock(), False, time.time()
+    lock, waited, started_wait = Lock(res), False, time.time()
     while not lock.try_acquire(info):
         who = lock.holder()
         if not args.wait:
-            log_event("refused", **{k: info[k] for k in ("purpose", "cmd", "cwd")},
+            log_event("refused", resource=res, **{k: info[k] for k in ("purpose", "cmd", "cwd")},
                       held_by=who)
-            print(f"The local GPU is in use by {describe(who)}. Rerun with --wait to queue, or "
+            print(f"The {RESOURCES[res]} is in use by {describe(who)}. Rerun with --wait to queue, or "
                   f"ask the chat that started it. (Lock: {lock.path})", file=sys.stderr)
             return None, info
         if not waited:
             waited = True
-            log_event("waiting", purpose=info["purpose"], cwd=info["cwd"], held_by=who)
-            print(f"Waiting for the GPU: held by {describe(who)}", file=sys.stderr)
+            log_event("waiting", resource=res, purpose=info["purpose"], cwd=info["cwd"], held_by=who)
+            print(f"Waiting for the {RESOURCES[res]}: held by {describe(who)}", file=sys.stderr)
         time.sleep(POLL_SECONDS)
     waited_s = round(time.time() - started_wait) if waited else 0
-    log_event("start", **{k: info[k] for k in ("pid", "kind", "purpose", "cmd", "cwd")},
+    log_event("start", **{k: info[k] for k in ("resource", "pid", "kind", "purpose", "cmd", "cwd")},
               waited_s=waited_s)
-    ollama_note(getattr(args, "keep_ollama", False))
+    if res == "gpu":
+        ollama_note(getattr(args, "keep_ollama", False))
     return lock, info
 
 
@@ -335,6 +356,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     lock, info = acquire(args, command, "job")
     if lock is None:
         return 3
+    res = info["resource"]
 
     peak = {"util_pct": 0.0, "mem_mb": 0.0, "n": 0}
     stop = threading.Event()
@@ -347,11 +369,11 @@ def cmd_run(args: argparse.Namespace) -> int:
                 peak["mem_mb"] = max(peak["mem_mb"], r["mem_mb"])
                 peak["n"] += 1
 
-    thread = threading.Thread(target=sample, daemon=True)
-    thread.start()
+    if res == "gpu":  # GPU readings only make sense for the GPU lock
+        threading.Thread(target=sample, daemon=True).start()
     t0, code = time.time(), 1
     try:
-        code = subprocess.run(command, env={**os.environ, ENV_HELD: str(os.getpid())}).returncode
+        code = subprocess.run(command, env={**os.environ, env_held(res): str(os.getpid())}).returncode
     except KeyboardInterrupt:
         code = 130
     except OSError as e:
@@ -360,7 +382,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     finally:
         stop.set()
         lock.release()
-        log_event("end", pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
+        log_event("end", resource=res, pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
                   seconds=round(time.time() - t0), exit_code=code,
                   peak_gpu_util_pct=peak["util_pct"] or None,
                   peak_gpu_mem_mb=peak["mem_mb"] or None)
@@ -437,12 +459,14 @@ def cmd_hold(args: argparse.Namespace) -> int:
 # ----------------------------------------------------------------------------- status, check
 
 
-def cmd_status(_: argparse.Namespace) -> int:
-    lock = Lock()
+def cmd_status(args: argparse.Namespace) -> int:
+    res = getattr(args, "resource", "gpu")
+    lock = Lock(res)
+    name = "GPU" if res == "gpu" else res.upper()
     if lock.is_held():
-        print(f"GPU held by {describe(lock.holder())}")
+        print(f"{name} held by {describe(lock.holder())}")
     else:
-        print("GPU lock is free")
+        print(f"{name} lock is free")
     return 0
 
 
@@ -495,7 +519,10 @@ def read_events(days: int) -> list[dict]:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    rows = read_events(args.days)
+    res = getattr(args, "resource", "gpu")
+    rows = [r for r in read_events(args.days) if r.get("resource", "gpu") == res]
+    if res != "gpu":
+        return report_lock(args, rows, res)
     ends = [r for r in rows if r["event"] == "end"]
     starts = [r for r in rows if r["event"] == "start"]
     refused = [r for r in rows if r["event"] == "refused"]
@@ -534,12 +561,39 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def report_lock(args: argparse.Namespace, rows: list[dict], res: str) -> int:
+    """Usage report for a lock other than the GPU's: jobs, time, waits and refusals."""
+    ends = [r for r in rows if r["event"] == "end"]
+    refused = [r for r in rows if r["event"] == "refused"]
+    waited = [r for r in rows if r["event"] == "start" and r.get("waited_s")]
+    print(f"{RESOURCES[res]} use, last {args.days} day(s) ({guard_dir() / 'events.jsonl'})")
+    print(f"  jobs run: {len(ends)}   time: {sum(r.get('seconds', 0) for r in ends) / 3600:.1f} h   "
+          f"failed: {sum(1 for r in ends if r.get('exit_code'))}")
+    by_dir: dict[str, float] = {}
+    for r in ends:
+        by_dir[r["cwd"]] = by_dir.get(r["cwd"], 0) + r.get("seconds", 0)
+    for cwd, sec in sorted(by_dir.items(), key=lambda kv: -kv[1])[:8]:
+        print(f"    {sec / 3600:5.1f} h  {cwd}")
+    print(f"  refused (lock taken, did not wait): {len(refused)}")
+    for r in refused[-5:]:
+        print(f"    {r['ts']}  {r.get('purpose')} in {r.get('cwd')} -> held by "
+              f"{(r.get('held_by') or {}).get('purpose', '?')}")
+    print(f"  queued (waited for the lock): {len(waited)}   "
+          f"longest wait: {max((r['waited_s'] for r in waited), default=0)} s")
+    if not ends:
+        print(f"  (no jobs recorded; run heavy jobs through `gpu_run.py run --resource {res}`)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     for name, text in (("run", "run a command under the GPU lock"),
                        ("hold", "start GPU containers and hold the lock until they stop")):
         r = sub.add_parser(name, help=text)
+        if name == "run":
+            r.add_argument("--resource", choices=sorted(RESOURCES), default="gpu",
+                           help="which lock: gpu (default) or ram (RAM/CPU-heavy jobs)")
         r.add_argument("--wait", action="store_true", help="queue behind the holder instead of failing")
         r.add_argument("--purpose", help="short label shown to whoever is refused (default: program)")
         r.add_argument("--keep-ollama", action="store_true",
@@ -549,10 +603,12 @@ def main(argv: list[str] | None = None) -> int:
             r.add_argument("--max-minutes", type=float,
                            help="docker stop the held containers after this long, then release the lock")
         r.add_argument("command", nargs=argparse.REMAINDER)
-    sub.add_parser("status")
+    st = sub.add_parser("status")
+    st.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
     sub.add_parser("check")
     rep = sub.add_parser("report")
     rep.add_argument("--days", type=int, default=7)
+    rep.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
     args = p.parse_args(argv)
     return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check,
             "report": cmd_report}[args.cmd](args)
