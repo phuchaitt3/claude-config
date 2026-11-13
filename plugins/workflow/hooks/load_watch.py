@@ -1,4 +1,4 @@
-"""UserPromptSubmit hook: tell the chat when the machine is short of memory, CPU or disk space.
+"""UserPromptSubmit and PreToolUse (Bash, PowerShell) hook: tell the chat when the machine is short of memory, CPU or disk space.
 
 `gpu_watch.py` covers the GPU. This covers the rest of a shared laptop: a chat that starts a heavy
 local job (a big test run, a data build, a model load into system RAM) while memory is nearly gone
@@ -7,7 +7,9 @@ findings/agent-process-and-resource-control, checked 2026-11-12). The hook sampl
 every two minutes, using two Windows API calls (no subprocess), and tells the chat in one line when
 free memory is low or the CPU averaged high since the last sample. At most one line per ten minutes
 while the load lasts. It never blocks or kills anything. Silent when the machine is fine, on other
-platforms, and on any error: a broken hook must never block a session.
+platforms, and on any error: a broken hook must never block a session. It also runs on PreToolUse for
+shell calls, because an unattended /loop iteration can last an hour with no prompt (the sample is
+rate-limited, so a call costs one timestamp check).
 
 Free disk space is checked in the same sample, for the system drive and the drive of the chat's
 working directory, with `shutil.disk_usage` (one Windows API call per drive, no subprocess). A full
@@ -139,9 +141,19 @@ def cpu_percent(previous: list[int] | None, current: tuple[int, int]) -> float |
     return (current[0] - previous[0]) / (current[1] - previous[1]) * 100
 
 
+def event_name() -> str:
+    """The event this hook was called for (UserPromptSubmit or PreToolUse), from the stdin payload."""
+    try:
+        name = json.load(sys.stdin).get("hook_event_name")
+    except Exception:
+        return "UserPromptSubmit"
+    return name if name in ("UserPromptSubmit", "PreToolUse") else "UserPromptSubmit"
+
+
 def main() -> None:
     if sys.platform != "win32":
         return
+    event = event_name()
     try:
         state = json.loads(CACHE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -158,7 +170,7 @@ def main() -> None:
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     CACHE.write_text(json.dumps(state), encoding="utf-8")
     if text:
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}))
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}))
 
 
 if __name__ == "__main__":

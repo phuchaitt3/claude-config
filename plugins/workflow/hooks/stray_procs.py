@@ -1,4 +1,4 @@
-"""SessionStart / UserPromptSubmit hook: stop orphaned processes left behind by a shell call.
+"""SessionStart / UserPromptSubmit / PreToolUse (Bash, PowerShell) hook: stop orphaned processes left behind by a shell call.
 
 A shell tool call that times out or is stopped kills the shell but not its children on Windows, so a
 `find`, `grep` or `rg` can keep running for hours with no parent (standard:
@@ -165,9 +165,19 @@ def log_kill(p: dict) -> None:
         log.write(f"{datetime.now(timezone.utc).isoformat()} killed {describe(p)}\n")
 
 
+def event_name() -> str:
+    """The event this hook was called for (UserPromptSubmit or PreToolUse), from the stdin payload."""
+    try:
+        name = json.load(sys.stdin).get("hook_event_name")
+    except Exception:
+        return "UserPromptSubmit"
+    return name if name in ("UserPromptSubmit", "PreToolUse") else "UserPromptSubmit"
+
+
 def main() -> None:
     if sys.platform != "win32":
         return
+    event = event_name()
     try:
         state = json.loads(CACHE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -206,7 +216,7 @@ def main() -> None:
             text += " Do not start a whole-drive search; use Glob/Grep or a scoped path."
         if new:
             text += " The ones marked not ended were left alone: ask the user before ending any."
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}))
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}))
 
 
 if __name__ == "__main__":

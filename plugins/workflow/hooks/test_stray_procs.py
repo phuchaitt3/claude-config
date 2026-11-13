@@ -130,3 +130,11 @@ def test_main_ends_runner_with_its_tree_logs_it_and_reports_each_unknown_once(tm
     monkeypatch.setattr(stray_procs, "list_processes", lambda: procs[1:])
     stray_procs.main()
     assert killed == [] and capsys.readouterr().out == ""
+
+
+def test_event_name_for_pretooluse(monkeypatch) -> None:
+    import io
+    monkeypatch.setattr(stray_procs.sys, "stdin", io.StringIO('{"hook_event_name": "PreToolUse"}'))
+    assert stray_procs.event_name() == "PreToolUse"
+    monkeypatch.setattr(stray_procs.sys, "stdin", io.StringIO("not json"))
+    assert stray_procs.event_name() == "UserPromptSubmit"

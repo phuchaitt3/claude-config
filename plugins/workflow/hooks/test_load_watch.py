@@ -105,3 +105,20 @@ def test_disk_drives_reports_the_system_drive_and_survives_a_bad_drive(monkeypat
     monkeypatch.setattr(load_watch.os, "getcwd", lambda: "Z:\\work")
     drives = load_watch.disk_drives()
     assert drives == [("C:", 5.0, 50.0, True)] and calls == ["C:\\", "Z:\\"]
+
+
+def test_event_name_comes_from_the_payload_and_defaults_safely(monkeypatch) -> None:
+    import io
+    for payload, expected in (('{"hook_event_name": "PreToolUse"}', "PreToolUse"),
+                              ('{"hook_event_name": "UserPromptSubmit"}', "UserPromptSubmit"),
+                              ('{"hook_event_name": "Other"}', "UserPromptSubmit"), ("", "UserPromptSubmit")):
+        monkeypatch.setattr(load_watch.sys, "stdin", io.StringIO(payload))
+        assert load_watch.event_name() == expected
+
+
+def test_both_watchers_are_registered_on_pretooluse_for_shell_calls() -> None:
+    import json
+    hooks = json.loads(Path(__file__).with_name("hooks.json").read_text(encoding="utf-8"))["hooks"]
+    group = next(g for g in hooks["PreToolUse"] if g["matcher"] == "Bash|PowerShell")
+    commands = " ".join(h["command"] for h in group["hooks"])
+    assert "load_watch.py" in commands and "stray_procs.py" in commands
