@@ -63,6 +63,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? | 2026-11-01 |
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
 | [keep-awake-long-jobs](keep-awake-long-jobs.md) | How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled? | 2026-11-11 |
+| [overnight-agent-runs](overnight-agent-runs.md) | Does running several coding agents overnight get more work out of a subscription, and what makes the morning result usable? | 2026-11-13 |
 | [agent-state-freshness](agent-state-freshness.md) | When should a long-running agent re-check state others can change: every step, end of turn, on a timer, or before acting? | 2026-11-11 |
 | [agent-process-and-resource-control](agent-process-and-resource-control.md) | How are runaway or orphaned shell processes from AI agents stopped, how are CPU and memory limited when several agents share one machine, and is that sharing normally hard? | 2026-11-12 |
 | [claude-code-clear-vs-compact](claude-code-clear-vs-compact.md) | What is recommended about when to clear or compact a Claude Code chat? | 2026-11-13 |
