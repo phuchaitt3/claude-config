@@ -39,7 +39,8 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [auto-merge-without-protection](auto-merge-without-protection.md) | Does `gh pr merge --auto` wait for CI on a private GitHub Free repository, and what replaces it? | 2026-11-05 |
 | [solo-pr-or-trunk](solo-pr-or-trunk.md) | Should a solo developer running AI agents use pull requests or commit straight to main? | 2026-11-05 |
 | [ml-ci-test-tiers](ml-ci-test-tiers.md) | How do machine-learning projects split tests between pull-request CI and heavier runs? | 2026-11-05 |
-| [shared-gpu-one-machine](shared-gpu-one-machine.md) | How is one GPU machine shared between several users or agents without collisions, and how is that checked afterwards? | 2026-11-12 |
+| [shared-gpu-one-machine](shared-gpu-one-machine.md) | How is one GPU machine shared between several users or agents without collisions (jobs and long-running services such as model servers), and how is that checked afterwards? | 2026-11-13 |
+| [laptop-cpu-thermal-limit](laptop-cpu-thermal-limit.md) | Is a laptop CPU at 95-100 °C under load overheating or normal? | 2026-11-13 |
 | [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? | 2026-11-01 |
 | [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? | 2026-11-01 |
 | [adr-length-and-scope](adr-length-and-scope.md) | How long should an ADR be, and what stays out of it? | 2026-11-01 |
