@@ -49,6 +49,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [worktree-hygiene](worktree-hygiene.md) | How do parallel agents keep a shared checkout current and clean, clean up worktrees, and where do worktrees live on disk? | 2026-11-01 |
 | [project-path-portability](project-path-portability.md) | What should depend on a project's absolute path on disk, so that moving or renaming its folder stays cheap? | 2026-11-05 |
 | [data-versioning-cadence](data-versioning-cadence.md) | Must every change to a DVC-tracked data folder be committed and pushed, and what do projects do instead? | 2026-11-08 |
+| [docker-run-timeout-cleanup](docker-run-timeout-cleanup.md) | Does `timeout docker run` stop the container, and how is a container run time-limited and always cleaned up? | 2026-11-13 |
 | [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? | 2026-11-01 |
 | [knowledge-register-layout](knowledge-register-layout.md) | Should a practice register stay one flat folder as it grows, or use categories or subfolders? | 2026-11-08 |
 
