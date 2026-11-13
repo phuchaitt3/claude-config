@@ -7,12 +7,18 @@
   - **MRR** (how high the first relevant chunk sits) is reported beside it to show ranking quality, and matters most when tuning rerankers. **nDCG@k** is for graded relevance labels.
   - *Checker's inference:* Recall@k fits when a question needs several **distinct** relevant chunks (each adds evidence). When the extra gold chunks are **alternative copies** of the same evidence (for example the same sentence in two overlapping chunks), any one of them is enough, and Hit@k is the correct measure; Recall@k would count a correct retrieval as a partial miss.
   - Retrieval metrics are paired with answer metrics (correctness, faithfulness) for the whole system.
+  - **Academic IR benchmarks lead with nDCG@10** (BEIR ranks systems by it, so it allows comparison with published baselines); evaluation tools offer recall@k and nDCG@k side by side (NVIDIA NeMo Evaluator). nDCG needs graded labels or several relevant documents per query to add over Hit@k; with one gold chunk per question it mostly tracks MRR. (Added 2026-11-13.)
+  - MRR or Hit@1 matters for single-answer tasks: rank 1 versus rank 5 can change the generator's answer even when Recall@10 is the same. (Added 2026-11-13.)
   - *Checker's inference:* on a resume, one retrieval number is enough if it is named plainly ("top-5 hit rate") and its k matches what the system feeds the model; MRR and the answer metrics belong in the interview.
 - **Sources:**
   - Kunal Ganglani, RAG evaluation metrics for retrieval quality (practitioner blog): https://www.kunalganglani.com/blog/rag-evaluation-metrics-retrieval-quality
   - Future AGI, how to evaluate RAG systems (vendor guide): https://futureagi.substack.com/p/how-to-evaluate-rag-systems-the-complete
   - LayerLens, RAG evaluation framework for production (vendor blog): https://layerlens.ai/blog/rag-evaluation-framework-for-production-ai-systems
   - Hamel Husain, evaluate-RAG skill (practitioner material): https://kortix.com/marketplace/hamelsmu--evals-skills/evaluate-rag
+  - Thakur et al., BEIR benchmark (peer-reviewed benchmark paper, cited via secondary sources): https://arxiv.org/abs/2104.08663
+  - Multilingual dense retrieval benchmark using nDCG@10 as the BEIR standard (arXiv preprint; search summary): https://arxiv.org/pdf/2605.23618
+  - NVIDIA NeMo Evaluator, retrieval evaluation flow (official tool docs): https://docs.nvidia.com/nemo/microservices/25.9.0/evaluate/flows/retrieval.html
   - See also findings/rag-retrieval-eval-without-benchmark (golden sets, synthetic questions).
-- **Limits:** Practitioner and vendor sources, read through search summaries; no peer-reviewed comparison of metric choice was read.
-- **Checked:** 2026-11-10
+- **Evidence strength:** common practice for Hit@k/Recall@k in RAG (several practitioner sources agree); official standard for nDCG@10 in academic IR benchmarks (BEIR).
+- **Limits:** Mostly practitioner and vendor sources, read through search summaries. The BEIR paper and the TREC RAG track pages were not read directly. No source compares metric choice for resumes.
+- **Checked:** 2026-11-13 (first 2026-11-10)
