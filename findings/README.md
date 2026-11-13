@@ -66,6 +66,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [agent-autonomy-tiers](agent-autonomy-tiers.md) | Is it standard to have speed-first modes that relax human review beside stricter ones, and how does dependent work proceed while a gated PR waits? | 2026-11-13 |
 | [overnight-agent-runs](overnight-agent-runs.md) | Does running several coding agents overnight get more work out of a subscription, and what makes the morning result usable? | 2026-11-13 |
 | [long-agent-run-context](long-agent-run-context.md) | How does a long agent run (a loop or overnight run) keep its context, and token cost, from growing with every task: subagents, a fresh session per task, or other chats? | 2026-11-14 |
+| [agent-delegation-choice](agent-delegation-choice.md) | Subagent or new session (background session, `claude -p`, another chat): which to hand a task to, and does that decide how many run at once? | 2026-11-14 |
 | [agent-state-freshness](agent-state-freshness.md) | When should a long-running agent re-check state others can change: every step, end of turn, on a timer, or before acting? | 2026-11-11 |
 | [agent-process-and-resource-control](agent-process-and-resource-control.md) | How are runaway or orphaned shell processes from AI agents stopped, how are CPU and memory limited when several agents share one machine, and is that sharing normally hard? | 2026-11-12 |
 | [claude-code-clear-vs-compact](claude-code-clear-vs-compact.md) | What is recommended about when to clear or compact a Claude Code chat? | 2026-11-13 |

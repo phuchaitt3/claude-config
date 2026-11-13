@@ -10,6 +10,8 @@
   - **Cache detail.** Subagent and in-process teammate requests use a 5-minute prompt cache by default, against the main conversation's longer one (`subagentPromptCacheTtl` raises it). Each new session or subagent also pays its own startup load (CLAUDE.md, skill listing, tools) (official docs).
   - **Checker's inference for a self-paced loop:** the cheap change is to make each task a fresh context and keep the loop itself thin. The loop session only picks the next issue, claims it, and dispatches one worker per task (a subagent in its own worktree that returns a few lines, or a fresh `claude -p` / new chat). The issue, branch, PR and handoff files carry the state, which this setup already keeps on GitHub. A task's own phases (plan, implement, test) stay in one worker's context, as the docs advise. Running several workers at once is a separate decision: it raises total tokens and is worth it only for independent tasks. No source measured fresh-context-per-task against one long session on the same backlog, so a local before/after count (tokens per merged PR from the transcripts) is the way to check it.
 
+  - Which kind of worker gets which task (a subagent or a new session) and how many run at once: see `findings/agent-delegation-choice`.
+
 - **Evidence strength:** *official standard* for subagent and agent-team guidance, token multipliers and cache behaviour (Anthropic docs and engineering posts). *Vendor or single source* for the fresh-session-per-task harness (one Anthropic post, tested on full-stack web apps). *Anecdotal* for context rot and Ralph-loop cost trade-offs (practitioner blogs, no measurements).
 
 - **Sources:**
