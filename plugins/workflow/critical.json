@@ -1,5 +1,5 @@
 {
-  "version": "0.21.0",
-  "since": "2026-11-05T12:30:00+07:00",
-  "why": "hooks now refuse force-push, push to the default branch outside the config repo and direct tier, and agent merges that are red, on user-merge paths, outside solo-fast, or use --auto with no required check"
+  "version": "0.45.0",
+  "since": "2026-11-14T05:00:00+07:00",
+  "why": "a hard-limit exception changed: during a self-drive overnight run a chat may deploy to a free-tier stack and create a new GitHub repository, and overnight mode files new issues instead of stopping when none is left"
 }
