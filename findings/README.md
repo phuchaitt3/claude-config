@@ -63,6 +63,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [keep-awake-long-jobs](keep-awake-long-jobs.md) | How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled? | 2026-11-11 |
 | [agent-state-freshness](agent-state-freshness.md) | When should a long-running agent re-check state others can change: every step, end of turn, on a timer, or before acting? | 2026-11-11 |
 | [agent-process-and-resource-control](agent-process-and-resource-control.md) | How are runaway or orphaned shell processes from AI agents stopped, how are CPU and memory limited when several agents share one machine, and is that sharing normally hard? | 2026-11-12 |
+| [claude-code-clear-vs-compact](claude-code-clear-vs-compact.md) | What is recommended about when to clear or compact a Claude Code chat? | 2026-11-13 |
 | [skill-context-cost](skill-context-cost.md) | What do installed skills cost in context at startup, and how are unused ones switched off (claude.ai and Claude Code)? | 2026-11-12 |
 
 ### Research methods
@@ -123,6 +124,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [resume-accuracy-vs-concision](resume-accuracy-vs-concision.md) | When shortening a line would make it read wider than the fact, does accuracy or brevity come first? | 2026-11-11 |
 | [resume-submission-readiness](resume-submission-readiness.md) | What are the final refinement steps, and how do you know a resume is ready to submit? | 2026-11-11 |
 | [resume-degree-name-abbreviation](resume-degree-name-abbreviation.md) | Must a resume spell out "Bachelor of Science in …" for ATS, or can it be abbreviated? | 2026-11-11 |
+| [leetcode-vietnam-hiring](leetcode-vietnam-hiring.md) | How often do companies in Vietnam use LeetCode-style coding tests for CS and software jobs? | 2026-11-13 |
 | [resume-english-score-vietnam-it](resume-english-score-vietnam-it.md) | How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume? | 2026-11-09 |
 | [resume-benchmark-context](resume-benchmark-context.md) | How much benchmark detail (sample size, batch size, hardware) does a resume bullet carry, and must all benchmark bullets list the same fields? | 2026-11-11 |
 | [resume-bullet-order](resume-bullet-order.md) | Are bullets inside one entry ordered by significance or by time, and must terms be introduced before use? | 2026-11-11 |
