@@ -122,3 +122,137 @@ def test_timeout_around_foreground_container_is_refused(command, proj):
 )
 def test_timeout_without_foreground_container_is_allowed(command, proj):
     assert gpu_guard.refusal(command, str(proj)) == ""
+
+
+# --- gaps closed 2026-11-13: program options after the image, `docker start`, CPU-only compose services ---
+
+MIXED_COMPOSE = """services:
+  db:
+    image: postgres:17
+  api:
+    image: api
+    depends_on: [reranker]
+  web:
+    image: web
+    depends_on:
+      db:
+        condition: service_started
+  reranker:
+    image: tei
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+"""
+
+
+@pytest.fixture
+def mixed(tmp_path):
+    (tmp_path / "compose.yaml").write_text(MIXED_COMPOSE)
+    return tmp_path
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "timeout 60 docker run --rm img prog -d",
+        "timeout 60 docker run --rm --name t img sh -c 'x' --detach",
+        "timeout 60 docker run -e A=1 -v d:/d img prog -d",
+        "timeout 60 docker compose run --rm api prog -d",
+    ],
+)
+def test_program_dash_d_after_the_image_is_not_detached(command, proj):
+    assert "time limit on the docker client" in gpu_guard.refusal(command, str(proj))
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "timeout 60 docker run -d img",
+        "timeout 60 docker run --rm -itd --name t img",
+        "timeout 60 docker run --detach -e A=1 img prog",
+        "timeout 60 docker run -p 80:80 -d img",
+        "timeout 60 docker compose run -d api",
+    ],
+)
+def test_dash_d_before_the_image_is_detached(command, proj):
+    assert gpu_guard.refusal(command, str(proj)) == ""
+
+
+def test_run_option_values_are_not_taken_for_the_image():
+    opts, idx = gpu_guard._run_split(["--rm", "--gpus", "all", "-e", "A=1", "--name", "t", "img", "prog", "--gpus", "x"])
+    assert idx == 7
+    assert ("--gpus", "all") in opts and ("--name", "t") in opts
+
+
+def test_gpu_run_option_after_the_image_is_not_a_gpu_request(proj):
+    assert gpu_guard.refusal("docker run --name t img prog --gpus all", str(proj)) == ""
+    assert "outside the machine-wide GPU lock" in gpu_guard.refusal("docker run --rm --name t --gpus all img", str(proj))
+
+
+def test_docker_start_of_a_gpu_container_is_refused(proj, monkeypatch):
+    monkeypatch.setattr(gpu_guard, "_container_requests_gpu", lambda names: names == ["rr"])
+    assert "outside the machine-wide GPU lock" in gpu_guard.refusal("docker start rr", str(proj))
+    assert "outside the machine-wide GPU lock" in gpu_guard.refusal("docker container start -a rr", str(proj))
+    assert "outside the machine-wide GPU lock" in gpu_guard.refusal("docker restart -t 5 rr", str(proj))
+    assert gpu_guard.refusal("docker start db", str(proj)) == ""
+    guarded = "python gpu_run.py hold --wait -- docker start rr"
+    assert gpu_guard.refusal(guarded, str(proj)) == ""
+
+
+def test_container_requests_gpu_reads_docker_inspect(monkeypatch):
+    def fake(out):
+        return lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=out, stderr="")
+
+    monkeypatch.setattr(gpu_guard.subprocess, "run", fake('[{"Driver":"nvidia","Capabilities":[["gpu"]]}] runc\n'))
+    assert gpu_guard._container_requests_gpu(["rr"])
+    monkeypatch.setattr(gpu_guard.subprocess, "run", fake("null runc\n"))
+    assert not gpu_guard._container_requests_gpu(["db"])
+    monkeypatch.setattr(gpu_guard.subprocess, "run", fake("null nvidia\n"))
+    assert gpu_guard._container_requests_gpu(["old"])
+
+    def boom(*a, **k):
+        raise OSError("no docker")
+
+    monkeypatch.setattr(gpu_guard.subprocess, "run", boom)
+    assert not gpu_guard._container_requests_gpu(["rr"])  # fails open
+    assert not gpu_guard._container_requests_gpu([])
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "docker compose up -d db",
+        "docker compose up -d web",
+        "docker compose up -d --no-deps db",
+        "docker compose up --scale db=2 -d db",
+    ],
+)
+def test_compose_up_of_cpu_only_service_is_allowed_beside_a_gpu_service(command, mixed):
+    assert gpu_guard.refusal(command, str(mixed)) == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "docker compose up -d",
+        "docker compose up -d reranker",
+        "docker compose up -d api",  # depends_on pulls the GPU service in
+        "docker compose up -d db api",
+    ],
+)
+def test_compose_up_that_starts_a_gpu_service_is_refused(command, mixed):
+    assert "outside the machine-wide GPU lock" in gpu_guard.refusal(command, str(mixed))
+
+
+def test_compose_files_are_merged_for_gpu_detection(proj):
+    cmd = "docker compose -f gpu/compose.yaml -f gpu/compose.reranker.yaml up -d db"
+    assert gpu_guard.refusal(cmd, str(proj)) == ""  # db is CPU-only in both files
+    assert "outside" in gpu_guard.refusal(cmd.replace("up -d db", "up -d reranker"), str(proj))
+
+
+def test_unparsable_compose_falls_back_to_the_whole_file(tmp_path, monkeypatch):
+    (tmp_path / "compose.yaml").write_text("services: [unclosed\n  deploy: capabilities: [gpu]\n")
+    assert "outside" in gpu_guard.refusal("docker compose up -d db", str(tmp_path))
