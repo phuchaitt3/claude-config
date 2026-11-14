@@ -44,6 +44,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [laptop-thermal-tiers](laptop-thermal-tiers.md) | Which GPU temperatures are normal or dangerous on a laptop, what wears it out, and is an 8-10 h nightly load wise? | 2026-11-14 |
 | [lenovo-legion-power-modes](lenovo-legion-power-modes.md) | How is the power mode switched on an older Legion when Fn+Q does nothing, and how can a script read CPU temperature without admin rights? | 2026-11-14 |
 | [disk-cleanup-windows](disk-cleanup-windows.md) | How do people quickly find and clean old, unused data on a full Windows drive, and should an agent scan the disk itself? | 2026-11-15 |
+| [uv-cache-management](uv-cache-management.md) | Is clearing the uv package cache on a schedule good practice, or how else is its size managed? | 2026-11-15 |
 | [disk-space-alerting](disk-space-alerting.md) | At what free-space level should a machine warn about a filling drive, and is there a standard threshold? | 2026-11-14 |
 | [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? | 2026-11-01 |
 | [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? | 2026-11-01 |
