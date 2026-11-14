@@ -11,7 +11,7 @@ A chat never starts this by itself. The user starts it in a chat by asking, and 
 
 ## Start
 
-Invoke the `loop` skill (Skill tool, skill `loop`) with no interval (the model paces itself) and this brief as its prompt. Running the brief once in the current turn is not a loop: the run then ends with that turn (user's decision, 2026-11-14, after an overnight run did exactly that and stopped after 2 minutes). If the project uses the `workflow:multi-chat` protocol, load that skill first and follow its claim rules.
+Invoke the `loop` skill (Skill tool, skill `loop`) with no interval (the model paces itself) and this brief as its prompt. Running the brief once in the current turn is not a loop: the run then ends with that turn (user's decision, 2026-11-14, after an overnight run did exactly that and stopped after 2 minutes). If the project uses the `workflow:multi-chat` protocol, load that skill first and follow its claim rules. When the user asks how to start, watch or stop an overnight run, walk them through `START-OVERNIGHT.md` in this skill's folder.
 
 > Each round:
 > 1. Sync: run `python <this skill's folder>/next_task.py --status` in the repository (add `--handoff <path>` if the project has a handoff repo). It pulls the handoff repo if given and prints, in one output, open PRs, claimed issues, worktrees and the startable issues. Use that output for steps 2 and 3; do not repeat those checks with separate `gh` or `git` calls in the same round (user's decision, 2026-11-14: each loop-chat call re-reads its whole context, and status checks were most of its calls).
