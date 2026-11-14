@@ -59,7 +59,9 @@ sample to ``thermal.jsonl``. It reads the card's own limits (target, slowdown, s
 setting; a second logger started while one runs exits at once. ``run`` also records the job's peak
 GPU temperature in its ``end`` event. ``report --thermal`` gives peak and mean temperature, minutes
 at or above the target and the slowdown point, thermal-slowdown time, and how many samples reached
-``--trigger-c`` (default: the card's target), which is what a pause rule would have acted on.
+``--trigger-c`` (default: the card's target), which is what a pause rule would have acted on. For
+the CPU it gives peak and mean, minutes at or above ``--cpu-threshold-c`` (default 90) and within
+5 C of TjMax, and the clock under load (median, lowest tenth, minimum; a low tail means throttling).
 """
 
 from __future__ import annotations
@@ -259,11 +261,13 @@ class _CoreTempShared(ctypes.Structure if sys.platform == "win32" else object): 
                     ("ucFahrenheit", ctypes.c_ubyte), ("ucDeltaToTjMax", ctypes.c_ubyte)]
 
 
-def cpu_temp_c() -> float | None:
-    """Hottest CPU core in degrees C, read from Core Temp's shared memory, or None when Core Temp is
-    not running. Needs no administrator rights here: Core Temp (which runs elevated) reads the sensors."""
+def cpu_reading() -> dict:
+    """CPU sample from Core Temp's shared memory: hottest core (C), clock (MHz), mean core load (%) and
+    TjMax (C); an empty dict when Core Temp is not running. Needs no administrator rights here: Core
+    Temp (which runs elevated) reads the sensors. A clock that falls while load stays high is the
+    throttle signal the report looks for."""
     if sys.platform != "win32":
-        return None
+        return {}
     from ctypes import wintypes
 
     k = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -273,19 +277,25 @@ def cpu_temp_c() -> float | None:
     k.UnmapViewOfFile.argtypes = [ctypes.c_void_p]
     h = k.OpenFileMappingW(4, False, "CoreTempMappingObject")  # FILE_MAP_READ
     if not h:
-        return None
+        return {}
     try:
         view = k.MapViewOfFile(h, 4, 0, 0, ctypes.sizeof(_CoreTempShared))
         if not view:
-            return None
+            return {}
         try:
             d = _CoreTempShared.from_address(view)
             n = min(d.uiCoreCnt * max(d.uiCPUCnt, 1), 256)
             temps = [d.fTemp[i] for i in range(n)]
             if not temps:
-                return None
+                return {}
             t = (d.uiTjMax[0] - min(temps)) if d.ucDeltaToTjMax else max(temps)
-            return round((t - 32) * 5 / 9 if d.ucFahrenheit else t, 1)
+            out = {"cpu_temp_c": round((t - 32) * 5 / 9 if d.ucFahrenheit else t, 1),
+                   "cpu_load_pct": round(sum(d.uiLoad[i] for i in range(n)) / n, 1)}
+            if d.fCPUSpeed > 0:
+                out["cpu_mhz"] = round(d.fCPUSpeed)
+            if d.uiTjMax[0]:
+                out["cpu_tjmax_c"] = d.uiTjMax[0]
+            return out
         finally:
             k.UnmapViewOfFile(view)
     finally:
@@ -639,7 +649,7 @@ def cmd_thermal(args: argparse.Namespace) -> int:
     try:
         while deadline is None or time.time() < deadline:
             r = thermal_reading() or {}
-            r["cpu_temp_c"] = cpu_temp_c()
+            r.update({"cpu_temp_c": None, **cpu_reading()})
             log_thermal({"event": "sample", **r})
             n += 1
             time.sleep(args.interval)
@@ -713,8 +723,25 @@ def report_thermal(args: argparse.Namespace) -> int:
         hits = [r for r in samples if r["gpu_temp_c"] >= trigger]
         print(f"  samples at or above the trigger {trigger:g} C (what a pause rule would act on): {len(hits)}"
               + (f", first {hits[0]['ts']}" if hits else ""))
-    print("  CPU package: " + (f"peak {max(cpus):.0f} C, mean {sum(cpus) / len(cpus):.0f} C" if cpus
-                               else "not read (Core Temp not running)"))
+    if not cpus:
+        print("  CPU package: not read (Core Temp not running)")
+        return 0
+    cpu_rows = [r for r in samples if r.get("cpu_temp_c") is not None]
+    tjmax = next((r["cpu_tjmax_c"] for r in reversed(cpu_rows) if r.get("cpu_tjmax_c")), None)
+    cpu_at = args.cpu_threshold_c
+
+    def cpu_minutes(threshold: float) -> str:
+        return f"{sum(r['_s'] for r in cpu_rows if r['cpu_temp_c'] >= threshold) / 60:.0f} min"
+
+    print(f"  CPU package: peak {max(cpus):.0f} C, mean {sum(cpus) / len(cpus):.0f} C   "
+          f"at or above {cpu_at:g} C: {cpu_minutes(cpu_at)}   "
+          + (f"within 5 C of TjMax ({tjmax:g} C): {cpu_minutes(tjmax - 5)}" if tjmax else "TjMax unknown"))
+    busy = sorted(r["cpu_mhz"] for r in cpu_rows if r.get("cpu_mhz") and (r.get("cpu_load_pct") or 0) >= 80)
+    if busy:  # under steady load a throttling CPU shows as a low tail well below the median clock
+        print(f"  CPU clock under load (>= 80%, {len(busy)} samples): median {busy[len(busy) // 2]} MHz, "
+              f"lowest tenth {busy[len(busy) // 10]} MHz, min {busy[0]} MHz")
+    else:
+        print("  CPU clock under load: no samples at >= 80% load with a clock reading")
     return 0
 
 
@@ -831,6 +858,8 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--since", help="thermal report: start time (ISO, e.g. 2026-11-14T21:30)")
     rep.add_argument("--trigger-c", type=float,
                      help="thermal report: count samples at or above this (default: the card's target)")
+    rep.add_argument("--cpu-threshold-c", type=float, default=90,
+                     help="thermal report: minutes with the CPU at or above this (default 90)")
     th = sub.add_parser("thermal", help="log temperatures every --interval seconds")
     th.add_argument("--interval", type=float, default=60)
     th.add_argument("--minutes", type=float, help="stop after this long (default: run until stopped)")

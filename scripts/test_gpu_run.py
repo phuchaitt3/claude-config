@@ -264,6 +264,25 @@ def test_thermal_report_counts_time_at_limits_trigger_and_slowdown(tmp_path):
         tmp_path, "report", "--thermal", "--days", "1", "--trigger-c", "90").stdout
 
 
+def test_thermal_report_counts_cpu_time_hot_and_clock_under_load(tmp_path):
+    import datetime
+    t0 = datetime.datetime.now().astimezone()
+    lines = [{"ts": t0.isoformat(timespec="seconds"), "event": "start", "interval_s": 60, "limits": {}}]
+    # (temp, MHz, load): idle sample ignored for the clock; 3 min at >= 90, 2 within 5 C of TjMax 100
+    for i, (temp, mhz, load) in enumerate([(60, 800, 5), (85, 4000, 95), (92, 3900, 95),
+                                           (96, 3000, 100), (97, 2600, 100)]):
+        ts = (t0 + datetime.timedelta(seconds=60 * (i + 1))).isoformat(timespec="seconds")
+        lines.append({"ts": ts, "event": "sample", "gpu_temp_c": 60, "cpu_temp_c": temp, "cpu_mhz": mhz,
+                      "cpu_load_pct": load, "cpu_tjmax_c": 100})
+    (tmp_path / "thermal.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    out = run(tmp_path, "report", "--thermal", "--days", "1").stdout
+    assert "CPU package: peak 97 C" in out
+    assert "at or above 90 C: 3 min" in out and "within 5 C of TjMax (100 C): 2 min" in out
+    assert "CPU clock under load (>= 80%, 4 samples): median 3900 MHz" in out and "min 2600 MHz" in out
+    assert "at or above 95 C: 2 min" in run(
+        tmp_path, "report", "--thermal", "--days", "1", "--cpu-threshold-c", "95").stdout
+
+
 def test_thermal_report_with_no_log_says_how_to_start(tmp_path):
     out = run(tmp_path, "report", "--thermal").stdout
     assert "no samples" in out
