@@ -13,13 +13,16 @@ one integer on stdout; exit code 2 if the transcript or a usage line is not foun
 (local, never committed), for the restart-threshold trial (self-drive step 7a); the
 transcripts themselves are deleted after 30 days, so the log keeps what the analysis
 needs. --threshold names the restart threshold in force (default 150000), recorded in
-the line and used to mark it as a handover. `context_report.py` reads the log.
+the line and used to mark it as a handover. The line also names the repo, so
+`context_report.py --prs` can join the session's time window to the PRs opened and merged in it. `context_report.py` reads the log.
 Used by workflow:self-drive step 7a. Writes nothing except the log line.
 """
 import argparse
 import glob
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 
@@ -117,6 +120,16 @@ def quota():
         return {}
 
 
+def repo_slug():
+    """owner/name of the current directory's origin remote, or None (joins the log to `gh pr list`)."""
+    try:
+        url = subprocess.run(["git", "remote", "get-url", "origin"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?\s*$", url)
+    return m.group(1) if m else None
+
+
 def record(sid, path, turns, errors, first_ts, threshold):
     now_ctx = turns[-1]["ctx"]
     rec = {
@@ -124,6 +137,7 @@ def record(sid, path, turns, errors, first_ts, threshold):
         "session_id": sid,
         "project": os.path.basename(os.path.dirname(path)),
         "session_started": first_ts,
+        "repo": repo_slug(),
         "threshold": threshold,
         "ctx_now": now_ctx,
         "event": "handover" if now_ctx > threshold else "round",

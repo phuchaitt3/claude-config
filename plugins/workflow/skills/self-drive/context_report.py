@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Summarise the restart-threshold trial from ~/.claude/context-threshold-log.jsonl.
 
-Usage: python context_report.py [<log path>]
+Usage: python context_report.py [--prs] [<log path>]
 
 The log is written by `context_size.py --log` at the end of every self-drive round
 (step 7a). Each session's last line is its fullest record. For each threshold in force
@@ -13,14 +13,19 @@ Edit/Write). It then evaluates the cost model
     T*   = F + sqrt(2*R*g/r)            (the threshold that minimises f)
 
 with r the cache-read weight, from all sessions together. Quality outcomes (PRs merged,
-PRs needing a fix-up) are not in the log: join each session's `session_started`..`ts`
-window to `gh pr list --state all --author phuchai-bot --json number,createdAt,mergedAt`
-when the trial is assessed. Read-only.
+PRs needing a fix-up) are not in the log. `--prs` joins each session's
+`session_started`..`ts` window to `gh pr list --state all --author phuchai-bot` for the
+session's repo (the log line's `repo`) and prints PRs opened and merged per session by
+threshold, each PR counted once per threshold. A window match is approximate: PRs another
+chat or worker opened in the same repo meanwhile count too, so compare thresholds in
+aggregate, never one session. Needs `gh`
+signed in; read-only.
 """
 import json
 import math
 import os
 import statistics as st
+import subprocess
 import sys
 
 LOG = os.path.join(os.path.expanduser("~"), ".claude", "context-threshold-log.jsonl")
@@ -65,7 +70,34 @@ def summarise(recs):
     return out
 
 
+def pr_outcomes(recs):
+    """Per threshold: PRs opened and merged inside each session's window, from `gh pr list`."""
+    cache, by_t, seen = {}, {}, set()
+    for r in recs:
+        repo = r.get("repo")
+        if not repo or not r.get("session_started"):
+            continue
+        if repo not in cache:
+            res = subprocess.run(["gh", "pr", "list", "--repo", repo, "--state", "all", "--author", "phuchai-bot",
+                                  "--limit", "300", "--json", "number,createdAt,mergedAt"],
+                                 capture_output=True, text=True, timeout=120)
+            cache[repo] = json.loads(res.stdout) if res.returncode == 0 and res.stdout.strip() else []
+        lo, hi = r["session_started"], r["ts"]
+        opened = [p for p in cache[repo] if lo <= p["createdAt"] <= hi and (r["threshold"], repo, p["number"]) not in seen]
+        seen.update((r["threshold"], repo, p["number"]) for p in opened)  # windows overlap: count a PR once per threshold
+        d = by_t.setdefault(r["threshold"], {"sessions": 0, "opened": 0, "merged": 0, "cost": 0})
+        d["sessions"] += 1
+        d["opened"] += len(opened)
+        d["merged"] += sum(1 for p in opened if p.get("mergedAt"))
+        d["cost"] += r["cost_units"]
+    for d in by_t.values():
+        d["cost_per_merged_pr"] = round(d["cost"] / d["merged"]) if d["merged"] else None
+    return by_t
+
+
 def main(argv):
+    want_prs = "--prs" in argv
+    argv = [a for a in argv if a != "--prs"]
     path = argv[1] if len(argv) > 1 else LOG
     if not os.path.exists(path):
         print("no log yet at " + path, file=sys.stderr)
@@ -85,6 +117,9 @@ def main(argv):
         for t in (125000, 150000, 175000, 200000):
             if t > s["F"]:
                 print("f(%d) = %d" % (t, f_of_t(t, s["F"], s["R"], s["g"], w_read)))
+    if want_prs:
+        for t, d in sorted(pr_outcomes(recs).items()):
+            print("prs, threshold", t, json.dumps(d))
     return 0
 
 
