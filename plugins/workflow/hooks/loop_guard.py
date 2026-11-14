@@ -16,6 +16,13 @@ the chat) are both empty. One nudge per turn (`stop_hook_active`); Claude Code a
 consecutive continuations at 8. Silent in an ordinary chat, after a deliberate stop, on any missing
 field, and on any error: a broken hook must never trap a turn.
 
+The same script also runs at SessionStart (since workflow 0.53.0): a pending `ScheduleWakeup` lives
+in the session's process, so a resume in a new process (extension reload or update, `--resume`)
+drops it while the transcript still shows a live loop (tested 2026-11-14, Claude Code 2.1.325).
+When a session starts on a transcript whose loop is live, it tells the chat to re-arm. It cannot
+wake an idle chat: the context reaches the model only when the next turn runs. Silent after
+`compact`, where the process and its wakeups survive.
+
 Known limit: after a user cancels a loop with Esc (no `stop: true` call), a later ordinary turn in
 the same session gets one nudge per turn; the nudge text says to ignore it when the user stopped
 the loop.
@@ -32,6 +39,12 @@ NUDGE = (
     "which ends the loop (Claude Code 2.1.319 and later). Call ScheduleWakeup now with the same "
     "loop prompt (a delay of 60 seconds or more), or with stop: true if step 5 of the brief says "
     "to stop. If the user stopped the loop themselves, ignore this."
+)
+
+RESUME_NOTE = (
+    "A self-drive loop was running in this session before it restarted. Pending wakeups do not "
+    "survive a restart. Re-arm now: read the resume note in the morning summary and call "
+    "ScheduleWakeup with the loop prompt, or stop: true if the user stopped the loop."
 )
 
 
@@ -94,17 +107,31 @@ def should_nudge(payload: dict, entries: list[dict]) -> bool:
     return loop_live(entries)
 
 
+def should_rearm(payload: dict, entries: list[dict]) -> bool:
+    """SessionStart: a live loop in the transcript has lost its wakeup, except after compact."""
+    if str(payload.get("source", "")).lower() == "compact":
+        return False
+    return loop_live(entries)
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
         if not isinstance(payload, dict) or not payload.get("transcript_path"):
             return 0
-        if not should_nudge(payload, read_entries(str(payload["transcript_path"]))):
-            return 0
+        entries = read_entries(str(payload["transcript_path"]))
+        if payload.get("hook_event_name") == "SessionStart":
+            event, text = "SessionStart", RESUME_NOTE
+            if not should_rearm(payload, entries):
+                return 0
+        else:
+            event, text = "Stop", NUDGE
+            if not should_nudge(payload, entries):
+                return 0
     except Exception:  # a guard against a slip: never trap the turn on a bug
         return 0
     json.dump(
-        {"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": NUDGE}},
+        {"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}},
         sys.stdout,
     )
     return 0

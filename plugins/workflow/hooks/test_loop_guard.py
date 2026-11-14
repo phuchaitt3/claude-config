@@ -113,3 +113,30 @@ def test_main_survives_missing_transcript(monkeypatch):
     pl = dict(payload(), transcript_path="Z:/nope/missing.jsonl")
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(pl)))
     assert loop_guard.main() == 0
+
+
+def test_resume_with_live_loop_rearms():
+    assert loop_guard.should_rearm({"source": "resume"}, [start(), wake()])
+
+
+def test_resume_after_deliberate_stop_is_silent():
+    assert not loop_guard.should_rearm({"source": "resume"}, [start(), wake(stop=True)])
+
+
+def test_compact_keeps_wakeups_so_is_silent():
+    assert not loop_guard.should_rearm({"source": "compact"}, [start(), wake()])
+
+
+def test_ordinary_chat_resume_is_silent():
+    assert not loop_guard.should_rearm({"source": "resume"}, [chat()])
+
+
+def test_session_start_main_emits_rearm(tmp_path, monkeypatch, capsys):
+    tr = tmp_path / "t.jsonl"
+    tr.write_text("\n".join(json.dumps(e) for e in [start(), wake()]), encoding="utf-8")
+    payload_ = {"hook_event_name": "SessionStart", "source": "resume", "transcript_path": str(tr)}
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload_)))
+    assert loop_guard.main() == 0
+    out = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert out["hookEventName"] == "SessionStart"
+    assert "Re-arm now" in out["additionalContext"]
