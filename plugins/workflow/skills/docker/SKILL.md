@@ -1,6 +1,6 @@
 ---
 name: docker
-description: Load before building images, pruning, bringing up a Compose stack, or when the system drive or Docker's disk is low ("disk full", "I/O error" in a build, Docker or Ollama failing to start). How to check Docker's disk use, what is safe to prune, how to give space back on Windows (WSL 2), and what an agent never does without the user's yes.
+description: Load before building images, pruning, bringing up a Compose stack, or when Docker's own disk is low or failing ("I/O error" in a build, Docker or Ollama failing to start). How to check Docker's disk use, what is safe to prune, how to give space back on Windows (WSL 2), and what an agent never does without the user's yes. A whole drive running low (finding what takes the space): `workflow:disk-cleanup`.
 ---
 
 # Docker disk space

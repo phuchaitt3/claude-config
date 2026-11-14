@@ -81,7 +81,7 @@ def decide_disk(state: dict, now: float, drives: list[tuple[str, float, float, b
         "disk space is low (" + "; ".join(lines) + "). Writes that run out of space mid-way can corrupt "
         "a cache or a git object. Do not start a run that writes a lot (Docker image builds, model "
         "downloads, run outputs, DVC pulls) on that drive; tell the user and ask before freeing space. "
-        "Never delete files to make room."
+        "Never delete files to make room. To free space with the user, load `workflow:disk-cleanup`."
     )
     return state, text
 
