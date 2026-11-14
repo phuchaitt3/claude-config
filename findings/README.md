@@ -96,6 +96,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [rag-retrieval-metrics](rag-retrieval-metrics.md) | Which metric leads when reporting RAG retrieval: Hit@k, Recall@k, MRR or nDCG? | 2026-11-13 |
 | [rag-retrieval-score-ranges](rag-retrieval-score-ranges.md) | Is a top-5 hit rate near 100% normal, or a sign of evaluation bias? What drives retrieval scores up? | 2026-11-13 |
 | [rag-retrieval-relevance-without-llm](rag-retrieval-relevance-without-llm.md) | Without an LLM judge, how is a retrieved chunk labelled relevant (gold evidence, answer string, keyword recall), and how reliable is each? | 2026-11-10 |
+| [rag-eval-offline-vs-app](rag-eval-offline-vs-app.md) | Should a RAG pipeline be evaluated in separate offline scripts or through the running application, and which result goes on a resume? | 2026-11-14 |
 | [rag-retrieval-eval-without-benchmark](rag-retrieval-eval-without-benchmark.md) | With no benchmark that fits, how do teams evaluate RAG retrieval, and can LLM-generated test questions be trusted? | 2026-11-09 |
 | [llm-judge-vs-em-f1](llm-judge-vs-em-f1.md) | Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers? | 2026-11-09 |
 
