@@ -51,8 +51,8 @@ environment variables read by the Ollama server at start, so setting them needs 
 ``check`` reports GPU memory that Ollama accounts for as "ollama", not as unguarded use.
 
 ``thermal`` samples GPU temperature, power, SM clock, utilisation and NVIDIA's thermal-slowdown flags
-and cumulative counters, plus CPU package temperature when LibreHardwareMonitor runs and publishes
-to WMI (Windows exposes no CPU temperature on its own on some laptops), and appends one line per
+and cumulative counters, plus the hottest CPU core when Core Temp runs (read from its shared memory;
+Windows exposes no CPU temperature on its own on some laptops), and appends one line per
 sample to ``thermal.jsonl``. It reads the card's own limits (target, slowdown, shutdown) from
 ``nvidia-smi -q`` once at start, so thresholds come from the hardware, not a generic figure
 (standard: findings/laptop-thermal-tiers, checked 2026-11-14). It takes no job lock and changes no
@@ -65,6 +65,7 @@ at or above the target and the slowdown point, thermal-slowdown time, and how ma
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import subprocess
@@ -248,20 +249,47 @@ def gpu_limits() -> dict:
     return limits
 
 
+class _CoreTempShared(ctypes.Structure if sys.platform == "win32" else object):  # type: ignore[misc]
+    """Core Temp's shared-memory block (CoreTempMappingObject), as its developer documents it."""
+    if sys.platform == "win32":
+        _fields_ = [("uiLoad", ctypes.c_uint * 256), ("uiTjMax", ctypes.c_uint * 128),
+                    ("uiCoreCnt", ctypes.c_uint), ("uiCPUCnt", ctypes.c_uint), ("fTemp", ctypes.c_float * 256),
+                    ("fVID", ctypes.c_float), ("fCPUSpeed", ctypes.c_float), ("fFSBSpeed", ctypes.c_float),
+                    ("fMultiplier", ctypes.c_float), ("sCPUName", ctypes.c_char * 100),
+                    ("ucFahrenheit", ctypes.c_ubyte), ("ucDeltaToTjMax", ctypes.c_ubyte)]
+
+
 def cpu_temp_c() -> float | None:
-    """CPU package temperature from LibreHardwareMonitor's WMI provider, or None when it is not
-    running (it must run as administrator to read the sensors)."""
+    """Hottest CPU core in degrees C, read from Core Temp's shared memory, or None when Core Temp is
+    not running. Needs no administrator rights here: Core Temp (which runs elevated) reads the sensors."""
     if sys.platform != "win32":
         return None
-    ps = ("Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | "
-          "Where-Object { $_.SensorType -eq 'Temperature' -and $_.Name -match 'Package|Tctl|Tdie' } | "
-          "Measure-Object -Property Value -Maximum | ForEach-Object { $_.Maximum }")
-    try:
-        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
-                             capture_output=True, text=True, timeout=20, **NO_WINDOW).stdout.strip()
-    except (OSError, subprocess.SubprocessError):
+    from ctypes import wintypes
+
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.OpenFileMappingW.restype = wintypes.HANDLE
+    k.MapViewOfFile.restype = ctypes.c_void_p
+    k.MapViewOfFile.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
+    k.UnmapViewOfFile.argtypes = [ctypes.c_void_p]
+    h = k.OpenFileMappingW(4, False, "CoreTempMappingObject")  # FILE_MAP_READ
+    if not h:
         return None
-    return _num(out) if out else None
+    try:
+        view = k.MapViewOfFile(h, 4, 0, 0, ctypes.sizeof(_CoreTempShared))
+        if not view:
+            return None
+        try:
+            d = _CoreTempShared.from_address(view)
+            n = min(d.uiCoreCnt * max(d.uiCPUCnt, 1), 256)
+            temps = [d.fTemp[i] for i in range(n)]
+            if not temps:
+                return None
+            t = (d.uiTjMax[0] - min(temps)) if d.ucDeltaToTjMax else max(temps)
+            return round((t - 32) * 5 / 9 if d.ucFahrenheit else t, 1)
+        finally:
+            k.UnmapViewOfFile(view)
+    finally:
+        k.CloseHandle(h)
 
 
 def log_thermal(record: dict) -> None:
@@ -686,7 +714,7 @@ def report_thermal(args: argparse.Namespace) -> int:
         print(f"  samples at or above the trigger {trigger:g} C (what a pause rule would act on): {len(hits)}"
               + (f", first {hits[0]['ts']}" if hits else ""))
     print("  CPU package: " + (f"peak {max(cpus):.0f} C, mean {sum(cpus) / len(cpus):.0f} C" if cpus
-                               else "not read (LibreHardwareMonitor not running as administrator)"))
+                               else "not read (Core Temp not running)"))
     return 0
 
 
