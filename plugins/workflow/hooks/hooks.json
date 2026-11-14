@@ -123,6 +123,11 @@
           },
           {
             "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/docker_cleanup.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/merge_gate.py\"",
             "timeout": 30
           },
@@ -207,6 +212,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/run_estimate.py\" post",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/docker_cleanup.py\" post",
+            "timeout": 10
           }
         ]
       },
@@ -243,6 +253,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/loop_guard.py\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/docker_cleanup.py\" stop",
+            "timeout": 15
           },
           {
             "type": "command",
