@@ -7,6 +7,7 @@
   - Time per application, once a solid master exists: 5–15 minutes (a resume writer quoted by Rezi says 10–15; master-resume guides say 5–10). A full rewrite takes 30–60 minutes. These figures come from career and resume-tool sites, not measurements.
   - Fewer versions is a supported alternative. Keep 1–3 variants, one for each genuinely different role type, and send the closest one. Do the light 5–10 minute pass only for top-choice postings. The source admits there is no audited benchmark showing that per-job tailoring raises interview rates.
   - A coach who argues "your master resume is killing your job search" is arguing against sending the master unchanged. His fix is the same: cut irrelevant duties and match the posting's keywords.
+  - **What goes into the master (checked 2026-11-14):** everything, not only the notable items. Career centres and guides say to record every role, responsibility, project and accomplishment, with no page limit; selection ("keep only the bullets that reflect what the employer seeks") happens in the tailored version. The master is never sent. Guides still ask that each entry be written as an accomplishment (what, how, why or result) rather than a bare duty: the quality bar applies to wording, not to inclusion.
   - *Checker's inference:*
     - The sources describe the cut as one pass: decide every cut against the posting, then trim. None of them describes asking for approval before each cut and re-measuring the page after each one.
     - That slow loop pays off once, while the first variant for a role type is built and the master is also being fact-checked and reworded.
@@ -17,9 +18,10 @@
   - Time per application: [Rezi](https://rezi.ai/posts/how-to-tailor-your-resume) (vendor, quotes a resume writer); [CareerCheck](https://www.careercheck.io/blog/how-long-tailor-resume-each-job) (vendor).
   - Few variants instead of per-job tailoring: [Careery](https://careery.pro/blog/resume-applications/should-you-tailor-resume-for-each-job) (vendor blog; states no benchmark exists).
   - Against sending a master unchanged: [Jeff Altman, The Big Game Hunter](https://thebiggamehunter.us/why-your-master-resume-is-killing-your-job-search/) (career coach; promotes his services).
+  - What goes into the master: [Drexel Graduate College](https://drexel.edu/graduatecollege/professional-development/blog/2016/July/master-resume/) (university); [Idaho State career center](https://anthro.isu.edu/media/libraries/career-center/Master-Resume.pdf) (university); [Univ. of Southern Maine, master vs tailored guide](https://usm.maine.edu/career-employment-hub/wp-content/uploads/sites/241/2025/08/Resume_Resource-Guide_Master_Tailored_Final_Su2025.pdf) (university); [Missouri State](https://CareerCenter.MissouriState.edu/_Files/Resumes.pdf) (university); [Indiana Univ. Fairbanks](https://fairbanks.indianapolis.iu.edu/student-portal/tools/resume.html) (university); [Monster](https://www.monster.com/career-advice/resume/master-resume) (job board); [LMU careers, accomplishments not duties](https://careers.lmu.edu/blog/2025/04/25/mastering-your-resume-your-guide-to-standing-out/) (university).
 - **Limits:**
   - Nearly all sources sell resume tools or coaching.
   - No source measures interview rates by tailoring method.
   - The sources are US-centred, with no Vietnam-specific source.
   - They are written for people with work history; entry-level project resumes are not treated separately.
-- **Checked:** 2026-11-13.
+- **Checked:** 2026-11-13; inclusion question 2026-11-14.
