@@ -154,3 +154,4 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [resume-benchmark-context](resume-benchmark-context.md) | How much benchmark detail (sample size, batch size, hardware) does a resume bullet carry, and must all benchmark bullets list the same fields? | 2026-11-11 |
 | [entry-level-ai-engineer-market](entry-level-ai-engineer-market.md) | How hard is an entry-level AI engineer role to get, what are the common routes to a first job, and are most entry roles residencies or internships (no data)? | 2026-11-13 |
 | [resume-bullet-order](resume-bullet-order.md) | Are bullets inside one entry ordered by significance or by time, and must terms be introduced before use? | 2026-11-11 |
+| [resume-bullet-standalone](resume-bullet-standalone.md) | Must each resume bullet make sense without the others in its entry, and does that make bullets too long? | 2026-11-15 |
