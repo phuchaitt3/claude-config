@@ -71,7 +71,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [multi-repo-agent-review](multi-repo-agent-review.md) | How are review requests routed when agents work across several repositories? | 2026-11-01 |
 | [agent-review-cost](agent-review-cost.md) | What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota? | 2026-11-01 |
 | [keep-awake-long-jobs](keep-awake-long-jobs.md) | How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled? | 2026-11-11 |
-| [agent-autonomy-tiers](agent-autonomy-tiers.md) | Is it standard to have speed-first modes that relax human review beside stricter ones, and how does dependent work proceed while a gated PR waits? | 2026-11-13 |
+| [agent-autonomy-tiers](agent-autonomy-tiers.md) | Is it standard to have speed-first modes that relax human review beside stricter ones, and how does dependent work proceed while a gated PR waits? Automate with stronger review, or gate? | 2026-11-14 |
 | [overnight-agent-runs](overnight-agent-runs.md) | Does running several coding agents overnight get more work out of a subscription, and what makes the morning result usable? | 2026-11-13 |
 | [claude-code-usage-limit-resume](claude-code-usage-limit-resume.md) | Does a Claude Code session or loop resume by itself after a usage limit resets, and can that be tested without using up the quota? | 2026-11-14 |
 | [long-agent-run-context](long-agent-run-context.md) | How does a long agent run (a loop or overnight run) keep its context, and token cost, from growing with every task: subagents, a fresh session per task, or other chats? | 2026-11-14 |
