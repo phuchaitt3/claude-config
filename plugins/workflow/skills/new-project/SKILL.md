@@ -60,6 +60,17 @@ The user does these once per repository, because they need admin and the bot has
 6. Record the tier and mode at the top of the project's `CLAUDE.md`.
 7. If the project runs GPU or other heavy jobs on the user's laptop, say in its `CLAUDE.md` that they go through `~/claude-config/scripts/gpu_run.py` (Hard limits, "Laptop GPU"); no code is needed in the project.
 
+**Labels (the agent runs this; the bot's Write access is enough).** Every repository that tracks work as GitHub issues gets the priority labels the multi-chat rules and `next_task.py` rank by, created once with the same names, colours and descriptions everywhere, so an unlabelled issue always means "not yet triaged" (user's decision, 2026-11-15; standard: Kubernetes issue triage guidelines, where a missing priority label means "not yet reviewed", checked 2026-10-31, see `workflow:multi-chat-repo`, "Priority label"):
+
+```
+gh label create priority:now   --color d93f0b --description "Unblocks other work or checks real behaviour"
+gh label create priority:next  --color fbca04 --description "Do alongside features"
+gh label create priority:later --color c5def5 --description "Wait until a feature needs it"
+gh label create needs-you      --color d93f0b --description "Waiting for the repository owner: merge, answer or approve"
+```
+
+A label that already exists makes `gh label create` fail with "already exists"; leave it. A direct-tier repository with no issues skips this.
+
 A direct-tier repository needs only step 6, plus step 1 when the bot does not own it: with no PRs, the ruleset, `CODEOWNERS` and delete-branch-on-merge have nothing to act on.
 
 ## Configuration and secrets (user's decision, 2026-10-30; standard: Twelve-Factor App "III. Config" and the dotenv convention, checked 2026-10-30)
