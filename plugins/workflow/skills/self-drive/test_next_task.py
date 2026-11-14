@@ -78,3 +78,8 @@ def test_render_says_how_many_issues_the_limit_cut() -> None:
     assert next_task.render(ranked, 2)[-1] == "... 2 more not shown (--limit)"
     assert len(next_task.render(ranked, 10)) == 4
     assert next_task.render([], 10) == ["no startable issue"]
+
+
+def test_claimed_lists_only_claimed_issues_in_number_order() -> None:
+    issues = [issue(5, ["claimed"]), issue(2, ["priority:now"]), issue(3, ["claimed", "priority:next"])]
+    assert next_task.claimed(issues) == ["#3	t3", "#5	t5"]

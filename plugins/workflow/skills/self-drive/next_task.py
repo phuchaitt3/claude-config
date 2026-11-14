@@ -1,6 +1,9 @@
 """Rank a repo's open issues bottleneck-first, so a chat picks the task that unblocks the most work.
 
 Run from inside the repository: `python <this skill's folder>/next_task.py [--limit N]`.
+With `--status [--handoff PATH]` it is a self-drive round's whole sync in one call: it pulls the
+handoff repo (`git -C PATH pull --rebase`) when given, then prints the open PRs, the claimed issues,
+the worktrees and the ranked startable issues, so the loop chat makes one tool call, not several.
 
 Reads open issues and their GitHub issue dependencies ("blocked by" / "blocking" links) with one
 GraphQL call, then prints the issues a chat may start, best first:
@@ -129,14 +132,55 @@ def render(ranked: list[dict], limit: int) -> list[str]:
     return lines
 
 
+def claimed(issues: list[dict]) -> list[str]:
+    """One line per open issue labelled `claimed`, read from the issues already fetched."""
+    return [
+        f"#{i['number']}	{i['title']}"
+        for i in sorted(issues, key=lambda i: i["number"])
+        if "claimed" in {lab["name"] for lab in i["labels"]["nodes"]}
+    ]
+
+
+def run(cmd: list[str]) -> str:
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=120)
+    out = (result.stdout + result.stderr).strip()
+    return out if result.returncode == 0 else f"FAILED ({result.returncode}): {out[:300]}"
+
+
+def status(repo: str, issues: list[dict], handoff: str | None) -> list[str]:
+    """The sync sections that come before the ranked issues in --status output."""
+    lines: list[str] = []
+    if handoff:
+        lines += ["== handoff pull", run(["git", "-C", handoff, "pull", "--rebase", "-q"]) or "ok"]
+    prs = json.loads(gh(["pr", "list", "-R", repo, "--state", "open", "--json",
+                         "number,title,author,isDraft,reviewDecision,labels"]))
+    lines.append(f"== open PRs ({len(prs)})")
+    for pr in prs:
+        tags = [lab["name"] for lab in pr["labels"]] + (["draft"] if pr["isDraft"] else [])
+        lines.append(f"#{pr['number']}	{pr['author']['login']}	{pr['reviewDecision'] or '-'}"
+                     f"	{','.join(tags) or '-'}	{pr['title']}")
+    cl = claimed(issues)
+    lines += [f"== claimed issues ({len(cl)})", *cl]
+    lines += ["== worktrees", run(["git", "worktree", "list"])]
+    lines.append("== startable issues")
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--repo", help="owner/name; default: the repo of the current folder")
+    parser.add_argument("--status", action="store_true",
+                        help="print the whole round sync: open PRs, claims, worktrees, then issues")
+    parser.add_argument("--handoff", help="with --status: a handoff repo to pull first")
     args = parser.parse_args()
     try:
         repo = args.repo or gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).strip()
-        ranked, fixups = rank(fetch(repo))
+        issues = fetch(repo)
+        ranked, fixups = rank(issues)
+        if args.status:
+            for line in status(repo, issues, args.handoff):
+                print(line)
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
         print(f"next_task: cannot read GitHub: {exc}", file=sys.stderr)
         return 1
