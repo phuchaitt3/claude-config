@@ -241,3 +241,43 @@ def test_old_events_without_a_resource_count_as_gpu(tmp_path):
 
 def test_hold_does_not_take_a_resource_option(tmp_path):
     assert run(tmp_path, "hold", "--resource", "ram", "--", sys.executable, "-c", "pass").returncode == 2
+
+
+def test_thermal_report_counts_time_at_limits_trigger_and_slowdown(tmp_path):
+    import datetime
+    t0 = datetime.datetime.now().astimezone()
+    lines = [{"ts": t0.isoformat(timespec="seconds"), "event": "start", "interval_s": 60,
+              "limits": {"target_c": 87.0, "slowdown_c": 95.0, "shutdown_c": 100.0}}]
+    # temps 70, 88, 96, 90; counters 0 -> 0 -> 30 s -> reboot (reset to 5 s, not counted) -> 15 s
+    for i, (temp, us) in enumerate([(70, 0), (88, 0), (96, 30e6), (90, 5e6), (89, 15e6)]):
+        ts = (t0 + datetime.timedelta(seconds=60 * (i + 1))).isoformat(timespec="seconds")
+        lines.append({"ts": ts, "event": "sample", "gpu_temp_c": temp, "power_w": 60 + i,
+                      "thermal_slowdown": temp >= 95, "slowdown_us": us, "cpu_temp_c": None})
+    (tmp_path / "thermal.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    out = run(tmp_path, "report", "--thermal", "--days", "1").stdout
+    assert "GPU peak 96 C" in out and "peak power 64 W" in out
+    assert "at or above target (87.0 C): 4 min" in out
+    assert "at or above slowdown (95.0 C): 1 min" in out
+    assert "thermal slowdown: 40 s by the counters, 1 samples with it active" in out
+    assert "trigger 87 C (what a pause rule would act on): 4" in out
+    assert "trigger 90 C (what a pause rule would act on): 2" in run(
+        tmp_path, "report", "--thermal", "--days", "1", "--trigger-c", "90").stdout
+
+
+def test_thermal_report_with_no_log_says_how_to_start(tmp_path):
+    out = run(tmp_path, "report", "--thermal").stdout
+    assert "no samples" in out
+
+
+def test_gpu_limits_parses_nvidia_smi_query(monkeypatch):
+    sys.path.insert(0, str(HERE))
+    import gpu_run
+
+    text = ("    Temperature\n        GPU Current Temp                  : 50 C\n"
+            "        GPU Shutdown Temp                 : 100 C\n        GPU Slowdown Temp : 95 C\n"
+            "        GPU Max Operating Temp            : 102 C\n"
+            "        GPU Target Temperature Specification : 87 C\n        Memory Max Operating Temp : N/A\n")
+    monkeypatch.setattr(gpu_run.subprocess, "run",
+                        lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=text, stderr=""))
+    assert gpu_run.gpu_limits() == {"shutdown_c": 100.0, "slowdown_c": 95.0,
+                                    "max_operating_c": 102.0, "target_c": 87.0}

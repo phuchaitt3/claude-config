@@ -19,4 +19,4 @@
 
 ## Limits
 
-No Lenovo document was found for the exact model's limit; check the CPU's own spec sheet. The sources measure games and stress tests, not containers or model inference. No source found covers long-term wear from running at the limit.
+No Lenovo document was found for the exact model's limit; check the CPU's own spec sheet. The sources measure games and stress tests, not containers or model inference. No source found covers long-term wear from running at the limit; `findings/laptop-thermal-tiers` (2026-11-14) has the general rule of thumb, GPU tiers and battery wear.

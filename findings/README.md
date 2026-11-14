@@ -41,6 +41,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [ml-ci-test-tiers](ml-ci-test-tiers.md) | How do machine-learning projects split tests between pull-request CI and heavier runs? | 2026-11-05 |
 | [shared-gpu-one-machine](shared-gpu-one-machine.md) | How is one GPU machine shared between several users or agents without collisions (jobs and long-running services such as model servers), and how is that checked afterwards? | 2026-11-13 |
 | [laptop-cpu-thermal-limit](laptop-cpu-thermal-limit.md) | Is a laptop CPU at 95-100 °C under load overheating or normal? | 2026-11-13 |
+| [laptop-thermal-tiers](laptop-thermal-tiers.md) | Which GPU temperatures are normal, worth flagging or dangerous on a laptop running long jobs, and what wears it out? | 2026-11-14 |
 | [disk-space-alerting](disk-space-alerting.md) | At what free-space level should a machine warn about a filling drive, and is there a standard threshold? | 2026-11-14 |
 | [heavy-job-scheduling](heavy-job-scheduling.md) | How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop? | 2026-11-01 |
 | [scaling-tests-on-a-budget](scaling-tests-on-a-budget.md) | How do teams learn how a system behaves at a much larger size or load without a production-size environment? | 2026-11-01 |

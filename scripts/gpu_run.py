@@ -13,6 +13,10 @@ report instead of in a mysterious slowdown. Standard library only; no per-reposi
     python gpu_run.py status [--resource ram]                           who holds the GPU (or the RAM lock) now
     python gpu_run.py check                                             GPU busy with no holder?
     python gpu_run.py report [--days N] [--resource ram]                usage, waits, refusals, unguarded use
+    python gpu_run.py thermal [--interval S] [--minutes M] [--purpose TEXT]
+                                                     log temperatures every S seconds (no lock taken)
+    python gpu_run.py report --thermal [--days N | --since ISO] [--trigger-c C]
+                                                     peak and time-at-limit from the thermal log
 
 The lock is an OS file lock, so it is released when the process dies and is never stale. It sits in
 ``$GPU_GUARD_DIR`` (default ``~/.gpu-guard``) next to ``events.jsonl``. The child process gets
@@ -45,6 +49,17 @@ levers that stop Ollama taking GPU memory in the first place are settings, not t
 ``OLLAMA_MAX_LOADED_MODELS`` (default 3 per GPU) caps how many load at once. Both are user-level
 environment variables read by the Ollama server at start, so setting them needs the user's yes.
 ``check`` reports GPU memory that Ollama accounts for as "ollama", not as unguarded use.
+
+``thermal`` samples GPU temperature, power, SM clock, utilisation and NVIDIA's thermal-slowdown flags
+and cumulative counters, plus CPU package temperature when LibreHardwareMonitor runs and publishes
+to WMI (Windows exposes no CPU temperature on its own on some laptops), and appends one line per
+sample to ``thermal.jsonl``. It reads the card's own limits (target, slowdown, shutdown) from
+``nvidia-smi -q`` once at start, so thresholds come from the hardware, not a generic figure
+(standard: findings/laptop-thermal-tiers, checked 2026-11-14). It takes no job lock and changes no
+setting; a second logger started while one runs exits at once. ``run`` also records the job's peak
+GPU temperature in its ``end`` event. ``report --thermal`` gives peak and mean temperature, minutes
+at or above the target and the slowdown point, thermal-slowdown time, and how many samples reached
+``--trigger-c`` (default: the card's target), which is what a pause rule would have acted on.
 """
 
 from __future__ import annotations
@@ -68,6 +83,11 @@ IDLE_MEM_MB = 300  # ... this much memory, with no holder, is "unguarded use"
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
 RESOURCES = {"gpu": "local GPU", "ram": "RAM/CPU lock"}  # name -> what a refused job is told
+THERMAL_FIELDS = (
+    "temperature.gpu", "power.draw", "clocks.sm", "utilization.gpu",
+    "clocks_event_reasons.sw_thermal_slowdown", "clocks_event_reasons.hw_thermal_slowdown",
+    "clocks_event_reasons_counters.sw_thermal_slowdown", "clocks_event_reasons_counters.hw_thermal_slowdown",
+)
 # nvidia-smi opens no console window when the check runs from a background task (pythonw)
 NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 
@@ -177,13 +197,82 @@ def smi(*query: str) -> list[list[str]] | None:
 
 
 def gpu_reading() -> dict | None:
-    rows = smi("utilization.gpu", "memory.used")
+    rows = smi("utilization.gpu", "memory.used", "temperature.gpu")
     if not rows:
         return None
     try:
-        return {"util_pct": float(rows[0][0]), "mem_mb": float(rows[0][1])}
-    except ValueError:
+        r = {"util_pct": float(rows[0][0]), "mem_mb": float(rows[0][1])}
+    except (ValueError, IndexError):
         return None
+    r["temp_c"] = _num(rows[0][2]) if len(rows[0]) > 2 else None
+    return r
+
+
+def _num(text: str | None) -> float | None:
+    try:
+        return float(text)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def thermal_reading() -> dict | None:
+    """One GPU sample: temperature, power, clock, load, thermal slowdown now, and the cumulative
+    slowdown counters (microseconds since boot, software plus hardware thermal slowdown)."""
+    rows = smi(*THERMAL_FIELDS)
+    if not rows or len(rows[0]) != len(THERMAL_FIELDS):
+        return None
+    c = rows[0]
+    counters = [_num(x) for x in c[6:8]]
+    return {"gpu_temp_c": _num(c[0]), "power_w": _num(c[1]), "sm_mhz": _num(c[2]), "util_pct": _num(c[3]),
+            "thermal_slowdown": any(x == "Active" for x in c[4:6]),
+            "slowdown_us": None if None in counters else sum(counters)}  # type: ignore[arg-type]
+
+
+def gpu_limits() -> dict:
+    """The card's own limits from `nvidia-smi -q -d TEMPERATURE` (degrees C; missing ones left out)."""
+    names = {"GPU Target Temperature": "target_c", "GPU Slowdown Temp": "slowdown_c",
+             "GPU Shutdown Temp": "shutdown_c", "GPU Max Operating Temp": "max_operating_c"}
+    try:
+        out = subprocess.run(["nvidia-smi", "-q", "-d", "TEMPERATURE"], check=True, capture_output=True,
+                             text=True, timeout=15, **NO_WINDOW).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    limits = {}
+    for line in out.splitlines():
+        key, _, val = line.partition(":")
+        for prefix, name in names.items():
+            if key.strip().startswith(prefix):
+                v = _num(val.strip().split(" ")[0])
+                if v is not None:
+                    limits[name] = v
+    return limits
+
+
+def cpu_temp_c() -> float | None:
+    """CPU package temperature from LibreHardwareMonitor's WMI provider, or None when it is not
+    running (it must run as administrator to read the sensors)."""
+    if sys.platform != "win32":
+        return None
+    ps = ("Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | "
+          "Where-Object { $_.SensorType -eq 'Temperature' -and $_.Name -match 'Package|Tctl|Tdie' } | "
+          "Measure-Object -Property Value -Maximum | ForEach-Object { $_.Maximum }")
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                             capture_output=True, text=True, timeout=20, **NO_WINDOW).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return _num(out) if out else None
+
+
+def log_thermal(record: dict) -> None:
+    """Append one line to thermal.jsonl. Never raises."""
+    try:
+        d = guard_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / "thermal.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": now(), **record}) + "\n")
+    except OSError:
+        pass
 
 
 def gpu_processes() -> list[str]:
@@ -358,7 +447,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 3
     res = info["resource"]
 
-    peak = {"util_pct": 0.0, "mem_mb": 0.0, "n": 0}
+    peak = {"util_pct": 0.0, "mem_mb": 0.0, "temp_c": 0.0, "n": 0}
     stop = threading.Event()
 
     def sample() -> None:
@@ -367,6 +456,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             if r:
                 peak["util_pct"] = max(peak["util_pct"], r["util_pct"])
                 peak["mem_mb"] = max(peak["mem_mb"], r["mem_mb"])
+                peak["temp_c"] = max(peak["temp_c"], r.get("temp_c") or 0.0)
                 peak["n"] += 1
 
     if res == "gpu":  # GPU readings only make sense for the GPU lock
@@ -385,7 +475,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         log_event("end", resource=res, pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
                   seconds=round(time.time() - t0), exit_code=code,
                   peak_gpu_util_pct=peak["util_pct"] or None,
-                  peak_gpu_mem_mb=peak["mem_mb"] or None)
+                  peak_gpu_mem_mb=peak["mem_mb"] or None,
+                  peak_gpu_temp_c=peak["temp_c"] or None)
     return code
 
 
@@ -502,6 +593,97 @@ def cmd_check(_: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------------- report
 
 
+def cmd_thermal(args: argparse.Namespace) -> int:
+    """Log temperatures until stopped (Ctrl+C, process killed) or --minutes have passed."""
+    single = Lock("thermal")
+    if not single.try_acquire({"pid": os.getpid(), "purpose": args.purpose or "thermal", "since": now()}):
+        who = single.holder()
+        print(f"gpu_run thermal: a logger already runs (pid {who.get('pid')}, {who.get('purpose')}); "
+              "its log is shared, nothing to do")
+        return 0
+    limits = gpu_limits()
+    log_thermal({"event": "start", "pid": os.getpid(), "purpose": args.purpose or "thermal",
+                 "interval_s": args.interval, "limits": limits})
+    print(f"gpu_run thermal: logging every {args.interval:g} s to {guard_dir() / 'thermal.jsonl'}; "
+          f"card limits {limits or 'unknown'}", flush=True)
+    deadline = time.time() + args.minutes * 60 if args.minutes else None
+    n = 0
+    try:
+        while deadline is None or time.time() < deadline:
+            r = thermal_reading() or {}
+            r["cpu_temp_c"] = cpu_temp_c()
+            log_thermal({"event": "sample", **r})
+            n += 1
+            time.sleep(args.interval)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        log_thermal({"event": "end", "pid": os.getpid(), "samples": n})
+        single.release()
+    return 0
+
+
+def read_thermal(since: datetime) -> list[dict]:
+    rows: list[dict] = []
+    try:
+        lines = (guard_dir() / "thermal.jsonl").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return rows
+    for line in lines:
+        try:
+            row = json.loads(line)
+            if datetime.fromisoformat(row["ts"]) >= since:
+                rows.append(row)
+        except (ValueError, KeyError):
+            continue
+    return rows
+
+
+def report_thermal(args: argparse.Namespace) -> int:
+    since = datetime.fromisoformat(args.since) if args.since else datetime.now() - timedelta(days=args.days)
+    if since.tzinfo is None:
+        since = since.astimezone()
+    rows = read_thermal(since)
+    starts = [r for r in rows if r.get("event") == "start"]
+    samples = [r for r in rows if r.get("event") == "sample" and r.get("gpu_temp_c") is not None]
+    limits = next((s["limits"] for s in reversed(starts) if s.get("limits")), None) or gpu_limits()
+    interval = next((s["interval_s"] for s in reversed(starts) if s.get("interval_s")), 60)
+    print(f"Temperatures since {since.isoformat(timespec='minutes')} ({guard_dir() / 'thermal.jsonl'})")
+    print(f"  card limits: {limits or 'unknown'}")
+    if not samples:
+        print("  (no samples; start `gpu_run.py thermal` in the background)")
+        return 0
+    temps = [r["gpu_temp_c"] for r in samples]
+    target, slow = limits.get("target_c"), limits.get("slowdown_c")
+    trigger = args.trigger_c if args.trigger_c is not None else target
+
+    def minutes(threshold: float | None) -> str:
+        return "n/a" if threshold is None else f"{sum(t >= threshold for t in temps) * interval / 60:.0f} min"
+
+    slowdown_s, prev = 0.0, None
+    for r in samples:  # the counters reset at reboot: add only positive steps
+        cur = r.get("slowdown_us")
+        if cur is not None and prev is not None and cur > prev:
+            slowdown_s += (cur - prev) / 1e6
+        if cur is not None:
+            prev = cur
+    powers = [r["power_w"] for r in samples if r.get("power_w") is not None]
+    cpus = [r["cpu_temp_c"] for r in samples if r.get("cpu_temp_c") is not None]
+    print(f"  samples: {len(samples)} (every {interval:g} s)   GPU peak {max(temps):.0f} C   "
+          f"mean {sum(temps) / len(temps):.0f} C   peak power {max(powers, default=0):.0f} W")
+    print(f"  at or above target ({target} C): {minutes(target)}   "
+          f"at or above slowdown ({slow} C): {minutes(slow)}")
+    print(f"  thermal slowdown: {slowdown_s:.0f} s by the counters, "
+          f"{sum(1 for r in samples if r.get('thermal_slowdown'))} samples with it active")
+    if trigger is not None:
+        hits = [r for r in samples if r["gpu_temp_c"] >= trigger]
+        print(f"  samples at or above the trigger {trigger:g} C (what a pause rule would act on): {len(hits)}"
+              + (f", first {hits[0]['ts']}" if hits else ""))
+    print("  CPU package: " + (f"peak {max(cpus):.0f} C, mean {sum(cpus) / len(cpus):.0f} C" if cpus
+                               else "not read (LibreHardwareMonitor not running as administrator)"))
+    return 0
+
+
 def read_events(days: int) -> list[dict]:
     path, cutoff, rows = guard_dir() / "events.jsonl", datetime.now().astimezone() - timedelta(days=days), []
     try:
@@ -519,6 +701,8 @@ def read_events(days: int) -> list[dict]:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    if getattr(args, "thermal", False):
+        return report_thermal(args)
     res = getattr(args, "resource", "gpu")
     rows = [r for r in read_events(args.days) if r.get("resource", "gpu") == res]
     if res != "gpu":
@@ -609,9 +793,17 @@ def main(argv: list[str] | None = None) -> int:
     rep = sub.add_parser("report")
     rep.add_argument("--days", type=int, default=7)
     rep.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
+    rep.add_argument("--thermal", action="store_true", help="report the thermal log instead of GPU use")
+    rep.add_argument("--since", help="thermal report: start time (ISO, e.g. 2026-11-14T21:30)")
+    rep.add_argument("--trigger-c", type=float,
+                     help="thermal report: count samples at or above this (default: the card's target)")
+    th = sub.add_parser("thermal", help="log temperatures every --interval seconds")
+    th.add_argument("--interval", type=float, default=60)
+    th.add_argument("--minutes", type=float, help="stop after this long (default: run until stopped)")
+    th.add_argument("--purpose", help="label for the log (default: thermal)")
     args = p.parse_args(argv)
     return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check,
-            "report": cmd_report}[args.cmd](args)
+            "report": cmd_report, "thermal": cmd_thermal}[args.cmd](args)
 
 
 if __name__ == "__main__":
