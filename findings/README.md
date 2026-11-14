@@ -92,6 +92,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [research-baseline-design](research-baseline-design.md) | How is a research baseline built: same pipeline with the studied part switched off, or a separate plain version? | 2026-11-12 |
 | [research-held-out-tuning](research-held-out-tuning.md) | Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead? | 2026-11-08 |
 | [rag-hypothetical-question-indexing](rag-hypothetical-question-indexing.md) | Is indexing LLM-generated questions per chunk, instead of the chunk text, an established RAG practice? | 2026-11-09 |
+| [eval-sample-size](eval-sample-size.md) | How many test questions or timed requests does an evaluation need, and is 30 or about 200 too small? | 2026-11-15 |
 | [rag-eval-confidence-intervals](rag-eval-confidence-intervals.md) | Do RAG and retrieval evaluations report bootstrap confidence intervals, and is it worth it on a small set? | 2026-11-10 |
 | [rag-hybrid-fusion](rag-hybrid-fusion.md) | How do hybrid search systems merge vector and keyword results; is RRF the default? | 2026-11-10 |
 | [rag-reranker-only-small-pool](rag-reranker-only-small-pool.md) | Is scoring every chunk with a cross-encoder, with no first-stage retriever, established practice, and when does it fit? | 2026-11-10 |
