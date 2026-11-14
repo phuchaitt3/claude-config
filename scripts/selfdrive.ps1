@@ -34,7 +34,9 @@ if (-not $c) {
     if ($onPath) { $c = $onPath.Source } else { throw 'claude.exe not found (VS Code extension or PATH).' }
 } else { $c = $c.FullName }
 
-# 2. The repository's main checkout.
+# 2. The repository's main checkout. A terminal opened by an app started before SELFDRIVE_ROOT
+# was set does not see it, so fall back to the stored user value.
+if (-not $env:SELFDRIVE_ROOT) { $env:SELFDRIVE_ROOT = [Environment]::GetEnvironmentVariable('SELFDRIVE_ROOT', 'User') }
 if (Test-Path -LiteralPath $Repo) {
     $dir = (Resolve-Path -LiteralPath $Repo).Path
 } elseif ($env:SELFDRIVE_ROOT -and (Test-Path -LiteralPath (Join-Path $env:SELFDRIVE_ROOT "$Repo\main"))) {

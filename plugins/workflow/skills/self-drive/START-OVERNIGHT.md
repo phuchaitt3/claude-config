@@ -13,7 +13,16 @@ Written 2026-11-14 for workflow 0.54.0. An agent asked "how do I start an overni
 
 Start the loop as a background session from a terminal, not from the VS Code Claude panel. A background session keeps its scheduled wakeups across an editor reload or update, and runs the status line that feeds the quota pause (`SKILL.md` step 7b). The VS Code panel does neither (both tested 2026-11-14).
 
-In PowerShell:
+In PowerShell, the short way (added 2026-11-15): one command does steps 1 to 4 below, and refuses a second session for the same repository and date.
+
+```powershell
+& "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path>              # e.g. thesis
+& "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path> -ResumeFirst # resume-gap items before existing open issues
+```
+
+A name is looked up as `<SELFDRIVE_ROOT>\<name>\main`; set `SELFDRIVE_ROOT` once as a user environment variable (the script reads the stored value even in a terminal opened before it was set). Local scripts run under the machine's `RemoteSigned` policy, so no execution-policy change is needed.
+
+The long way, by hand:
 
 ```powershell
 # 1. Find the claude.exe bundled with the VS Code extension (its folder name changes with each update).
