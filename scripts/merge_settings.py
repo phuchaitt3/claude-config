@@ -2,8 +2,9 @@
 
 Idempotent and additive: it registers the `personal-config` marketplace (a directory source
 pointing at the claude-config checkout) with autoUpdate on, enables `workflow@personal-config`, and
-adds the context-% status line (`scripts/statusline.py`) if no `statusLine` is set. It never
-removes or changes anything else. The old file is copied to settings.json.bak-<date>
+adds the context-% status line (`scripts/statusline.py`) if no `statusLine` is set, and gives
+that status line a 60-second `refreshInterval` so the quota file it writes stays current while a
+loop waits. It never removes or changes anything else. The old file is copied to settings.json.bak-<date>
 first. Prints what it changed (or "no change").
 
     python merge_settings.py [--settings PATH] [--repo PATH]
@@ -39,8 +40,12 @@ def merge(settings: dict, repo: str) -> list[str]:
         changes.append(f"enabled {PLUGIN}")
     if "statusLine" not in settings:
         script = Path(repo) / "scripts" / "statusline.py"
-        settings["statusLine"] = {"type": "command", "command": f'python "{script}"'}
+        settings["statusLine"] = {"type": "command", "command": f'python "{script}"', "refreshInterval": 60}
         changes.append("status line (context %)")
+    line = settings["statusLine"]
+    if isinstance(line, dict) and "statusline.py" in str(line.get("command", "")) and "refreshInterval" not in line:
+        line["refreshInterval"] = 60
+        changes.append("status line refreshInterval 60")
     return changes
 
 

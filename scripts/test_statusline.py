@@ -44,3 +44,17 @@ def test_cli_prints_nothing_for_bad_input() -> None:
 def test_cli_prints_the_line() -> None:
     result = run(json.dumps({"context_window": {"used_percentage": 10}}))
     assert result.returncode == 0 and "ctx 10%" in result.stdout
+
+
+def test_render_shows_the_five_hour_quota() -> None:
+    line = statusline.render({"model": {"display_name": "Sonnet"}, "rate_limits": {"five_hour": {"used_percentage": 91.2}}})
+    assert line == f"Sonnet | {statusline.RED}5h 91%{statusline.RESET}"
+
+
+def test_save_quota_writes_rate_limits_with_a_timestamp(tmp_path: Path) -> None:
+    path = tmp_path / "q" / "quota.json"
+    limits = {"five_hour": {"used_percentage": 40, "resets_at": 123}}
+    assert statusline.save_quota({"rate_limits": limits}, path, now=5.0)
+    assert json.loads(path.read_text()) == {"written_at": 5.0, "rate_limits": limits}
+    assert not statusline.save_quota({}, tmp_path / "other.json")
+    assert not (tmp_path / "other.json").exists()

@@ -63,3 +63,12 @@ def test_cli_refuses_to_touch_invalid_json(tmp_path: Path) -> None:
     settings.write_text("{ not json", encoding="utf-8")
     result = run(settings)
     assert result.returncode == 1 and settings.read_text(encoding="utf-8") == "{ not json"
+
+
+def test_our_status_line_gets_a_refresh_interval_once() -> None:
+    settings: dict = {"statusLine": {"type": "command", "command": 'python "x/statusline.py"'}}
+    assert "status line refreshInterval 60" in merge_settings.merge(settings, "/repo")
+    assert settings["statusLine"]["refreshInterval"] == 60
+    settings["statusLine"]["refreshInterval"] = 30
+    assert "status line refreshInterval 60" not in merge_settings.merge(settings, "/repo")
+    assert settings["statusLine"]["refreshInterval"] == 30

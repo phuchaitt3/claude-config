@@ -93,6 +93,11 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/load_watch.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/quota_watch.py\"",
+            "timeout": 5
           }
         ]
       }
