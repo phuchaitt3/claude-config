@@ -1,0 +1,21 @@
+# Freeing disk space on a Windows developer machine
+
+- **Question:** How do people quickly find and clean old, unused data on a full Windows drive, and should an agent scan the disk itself?
+- **Finding:**
+  - **Measure with an MFT-reading analyzer, not a folder walk.** WizTree reads the NTFS Master File Table directly instead of walking folders through the Windows file APIs, so it lists a local NTFS drive in seconds where WinDirStat, TreeSize or a script (`Get-ChildItem -Recurse`, `du`) take minutes. The fast path needs administrator rights and a local NTFS drive; without admin it falls back to a slower walk. No controlled same-machine benchmark was found: "seconds vs minutes" is reported experience, not measured.
+  - **WizTree has a command line,** so an agent can use it too: `WizTree64.exe "C:" /export="<file>.csv" /admin=1` (options `/filter`, `/filterexclude`, `/exportfolders`, `/exportfiles`, `/sortby`). The agent then reads the CSV's top rows instead of walking the disk. `/admin=1` raises a UAC prompt, so a person must be present.
+  - **Windows' own cleanup first, from Settings:** Settings > System > Storage > Cleanup recommendations (temporary files, large or unused files, unused apps, Recycle Bin), and Storage Sense to do it on a schedule. Disk Cleanup is the older fallback.
+  - **The Windows component store (WinSxS):** `Dism /Online /Cleanup-Image /AnalyzeComponentStore` says whether cleanup is recommended; `Dism /Online /Cleanup-Image /StartComponentCleanup` removes superseded components and keeps the system supported. `/ResetBase` frees more but makes installed updates impossible to uninstall. Microsoft says not to disable component cleanup.
+  - **Developer caches are re-downloadable** and each tool has its own command, which beats deleting folders: `pip cache purge`, `uv cache prune` or `uv cache clean`, `pnpm store prune`, `npm cache verify` (then `npm cache clean --force` only to reclaim space), and for Hugging Face, delete single model folders under the hub cache rather than all of it. Print the cache path first (`pip cache dir`, `pnpm store path`, `npm config get cache`). Never prune a store while an install is running.
+  - Docker's WSL 2 disk file is its own case: see `docker-disk`.
+  - *Checker's inference for agents:* an agent should not walk a whole drive with a script. Ask the person to run WizTree (or run its CSV export while they are present to approve UAC), then propose deletions from the top items with sizes; deleting stays a human-approved step (see `disk-space-alerting`).
+- **Evidence strength:** *vendor docs* for WizTree's command line, Storage Sense and DISM; *common practice* (reviews, forums, tool docs) for the speed comparison and cache commands.
+- **Sources:**
+  - [WizTree user guide, command line](https://diskanalyzer.com/guide) (vendor docs; CSV export syntax, admin needed for fast MFT scan)
+  - [Tecnobits, WizTree vs WinDirStat](https://tecnobits.com/en/wiztree-vs-windirstat) (review; MFT vs folder walk)
+  - [FolderSizes, WizTree comparison](https://www.foldersizes.com/features/wiztree) (competitor's page; MFT speed only on local NTFS with admin)
+  - [Microsoft Support, free up drive space in Windows](https://support.microsoft.com/en-us/windows/free-up-drive-space-in-windows-85529ccb-c365-490d-b548-831022bc9b32) (vendor; Storage Sense, Cleanup recommendations)
+  - [Microsoft Learn, clean up the WinSxS folder](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/clean-up-the-winsxs-folder) (vendor docs; DISM, ResetBase)
+  - [DEV Community, clearing Hugging Face, npm, conda and Docker caches](https://dev.to/riponcm/how-to-free-up-disk-space-as-a-developer-clear-hugging-face-npm-conda-and-docker-caches-3h21) (community post; cache commands)
+- **Limits:** Four standard searches and one page fetch, mostly read through search summaries; the WinSxS page was not read in full. No benchmark of scan speed. Cache commands vary by tool version (pnpm especially): check `--help` before running. WizTree's licence terms for personal use were not read.
+- **Checked:** 2026-11-15
