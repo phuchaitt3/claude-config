@@ -643,11 +643,16 @@ def report_thermal(args: argparse.Namespace) -> int:
     since = datetime.fromisoformat(args.since) if args.since else datetime.now() - timedelta(days=args.days)
     if since.tzinfo is None:
         since = since.astimezone()
-    rows = read_thermal(since)
+    rows = read_thermal(since - timedelta(days=30))  # earlier start lines carry the interval and limits
     starts = [r for r in rows if r.get("event") == "start"]
-    samples = [r for r in rows if r.get("event") == "sample" and r.get("gpu_temp_c") is not None]
     limits = next((s["limits"] for s in reversed(starts) if s.get("limits")), None) or gpu_limits()
-    interval = next((s["interval_s"] for s in reversed(starts) if s.get("interval_s")), 60)
+    samples, interval = [], 60.0
+    for r in rows:  # each sample counts for the interval of the logger that wrote it
+        if r.get("event") == "start" and r.get("interval_s"):
+            interval = float(r["interval_s"])
+        elif (r.get("event") == "sample" and r.get("gpu_temp_c") is not None
+              and datetime.fromisoformat(r["ts"]) >= since):
+            samples.append({**r, "_s": interval})
     print(f"Temperatures since {since.isoformat(timespec='minutes')} ({guard_dir() / 'thermal.jsonl'})")
     print(f"  card limits: {limits or 'unknown'}")
     if not samples:
@@ -658,7 +663,7 @@ def report_thermal(args: argparse.Namespace) -> int:
     trigger = args.trigger_c if args.trigger_c is not None else target
 
     def minutes(threshold: float | None) -> str:
-        return "n/a" if threshold is None else f"{sum(t >= threshold for t in temps) * interval / 60:.0f} min"
+        return "n/a" if threshold is None else f"{sum(r['_s'] for r in samples if r['gpu_temp_c'] >= threshold) / 60:.0f} min"
 
     slowdown_s, prev = 0.0, None
     for r in samples:  # the counters reset at reboot: add only positive steps
@@ -669,7 +674,8 @@ def report_thermal(args: argparse.Namespace) -> int:
             prev = cur
     powers = [r["power_w"] for r in samples if r.get("power_w") is not None]
     cpus = [r["cpu_temp_c"] for r in samples if r.get("cpu_temp_c") is not None]
-    print(f"  samples: {len(samples)} (every {interval:g} s)   GPU peak {max(temps):.0f} C   "
+    hours = sum(r["_s"] for r in samples) / 3600
+    print(f"  samples: {len(samples)} ({hours:.1f} h logged)   GPU peak {max(temps):.0f} C   "
           f"mean {sum(temps) / len(temps):.0f} C   peak power {max(powers, default=0):.0f} W")
     print(f"  at or above target ({target} C): {minutes(target)}   "
           f"at or above slowdown ({slow} C): {minutes(slow)}")

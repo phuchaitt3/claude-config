@@ -281,3 +281,17 @@ def test_gpu_limits_parses_nvidia_smi_query(monkeypatch):
                         lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=text, stderr=""))
     assert gpu_run.gpu_limits() == {"shutdown_c": 100.0, "slowdown_c": 95.0,
                                     "max_operating_c": 102.0, "target_c": 87.0}
+
+
+def test_thermal_report_uses_the_interval_of_a_logger_started_before_since(tmp_path):
+    import datetime
+    t0 = datetime.datetime.now().astimezone().replace(microsecond=0)
+    lines = [{"ts": t0.isoformat(), "event": "start", "interval_s": 15, "limits": {"target_c": 87.0}}]
+    for i in range(8):  # 8 samples of 15 s at 90 C = 2 min, all after --since
+        lines.append({"ts": (t0 + datetime.timedelta(seconds=60 + 15 * i)).isoformat(), "event": "sample",
+                      "gpu_temp_c": 90, "slowdown_us": 0})
+    (tmp_path / "thermal.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    since = (t0 + datetime.timedelta(seconds=30)).isoformat()
+    out = run(tmp_path, "report", "--thermal", "--since", since).stdout
+    assert "samples: 8 (0.0 h logged)" in out
+    assert "at or above target (87.0 C): 2 min" in out
