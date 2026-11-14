@@ -62,6 +62,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [agent-loop-stop-on-repeated-failure](agent-loop-stop-on-repeated-failure.md) | In an unattended agent loop, should a task failing twice end the whole loop or only that task, and is a low count sound? | 2026-11-14 |
 | [agent-session-handoff-reset](agent-session-handoff-reset.md) | Is it standard for a long-running agent to end its session and start a fresh one with a written handoff, and is the trigger a context-size threshold? | 2026-11-14 |
 | [agent-worker-scope-and-verification](agent-worker-scope-and-verification.md) | Is it standard for a worker agent to do the whole task through opening the PR while the coordinator reads only a short report, and how is the result checked? | 2026-11-14 |
+| [agent-worker-task-creation](agent-worker-task-creation.md) | Is it standard for a worker agent to create new tasks, or only the coordinator, and what goes wrong when workers spawn work? | 2026-11-14 |
 | [claude-code-plugin-reload-running-chat](claude-code-plugin-reload-running-chat.md) | Does a running Claude Code chat pick up a changed plugin skill, and does `/reload-plugins` change that? | 2026-11-14 |
 | [agent-config-protection](agent-config-protection.md) | How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes? | 2026-11-01 |
 | [agent-permission-enforcement](agent-permission-enforcement.md) | Which Claude Code mechanisms enforce a rule instead of asking the model to follow it? | 2026-11-05 |
