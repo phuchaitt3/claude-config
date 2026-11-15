@@ -12,6 +12,11 @@ folder was called `standards/` until 2026-11-13; that prefix is still accepted a
 
 The folder name is set once, in REGISTER_DIR.
 
+A second, softer check runs in any repository (user's decision, 2026-11-15): a `standard:` tag that
+cites an entry marked "Unverified" (findings/README.md, "Unverified entries": no Evidence strength
+field, lines not marked sourced or inference) gets a reminder to recheck the entry before relying on it.
+It never denies the commit. Outside the config repo the entry is read from `~/claude-config/findings`.
+
 Fails open: any error prints nothing and exits 0.
 """
 
@@ -31,6 +36,8 @@ _REF = re.compile(
     r"(?<![\w/.-])(?:" + "|".join(re.escape(d) for d in (REGISTER_DIR, *LEGACY_DIRS)) + r")/([a-z0-9][a-z0-9-]*)(?![\w/-]*\.\w)"
 )
 _PLACEHOLDER = {"topic"}
+UNVERIFIED_MARK = "> **Unverified ("
+HOME_REGISTER = Path.home() / "claude-config" / REGISTER_DIR
 
 
 def workdir(command: str, cwd: str) -> str:
@@ -54,16 +61,50 @@ def missing_entries(added_lines: list[str], register: Path) -> list[str]:
     return sorted(t for t in topics - _PLACEHOLDER if not (register / f"{t}.md").is_file())
 
 
-def check(command: str, cwd: str) -> list[str]:
+def unverified_entries(added_lines: list[str], register: Path) -> list[str]:
+    """Topics cited by a `standard:` tag in the added lines whose entry carries the Unverified note."""
+    topics = {m.group(1) for line in added_lines if "standard:" in line for m in _REF.finditer(line)}
+    found = []
+    for topic in sorted(topics - _PLACEHOLDER):
+        entry = register / f"{topic}.md"
+        if entry.is_file() and UNVERIFIED_MARK in entry.read_text(encoding="utf-8", errors="replace"):
+            found.append(topic)
+    return found
+
+
+def _staged(command: str, cwd: str) -> tuple[Path, list[str], str] | None:
+    """(repo top, added lines of the staged diff, folder) for a commit command, else None."""
     if not _COMMIT.search(command):
-        return []
+        return None
     folder = workdir(command, cwd)
     top = git(["rev-parse", "--show-toplevel"], folder).strip()
-    if not top or not (Path(top) / "plugins" / "workflow").is_dir() or not (Path(top) / REGISTER_DIR).is_dir():
-        return []
+    if not top:
+        return None
     diff = git(["diff", "--cached", "-U0", "--no-color"], folder).splitlines()
     added = [line[1:] for line in diff if line.startswith("+") and not line.startswith("+++")]
-    return missing_entries(added, Path(top) / REGISTER_DIR)
+    return Path(top), added, folder
+
+
+def _is_config_repo(top: Path) -> bool:
+    return (top / "plugins" / "workflow").is_dir() and (top / REGISTER_DIR).is_dir()
+
+
+def check(command: str, cwd: str) -> list[str]:
+    staged = _staged(command, cwd)
+    if staged is None or not _is_config_repo(staged[0]):
+        return []
+    top, added, _ = staged
+    return missing_entries(added, top / REGISTER_DIR)
+
+
+def check_unverified(command: str, cwd: str) -> list[str]:
+    """Unverified entries cited in the staged diff of any repository."""
+    staged = _staged(command, cwd)
+    if staged is None:
+        return []
+    top, added, _ = staged
+    register = top / REGISTER_DIR if _is_config_repo(top) else HOME_REGISTER
+    return unverified_entries(added, register) if register.is_dir() else []
 
 
 def main() -> int:
@@ -79,7 +120,21 @@ def main() -> int:
         return 0
     try:
         missing = check(command, str(payload.get("cwd") or "."))
+        unverified = [] if missing else check_unverified(command, str(payload.get("cwd") or "."))
     except Exception:  # never get in the way of a commit
+        return 0
+    if unverified:
+        names = ", ".join(f"{REGISTER_DIR}/{t}" for t in unverified)
+        json.dump({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "additionalContext": (
+                f"This commit cites {names} in a `standard:` tag, but the entry is marked Unverified "
+                f"(no Evidence strength field; lines not marked sourced or inference). Before relying on "
+                f"it, recheck it as {REGISTER_DIR}/README.md, \"Unverified entries\", says: re-read its "
+                f"sources or search, mark each line sourced or inference, add the field, remove the note. "
+                f"Or reword the tag to say the point is unchecked."
+            ),
+        }}, sys.stdout)
         return 0
     if missing:
         names = ", ".join(f"{REGISTER_DIR}/{t}" for t in missing)

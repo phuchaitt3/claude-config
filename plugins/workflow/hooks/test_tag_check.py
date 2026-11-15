@@ -70,3 +70,54 @@ def test_a_non_commit_command_and_a_non_config_repo_pass(tmp_path: Path) -> None
     other.mkdir()
     subprocess.run(["git", "init", "-q", "-b", "main", str(other)], check=True)
     assert tag_check.check("git commit -m y", str(other)) == []
+
+
+
+def unverified_entry(register: Path, topic: str, marked: bool) -> None:
+    note = "> **Unverified (2026-11-15):** no Evidence strength field.\n" if marked else ""
+    (register / f"{topic}.md").write_text(f"# T\n\n{note}- finding\n")
+
+
+def test_a_tag_citing_an_unverified_entry_is_reported_in_the_config_repo(tmp_path: Path) -> None:
+    repo = config_repo(tmp_path)
+    unverified_entry(repo / "findings", "old-topic", marked=True)
+    unverified_entry(repo / "findings", "clean-topic", marked=False)
+    stage(repo, "a.md", "(standard: findings/old-topic, checked 2026-11-01) (standard: findings/clean-topic)\n")
+    assert tag_check.check_unverified("git commit -m y", str(repo)) == ["old-topic"]
+    assert tag_check.check("git commit -m y", str(repo)) == []
+
+
+def test_unverified_is_checked_in_other_repos_against_the_home_register(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "home-register"
+    home.mkdir()
+    unverified_entry(home, "old-topic", marked=True)
+    monkeypatch.setattr(tag_check, "HOME_REGISTER", home)
+    other = tmp_path / "other"
+    other.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(other)], check=True)
+    stage(other, "a.tex", "% (standard: findings/old-topic, checked 2026-11-11)\n")
+    assert tag_check.check_unverified("git commit -m y", str(other)) == ["old-topic"]
+    assert tag_check.check("git commit -m y", str(other)) == []
+
+
+def test_unverified_needs_a_standard_tag_and_a_commit_command(tmp_path: Path) -> None:
+    repo = config_repo(tmp_path)
+    unverified_entry(repo / "findings", "old-topic", marked=True)
+    stage(repo, "a.md", "see findings/old-topic for the history\n")
+    assert tag_check.check_unverified("git commit -m y", str(repo)) == []
+    stage(repo, "b.md", "(standard: findings/old-topic)\n")
+    assert tag_check.check_unverified("git status", str(repo)) == []
+
+
+def test_main_warns_without_denying(tmp_path: Path, monkeypatch, capsys) -> None:
+    import io
+    import json
+
+    repo = config_repo(tmp_path)
+    unverified_entry(repo / "findings", "old-topic", marked=True)
+    stage(repo, "a.md", "(standard: findings/old-topic, checked 2026-11-01)\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git commit -m y"}, "cwd": str(repo)}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    assert tag_check.main() == 0
+    out = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert "permissionDecision" not in out and "Unverified" in out["additionalContext"]
