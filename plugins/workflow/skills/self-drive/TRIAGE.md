@@ -6,12 +6,13 @@ Skip the pass when `~/.claude/resume-gaps.md` does not exist or the project's `C
 
 ## Who runs it
 
-One worker subagent (Sonnet, medium effort; `workflow:subagents` applies). The loop chat passes the repository and this file's path, and reads back only the report.
+One worker subagent, Opus at medium effort (`model: "opus"`, `effort: "medium"`; `workflow:subagents` applies). Opus because each label maps an issue to specific resume bullets across two documents, and a wrong label steers every round of the night; the run itself stays on Sonnet. Issues the run files later are labelled by the loop chat when it files them (user's decision, 2026-11-15). The loop chat passes the repository and this file's path, and reads back only the report.
 
 ## Inputs (read, never copy into the repository)
 
 - `~/.claude/resume-gaps.md`: the ranked skill groups (slug in backticks), which target names each, the resume file for each target, and which groups are must-haves for which target.
-- The resume files it names, and the open issues of this repository (`gh issue list --state open --limit 200 --json number,title,body,labels`).
+- The resume files it names. Bullets are LaTeX macros in the master content file (`content.tex` beside `master.tex`); a target variant cuts a bullet by redefining its macro as empty, so a bullet is on the target-1 resume when the variant does not empty it. Only bullets of the entry for this repository's project count for `resume:1` to `resume:3` (match the entry by project name or repository link; a project spread over two repositories shares one entry).
+- The open issues of this repository (`gh issue list --state open --limit 200 --json number,title,body,labels`).
 - Skip issues already carrying a `resume:` or `resume:none` label, unless the user asked for a full re-triage.
 
 ## Labels
@@ -20,11 +21,12 @@ Create any label that is missing (`gh label create <name> --description <text> -
 
 | Label | Meaning |
 |---|---|
-| `resume:1` | Gives a weak bullet on the target-1 resume a measured number or data, so it becomes strong (weak: no number, or no baseline). |
-| `resume:2` | Makes another target-1 resume bullet stronger (deeper result, sharper baseline, a defensible detail an interviewer will ask about). |
-| `resume:3` | Gives evidence for a target-2 must-have group the resume does not yet show. |
-| `resume:4` | Any other gap-list group: strengthens a bullet or fills a nice-to-have. |
-| `resume:5` | A new claim not yet on any resume, in a gap-list group. |
+| `resume:1` | Gives a weak bullet of this repository's project, as it appears on the target-1 resume, a measured number or data, so it becomes strong (weak: no number, or no baseline). |
+| `resume:2` | Makes another bullet of this project on the target-1 resume stronger (deeper result, sharper baseline, a defensible detail an interviewer will ask about). |
+| `resume:3` | Makes a bullet of this project that is in the master resume but cut from the target-1 resume stronger (weak ones first when choosing among several). |
+| `resume:4` | Gives evidence for a target-2 must-have group the resume does not yet show. |
+| `resume:5` | Any other gap-list group: strengthens a bullet or fills a nice-to-have. |
+| `resume:6` | A new claim not yet on any resume, in a gap-list group. |
 | `resume:none` | Serves no gap-list group (so the next pass skips it). |
 | `gap:<slug>` | The gap-list group it serves (slug from `resume-gaps.md`); one per issue, the best-ranked when several fit. |
 
@@ -36,4 +38,4 @@ Add one comment: `Resume triage: resume:<k>, gap:<slug>. <one line why, naming t
 
 ## Report (at most 10 lines)
 
-Counts per label, the issue numbers labelled `resume:1` to `resume:3`, and any group from the gap list that no open issue serves (the overnight run may file issues for those, "New issues").
+Counts per label, the issue numbers labelled `resume:1` to `resume:4`, and any group from the gap list that no open issue serves (the overnight run may file issues for those, "New issues").

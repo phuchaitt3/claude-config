@@ -8,7 +8,7 @@ the worktrees and the ranked startable issues, so the loop chat makes one tool c
 Reads open issues and their GitHub issue dependencies ("blocked by" / "blocking" links) with one
 GraphQL call, then prints the issues a chat may start, best first (user's decision, 2026-11-15):
 
-1. resume-relevant: an issue labelled `resume:1` to `resume:5` (set by the triage pass, TRIAGE.md),
+1. resume-relevant: an issue labelled `resume:1` to `resume:6` (set by the triage pass, TRIAGE.md),
    or one that blocks such an issue, directly or through others (it takes the best label it unblocks);
    by that label, then the `gap:<group>` rank in ~/.claude/resume-gaps.md, then the shorter chain
    to the resume issue, then the oldest;
@@ -37,7 +37,7 @@ BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority
 SKIP_LABELS = {"claimed", "needs-you"}
 TIERS = {"priority:now": 0, "priority:next": 1, "priority:later": 2}
 TEXT_DEP = re.compile(r"\bblocked by\s+#(\d+)", re.IGNORECASE)
-RESUME = re.compile(r"^resume:([1-5])$")  # kinds of resume work, 1 best; meanings in TRIAGE.md
+RESUME = re.compile(r"^resume:([1-6])$")  # kinds of resume work, 1 best; meanings in TRIAGE.md
 GAP_LINE = re.compile(r"^\s*\d+\.\s+`([a-z0-9-]+)`")  # a ranked group line in resume-gaps.md
 GAPS_FILE = Path.home() / ".claude" / "resume-gaps.md"
 NO_RANK = 99
