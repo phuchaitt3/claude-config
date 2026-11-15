@@ -80,6 +80,50 @@ def test_render_says_how_many_issues_the_limit_cut() -> None:
     assert next_task.render([], 10) == ["no startable issue"]
 
 
+def test_resume_issues_beat_bottlenecks_and_priority_now() -> None:
+    issues = [
+        issue(1, ["priority:now"], created="2026-10-01"),
+        issue(2, ["priority:later"], blocking=[3, 4]),
+        issue(3, blocked_by=[2]),
+        issue(4, blocked_by=[2]),
+        issue(5, ["resume:3", "priority:later"]),
+        issue(6, ["resume:1"], created="2026-11-01"),
+    ]
+    ranked, _ = next_task.rank(issues, ranks={})
+    assert numbers(ranked) == [6, 5, 2, 1]  # then group 2: the bottleneck blocks more than #1
+
+
+def test_blocker_of_a_resume_issue_inherits_its_kind_and_shorter_chain_wins() -> None:
+    issues = [
+        issue(1, blocking=[2]),
+        issue(2, blocked_by=[1], blocking=[3]),
+        issue(3, ["resume:2"], blocked_by=[2]),
+        issue(4, blocking=[5], created="2026-11-01"),
+        issue(5, ["resume:2"], blocked_by=[4]),
+        issue(6, ["resume:1"], blocked_by=[7]),
+        issue(7, ["priority:later"], blocking=[6], created="2026-11-02"),
+    ]
+    ranked, _ = next_task.rank(issues, ranks={})
+    assert numbers(ranked) == [7, 4, 1]  # 7 unblocks resume:1; 4 reaches resume:2 in one step, 1 in two
+    assert ranked[0]["resume"] == (1, next_task.NO_RANK, 1)
+    assert next_task.render(ranked, 1)[0].startswith("#7\tresume:1 (unblocks, chain 1)")
+
+
+def test_gap_rank_breaks_ties_within_a_resume_kind(tmp_path) -> None:
+    gaps = tmp_path / "gaps.md"
+    gaps.write_text("# x\n\n1. `llm-apps` LLM\n2. `agentic-ai` Agents\n", encoding="utf-8")
+    ranks = next_task.gap_ranks(gaps)
+    assert ranks == {"llm-apps": 0, "agentic-ai": 1}
+    issues = [
+        issue(1, ["resume:2", "gap:agentic-ai"], created="2026-10-01"),
+        issue(2, ["resume:2", "gap:llm-apps"]),
+        issue(3, ["resume:2"], created="2026-09-01"),
+    ]
+    ranked, _ = next_task.rank(issues, ranks=ranks)
+    assert numbers(ranked) == [2, 1, 3]
+    assert next_task.gap_ranks(tmp_path / "missing.md") == {}
+
+
 def test_claimed_lists_only_claimed_issues_in_number_order() -> None:
     issues = [issue(5, ["claimed"]), issue(2, ["priority:now"]), issue(3, ["claimed", "priority:next"])]
     assert next_task.claimed(issues) == ["#3	t3", "#5	t5"]
