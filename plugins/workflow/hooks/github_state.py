@@ -61,7 +61,9 @@ def read_state(repo: str, cwd: str, branch: str | None) -> dict:
     since = (datetime.now(UTC) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
     jobs = {
         "open": ["gh", "pr", "list", "-R", repo, "--state", "open",
-                 "--json", "number,title,labels,isDraft", "--limit", "30"],
+                 "--json", "number,title,labels,isDraft,updatedAt", "--limit", "30"],
+        "parked": ["gh", "issue", "list", "-R", repo, "--state", "open", "--label", "parked",
+                   "--json", "number,updatedAt", "--limit", "30"],
         "merged": ["gh", "pr", "list", "-R", repo, "--state", "merged",
                    "--search", f"merged:>={since}", "--json", "number,mergedAt", "--limit", "20"],
     }
@@ -70,18 +72,37 @@ def read_state(repo: str, cwd: str, branch: str | None) -> dict:
     if branch:
         jobs["branch"] = ["gh", "pr", "list", "-R", repo, "--head", branch, "--state", "all",
                           "--json", "number,state", "--limit", "5"]
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {name: pool.submit(run, cmd, cwd) for name, cmd in jobs.items()}
         result = {}
         for name, future in futures.items():
             try:
                 result[name] = json.loads(future.result())
             except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired):
-                if name != "others":  # the other-repos line is optional; the rest is not
+                if name not in ("others", "parked"):  # these lines are optional; the rest is not
                     raise
                 result[name] = []
+        result.setdefault("parked", [])
         result["repo"] = repo
         return result
+
+
+PARKED_DAYS = 2
+
+
+def parked_idle(state: dict) -> list[str]:
+    """PRs and issues labelled `parked` with no update for PARKED_DAYS: parked work needs an
+    owner or an unblock, or it sits unseen (the `workflow:self-drive` skill, step 5)."""
+    cutoff = datetime.now(UTC) - timedelta(days=PARKED_DAYS)
+    found = []
+    items = [(f"#{pr['number']}", pr) for pr in state["open"]
+             if "parked" in {label["name"] for label in pr.get("labels", [])}]
+    items += [(f"#{i['number']} (issue)", i) for i in state.get("parked") or []]
+    for name, item in sorted(items, key=lambda x: x[1]["updatedAt"]):
+        updated = datetime.fromisoformat(item["updatedAt"].replace("Z", "+00:00"))
+        if updated < cutoff:
+            found.append(f"{name} ({(datetime.now(UTC) - updated).days}d)")
+    return found
 
 
 def describe(state: dict, branch: str | None) -> tuple[str, list[int], str]:
@@ -111,6 +132,10 @@ def describe(state: dict, branch: str | None) -> tuple[str, list[int], str]:
             f"{name} " + ", ".join(f"#{n}" for n in sorted(numbers))
             for name, numbers in sorted(others.items())
         )
+
+    stale = parked_idle(state)
+    if stale:
+        line += f" · parked and idle over {PARKED_DAYS} days: " + ", ".join(stale)
 
     warning = ""
     prs = state.get("branch") or []
