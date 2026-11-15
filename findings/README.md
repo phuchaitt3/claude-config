@@ -59,6 +59,7 @@ Grouped by area so a lookup reads one section; the files stay flat, so a `findin
 | [docker-run-timeout-cleanup](docker-run-timeout-cleanup.md) | Does `timeout docker run` stop the container, and how is a container run time-limited and always cleaned up? | 2026-11-13 |
 | [docker-disk](docker-disk.md) | How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back? | 2026-11-01 |
 | [knowledge-register-layout](knowledge-register-layout.md) | Should a practice register stay one flat folder as it grows, or use categories or subfolders? | 2026-11-08 |
+| [knowledge-register-maintenance](knowledge-register-maintenance.md) | What keeps a register that gains entries constantly usable: owners, review dates, archiving, a generated index? | 2026-11-15 |
 
 ### Agent setup
 
