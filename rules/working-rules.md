@@ -43,7 +43,7 @@ When unsure, take the lower-asking tier if the action is reversible. Do not ask 
 
 ## Model and effort
 
-The user picks the model and effort. At the start of each task, say in one line which it needs, tagged `[Sonnet, medium, no plan mode: reason]`, and say so if the current model is a poor fit; the same tag goes on every proposed next step and decision item. Sonnet is the default; prefer Sonnet at high effort before Opus. An Opus tag must name the specific difficulty (for example "bug unexplained after a Sonnet pass"); "new feature" or "important" is not a reason. `max` effort only when the user asks. Plan mode only when the design is still open.
+The user picks the model and effort. At the start of each task, say in one line which it needs, tagged `[Sonnet, medium, no plan mode: reason]`, and say so if the current model is a poor fit; the same tag goes on every proposed next step and decision item. Sonnet is the default for routine work; Opus is fine for a truly complex or important task, chosen up front when Sonnet would likely need more than one try (user's decision, 2026-11-15; standard: findings/agent-model-effort-selection, checked 2026-11-15). An Opus tag names the difficulty (for example "unfamiliar domain", "bug across several components"); "new feature" alone is not a reason. `max` effort only when the user asks. Plan mode only when the design is still open.
 
 Table of model and effort by task type: `workflow:model-effort`.
 
