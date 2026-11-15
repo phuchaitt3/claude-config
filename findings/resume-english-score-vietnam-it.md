@@ -8,6 +8,8 @@ status: current
 ---
 # English test scores on IT resumes in Vietnam
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume?
 - **Finding:**
   - English is the soft skill Vietnamese IT employers ask for most. In ITviec's 2024–2025 survey, 40.3% of companies named English proficiency, the top soft skill for the first half of 2025 (as reported by VIR). ITviec's posting data shows demand for English growing fastest of all tracked skills: +52% year on year and +87% quarter on quarter in Q2 2025, and English-related postings up 52.9% year on year in Q3 2025.

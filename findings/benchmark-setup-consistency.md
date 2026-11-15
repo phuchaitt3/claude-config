@@ -8,6 +8,8 @@ status: current
 ---
 # Benchmark setup consistency
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Must every benchmark run on the same hardware and configuration, or may results come from different setups (a laptop GPU, then a cloud GPU)?
 - **Checked:** 2026-11-11
 

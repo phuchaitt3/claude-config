@@ -8,6 +8,8 @@ status: current
 ---
 # Resume bullet order within one entry
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Inside one job or project entry, are bullets ordered by significance (impact, relevance) or by the order things happened, and must a bullet's terms be introduced before it uses them?
 - **Finding:**
   - Entries (jobs) go in reverse-chronological order; the bullets inside one entry do not. Guides say to rank bullets by impact or relevance to the target job and put the strongest first, not the earliest event.

@@ -8,6 +8,8 @@ status: current
 ---
 # LLM-as-a-judge against exact match and F1 for QA answers
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Does an LLM judge add anything over exact match (EM) and token F1 when scoring question-answering output, including extractive QA and RAG answers?
 - **Finding:**
   - Yes, when the answers come from an LLM. Ho et al. (2025) scored LLM answers on four reading-comprehension datasets: correlation with human judgments rose from 0.22 (EM) and 0.40 (F1) to 0.85 with an LLM judge (v2 figures; v1 reported 0.17 and 0.36). They conclude EM and F1 underestimate LLM QA performance, because correct answers worded differently from the gold span lose credit. The judge was weaker on harder answer types but still beat EM and F1; they saw no self-preference bias in this task.

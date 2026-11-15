@@ -8,6 +8,8 @@ status: current
 ---
 # Resume summary for a new graduate
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Does an entry-level resume need a summary, and what should it say? Is a summary that restates the top entry (for example a thesis) good practice?
 - **Finding:**
   - **Optional.** Miami University's career centre labels the section "Objective or Summary (Optional)" and cites NACE that there is "no real agreement" among employers on objectives. A summary of Texas A&M's guide says a resume can be excellent with neither. Simplify counts a summary on 24.9% of 3,584 finished resumes from its users with more than one role.

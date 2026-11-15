@@ -8,6 +8,8 @@ status: current
 ---
 # Listing LLM APIs (OpenAI, DeepSeek, ...) on a resume
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Is naming a hosted LLM API (OpenAI API, DeepSeek, Anthropic, Gemini) on a resume worth anything, or does it read as low-effort "wrapper" work? And when several APIs were used, which should be named?
 - **Finding:**
   - Naming the API is fine as a keyword: AI-engineer guides list "LLM APIs (OpenAI, Anthropic, Gemini)" in the skills section and say to mirror the posting's wording; ATS matching rewards the exact name. No source says the name itself hurts.

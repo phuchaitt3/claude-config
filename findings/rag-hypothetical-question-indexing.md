@@ -8,6 +8,8 @@ status: current
 ---
 # Indexing generated questions instead of chunks in RAG
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Is it an established RAG practice to embed LLM-generated questions for each chunk, match the user's query against those questions, and return the parent chunk?
 - **Finding:**
   - Yes. LangChain's official MultiVectorRetriever guide lists "hypothetical questions" as one of its strategies: an LLM writes questions each document can answer, and those are embedded "along with, or instead of, the document"; a hit returns the parent document through a `doc_id`.

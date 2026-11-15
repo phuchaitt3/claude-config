@@ -8,6 +8,8 @@ status: current
 ---
 # Benchmark context in resume bullets
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** How much benchmark detail (sample size, batch size, hardware, input length) should a resume bullet carry with a performance number, and must every benchmark bullet list the same fields?
 - **Finding:**
   - **A number needs its baseline and its scope, in one line.** Guides treat a before-and-after pair with units as the credible form ("from 320ms to 84ms") and add the scope that frames it: percentile ("p99"), population ("on median devices"), test size ("n=12M sessions over 4 weeks"), scale ("2.4B searches/day"). One primary metric per bullet, an optional secondary one; more numbers dilute it. Round to two significant figures; false precision ("73.4%") reads as invented.

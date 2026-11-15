@@ -8,6 +8,8 @@ status: current
 ---
 # LLM inference: sizing the batch token budget and benchmarking it
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** How do inference systems decide how many tokens fit in a GPU batch, how is that calibration run, and what must an inference benchmark report?
 - **Finding:**
   - **The server calibrates once, at the worst-case shape, then enforces input limits so it never sees a larger shape.**

@@ -8,6 +8,8 @@ status: current
 ---
 # Resume bullet clarity
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Should resume bullets be written so that a reader new to the work understands them in one read, and what shape do recruiters and guides recommend?
 - **Finding:**
   - The first screen is a skim. The Ladders eye-tracking study (2012, updated 2018) puts the initial look at about 6–7 seconds; its method is poorly documented, and self-reported review times range far wider. Guides agree only on "well under 20 seconds" for a first pass.

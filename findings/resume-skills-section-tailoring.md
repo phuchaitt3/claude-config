@@ -8,6 +8,8 @@ status: current
 ---
 # Resume skills section: tailor per posting, back each skill
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** When a resume is tailored for one posting, should the skills section (and project stack lines) keep every tool from the master copy, or be trimmed to what is relevant and backed by the entries?
 - **Finding:**
   - Guides agree the skills section is per-application space, not a full inventory: keep a master list, then trim each sent version to what the posting asks for and what the candidate can discuss in an interview.

@@ -8,6 +8,8 @@ status: current
 ---
 # How is the batch size for LLM inference chosen: largest that fits, fastest, or the knee?
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** How do inference tools and papers pick a batch size for a given model, GPU and workload: how do they search, and which rule picks the winner?
 - **Finding:**
   - **Search: an empirical sweep per workload, usually over powers of 2.** Triton Model Analyzer's brute search sweeps max batch size 1 to 128 in powers of 2 (quick mode hill-climbs; Optuna mode stops after N trials without improvement, 15 in the example). TensorRT-LLM's tuning guide says to test several max-batch-size and max-num-tokens values for your own workload (max-num-tokens: powers of 2 from 1024), ideally as a grid since they interact; in its case study 512 beat both 64 (bottleneck) and the 2048 default. DeepSpeed autotuning measures throughput per configuration (its own timers, so higher than end to end).

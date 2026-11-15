@@ -8,6 +8,8 @@ status: current
 ---
 # Naming models and baselines in ML resume bullets
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Should an ML resume bullet name the specific model (e.g. "bge-m3", "Qwen3-0.6B") or use generic terms, and should a result be given as a gain over a baseline or as the final figure alone?
 - **Finding:**
   - **Name the model, inside a bullet that says what was done with it.** Guides contrast "Fine-tuned LLaMA-3-70B …; reduced error mode X by 41%" (signal) with "worked with LLMs" (none). Recruiters and ATS filters search specific names, not categories. A categorised skills section (Models, Frameworks) is where a plain list of models belongs.

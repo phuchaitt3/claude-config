@@ -8,6 +8,8 @@ status: current
 ---
 # Accuracy against concision on a resume
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** When shortening a resume line (an honor, a title, a credential) would make it read wider than the fact, which comes first, accuracy or brevity?
 - **Finding:**
   - **Accuracy first; nothing found ranks brevity above it.** SHRM, Dice, Monster and TopResume all treat an inflated credential or an honor not earned as resume fraud, with withdrawn offers and firings as the cited results. Education (degree, dates, GPA, honors) is among the items employers verify, often through a third-party service.

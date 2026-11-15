@@ -8,6 +8,8 @@ status: current
 ---
 # Cross-encoder over every chunk, with no first-stage retriever
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Is it established practice to skip first-stage retrieval (BM25, dense, hybrid) and score every chunk with a cross-encoder reranker, and when does that fit?
 - **Finding:**
   - **The two-stage design exists only for cost.** Retrieve-then-rerank uses a cheap retriever to narrow a large collection, because scoring "thousands or millions" of query-document pairs with a cross-encoder is too slow; the retriever's set is "e.g. 100" candidates (Sentence Transformers docs). Vendor and tutorial guides put the reranked pool at about 20-100, up to a few hundred, and recommend a cross-encoder when there are under about 100 candidates per query and ranking accuracy matters most. So when the whole pool is already that small (for example one document's chunks in single-document QA), scoring every chunk is the reranking stage applied to all candidates, not a departure from it.

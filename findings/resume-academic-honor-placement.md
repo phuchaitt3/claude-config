@@ -8,6 +8,8 @@ status: current
 ---
 # Where a top academic honor goes on a resume
 
+> **Unverified (2026-11-15):** no Evidence strength field; lines are not marked sourced or inference. Recheck before citing (README, "Unverified entries").
+
 - **Question:** Where does a top academic honor (valedictorian, Latin honors, class rank) go on a new graduate's resume so that it is seen, and may it go in the summary?
 - **Finding:**
   - **Default: the Education section, next to the degree.** Purdue OWL lists "academic honors or graduated with distinction" as Education content. Resume Worded calls Education "the best place for academic honors and cumulative GPA", listed below the degree. Career blogs agree, with examples like "BA …, Valedictorian, Magna Cum Laude" on the degree line or on its own line below it.
