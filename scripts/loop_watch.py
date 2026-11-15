@@ -3,10 +3,17 @@
 A watchdog that checks fixed chat IDs goes wrong when the loop chat is replaced. This script
 finds the chat when the check runs: for each project folder it lists
 ~/.claude/projects/<slug>/*.jsonl newest first and keeps transcripts with a live self-paced
-/loop (same test as plugins/workflow/hooks/loop_guard.py: a message starting with "# /loop",
-and the last ScheduleWakeup not `stop: true`). One line per folder:
+/loop (same test as plugins/workflow/hooks/loop_guard.py: a message starting with "# /loop" or
+with the overnight brief of scripts/selfdrive.ps1, "Self-drive overnight in ", and the last
+ScheduleWakeup not `stop: true`). One line per folder:
 
-  <folder>: <session id> <agent name> last <local time> wakeup <delay>s set <local time> <VERDICT>
+  <folder>: <session id> <agent name> last <local time> wakeup <delay>s set <local time>
+      summary <path> <VERDICT>
+
+`summary <path>` (just before the verdict) is the morning-summary file (`overnight-*.md`) the loop last
+wrote to, read from its own transcript (a Write or Edit of it, or a shell command that redirects
+into it), so a watchdog never guesses between `overnight-<date>.md` and a later run's
+`overnight-<date>b.md`; `summary ?` when the transcript has none yet.
 
 Verdicts: WAITING (a wakeup is pending: the last ScheduleWakeup came after the last real user
 message, so the loop has not woken since), STALLED (no wakeup pending and the last turn is over
@@ -28,6 +35,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 STALL_SECONDS = 30 * 60
+# keep in step with START_MARKERS in plugins/workflow/hooks/loop_guard.py
+START_MARKERS = ("# /loop", "Self-drive overnight in ")
 
 
 def slug(folder: str) -> str:
@@ -60,6 +69,21 @@ def _texts(content) -> str:
     )
 
 
+SUMMARY_RE = re.compile(r"""[^\s'"<>|;&]*overnight-[\w-]+\.md""")
+
+
+def summary_writes(block: dict) -> list[str]:
+    """Paths of overnight-*.md files this tool call writes to."""
+    inp = block.get("input") or {}
+    if block.get("name") in ("Write", "Edit"):
+        path = str(inp.get("file_path", ""))
+        return [path] if SUMMARY_RE.fullmatch(path.split("/")[-1].split("\\")[-1]) else []
+    cmd = str(inp.get("command", ""))
+    # a redirect (> or >>, or tee) into the file; a plain read (cat, tail) does not count
+    return [m.group(1) for m in re.finditer(
+        r"""(?:>>?|\btee(?:\s+-a)?)\s*["']?([^\s'"<>|;&]*overnight-[\w-]+\.md)""", cmd)]
+
+
 def _is_tool_result(content) -> bool:
     return isinstance(content, list) and any(
         isinstance(b, dict) and b.get("type") == "tool_result" for b in content
@@ -80,6 +104,7 @@ def analyse(entries: list[dict]) -> dict | None:
     last_activity = None
     wake = None  # (delay seconds, set at)
     wake_pending = False
+    summary = None
     for e in entries:
         session = e.get("sessionId") or session
         if e.get("type") == "agent-name" and e.get("agentName"):
@@ -95,8 +120,10 @@ def analyse(entries: list[dict]) -> dict | None:
             if _is_tool_result(content):
                 continue
             text = _texts(content).lstrip()
-            if text.startswith("# /loop"):
-                started, stopped, wake, wake_pending = True, False, None, False
+            if text.startswith(START_MARKERS):
+                # a fired wakeup of a selfdrive.ps1 run repeats the brief, so it lands here too:
+                # either way no wakeup is pending any more
+                started, stopped, wake_pending = True, False, False
             elif not e.get("origin") and not text.startswith("<"):
                 # a fired wakeup arrives as plain text with no origin. A human, a peer chat or a
                 # task notification carries an origin; system reminders, local slash commands
@@ -105,6 +132,9 @@ def analyse(entries: list[dict]) -> dict | None:
                 wake_pending = False
         else:
             for b in content or []:
+                if isinstance(b, dict) and b.get("type") == "tool_use":
+                    for path in summary_writes(b):
+                        summary = path
                 if isinstance(b, dict) and b.get("type") == "tool_use" \
                         and b.get("name") == "ScheduleWakeup":
                     inp = b.get("input") or {}
@@ -117,7 +147,7 @@ def analyse(entries: list[dict]) -> dict | None:
     if not (started and not stopped):
         return None
     return {"session": session, "name": name, "last": last_activity,
-            "wake": wake, "pending": wake_pending}
+            "wake": wake, "pending": wake_pending, "summary": summary}
 
 
 def find_loop(folder: str, projects_dir: Path, now: float, max_age_h: float) -> dict | None:
@@ -141,6 +171,16 @@ def local(t: datetime | None) -> str:
     return t.astimezone().strftime("%Y-%m-%d %H:%M") if t else "?"
 
 
+def summary_path(folder: str, path: str | None) -> str:
+    """The summary file as an absolute path when it is relative to the checkout."""
+    if not path:
+        return "?"
+    p = Path(path)
+    if not p.is_absolute() and not path.startswith(("~", "/")):
+        p = Path(folder) / p
+    return str(p)
+
+
 def line(folder: str, state: dict | None, now: datetime) -> str:
     if state is None:
         return f"{folder}: NO LOOP"
@@ -156,7 +196,8 @@ def line(folder: str, state: dict | None, now: datetime) -> str:
     else:
         verdict = "RUNNING"
     return (f"{folder}: {state['session']} {state['name'] or '(no name)'} "
-            f"last {local(state['last'])} {wake} {verdict}")
+            f"last {local(state['last'])} {wake} "
+            f"summary {summary_path(folder, state.get('summary'))} {verdict}")
 
 
 def main(argv: list[str] | None = None) -> int:

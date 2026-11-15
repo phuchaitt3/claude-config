@@ -127,3 +127,47 @@ def test_system_reminder_leaves_the_wakeup_pending(tmp_path, capsys):
 
 def test_missing_folder_is_no_loop(tmp_path, capsys):
     assert run(tmp_path, capsys).strip().endswith("NO LOOP")
+
+
+def overnight(sid, name, start, wake_ts=None, **inp):
+    """A run started by scripts/selfdrive.ps1: no /loop header, the fixed overnight brief."""
+    e = [{"type": "agent-name", "agentName": name, "sessionId": sid},
+         user(start, "Self-drive overnight in proj (main checkout, branch main). Load workflow:self-drive", sid)]
+    if wake_ts:
+        e.append(wake(wake_ts, sid, **inp))
+    return e
+
+
+def bash(ts, sid, command):
+    return {"type": "assistant", "timestamp": ts, "sessionId": sid, "message": {
+        "role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": command}}]}}
+
+
+def test_selfdrive_ps1_run_is_a_loop(tmp_path, capsys):
+    write(tmp_path, "o", overnight("ooo", "selfdrive-proj", "2026-11-14T11:00:00Z",
+                                   "2026-11-14T11:50:00Z", delaySeconds=1200), 10)
+    out = run(tmp_path, capsys)
+    assert "ooo selfdrive-proj" in out and out.strip().endswith("WAITING")
+
+
+def test_fired_overnight_wakeup_clears_pending(tmp_path, capsys):
+    e = overnight("ppp", "selfdrive-proj", "2026-11-14T10:00:00Z", "2026-11-14T10:05:00Z", delaySeconds=600)
+    e.append(user("2026-11-14T10:15:00Z", "Self-drive overnight in proj (main checkout, branch main). Continue", "ppp"))
+    write(tmp_path, "p", e, 100)
+    assert run(tmp_path, capsys).strip().endswith("STALLED")
+
+
+def test_summary_is_the_file_the_loop_writes_not_one_it_reads(tmp_path, capsys):
+    e = overnight("qqq", "selfdrive-proj", "2026-11-14T11:00:00Z")
+    e.append(bash("2026-11-14T11:01:00Z", "qqq", "echo Start >> .handoff/overnight-2026-11-14b.md"))
+    e.append(bash("2026-11-14T11:02:00Z", "qqq", "cat .handoff/overnight-2026-11-14.md | tail -5"))
+    e.append(wake("2026-11-14T11:03:00Z", "qqq", delaySeconds=1200))
+    write(tmp_path, "q", e, 5)
+    out = run(tmp_path, capsys)
+    assert "overnight-2026-11-14b.md WAITING" in out and "overnight-2026-11-14.md" not in out
+
+
+def test_summary_unknown_before_the_first_write(tmp_path, capsys):
+    write(tmp_path, "r", overnight("rrr", "selfdrive-proj", "2026-11-14T11:00:00Z",
+                                   "2026-11-14T11:50:00Z", delaySeconds=1200), 10)
+    assert "summary ? WAITING" in run(tmp_path, capsys)

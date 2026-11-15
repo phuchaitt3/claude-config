@@ -9,7 +9,10 @@ background task running, it tells the chat to schedule the next round, or to sto
 
 How it knows a self-paced loop is live: the transcript holds a message that starts with the /loop
 skill header (the loop's prompt is the model's own paraphrase of the brief, so the brief's wording
-cannot be matched), and the last `ScheduleWakeup` call after it was not `stop: true`. A fixed
+cannot be matched) or with the fixed overnight brief that `scripts/selfdrive.ps1` sends to a
+`claude --bg` session (`START_MARKERS`; such a run never goes through /loop, so before workflow
+0.57.2 the hook missed every one of them), and the last `ScheduleWakeup` call after it was not
+`stop: true`. A fixed
 interval loop keeps its wakeups in `session_crons`, so it stays silent.
 The Stop payload's `session_crons` (pending wakeups) and `background_tasks` (work that will wake
 the chat) are both empty. One nudge per turn (`stop_hook_active`); Claude Code also caps
@@ -47,6 +50,14 @@ RESUME_NOTE = (
     "ScheduleWakeup with the loop prompt, or stop: true if the user stopped the loop."
 )
 
+# A user message that starts a self-paced loop: the /loop skill header, or the overnight brief
+# that scripts/selfdrive.ps1 writes ("Self-drive overnight in <repo> (main checkout, ...").
+START_MARKERS = ("# /loop", "Self-drive overnight in ")
+
+
+def is_loop_start(text: str) -> bool:
+    return text.lstrip().startswith(START_MARKERS)
+
 
 def _texts(content) -> str:
     if isinstance(content, str):
@@ -66,7 +77,7 @@ def loop_live(entries: list[dict]) -> bool:
         message = entry.get("message") or {}
         if entry.get("type") == "user":
             text = _texts(message.get("content"))
-            if text.lstrip().startswith("# /loop"):
+            if is_loop_start(text):
                 started, stopped = True, False
         elif entry.get("type") == "assistant":
             for block in message.get("content") or []:

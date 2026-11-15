@@ -140,3 +140,13 @@ def test_session_start_main_emits_rearm(tmp_path, monkeypatch, capsys):
     out = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
     assert out["hookEventName"] == "SessionStart"
     assert "Re-arm now" in out["additionalContext"]
+
+
+def test_selfdrive_ps1_brief_starts_a_loop():
+    brief = {"type": "user", "message": {"content": "Self-drive overnight in proj (main checkout, branch main)."}}
+    assert loop_guard.should_nudge(payload(), [brief])
+
+
+def test_stop_after_the_brief_still_counts():
+    brief = {"type": "user", "message": {"content": "Self-drive overnight in proj (main checkout)."}}
+    assert not loop_guard.should_nudge(payload(), [brief, wake(stop=True)])
