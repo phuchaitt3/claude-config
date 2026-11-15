@@ -13,6 +13,8 @@ Rules are policy: owned by the user, proposed by agents. Before writing, name th
 
 Keep the always-loaded working rules to what applies to every task. A rule for a specific situation goes into the skill for that situation; a rule that must always hold is better as a hook or a CI check than as text.
 
+A new automatic check goes in `hooks/checks/` (loaded by `dispatch.py`, live in running chats at their next call, no reload) when it only adds context or a reminder. It gets its own registered hook in `hooks.json` only when it must refuse or block an action, because a missing registration there fails loudly. Every check has a test before it is pushed: an edit reaches all running chats at once (user's decision, 2026-11-15; standard: findings/claude-code-plugin-reload-running-chat, checked 2026-11-15).
+
 ## Many changes at once: consent agenda
 
 (Like a board's consent agenda, or ITIL's standard vs normal changes.) When a proposal has more than about five items, sort them before asking:
