@@ -3,9 +3,8 @@
 A watchdog that checks fixed chat IDs goes wrong when the loop chat is replaced. This script
 finds the chat when the check runs: for each project folder it lists
 ~/.claude/projects/<slug>/*.jsonl newest first and keeps transcripts with a live self-paced
-/loop (same test as plugins/workflow/hooks/loop_guard.py: a message starting with "# /loop" or
-with the overnight brief of scripts/selfdrive.ps1, "Self-drive overnight in ", and the last
-ScheduleWakeup not `stop: true`). One line per folder:
+/loop (same test as plugins/workflow/hooks/loop_guard.py: a ScheduleWakeup call, or a message
+starting with "# /loop", and the last ScheduleWakeup not `stop: true`). One line per folder:
 
   <folder>: <session id> <agent name> last <local time> wakeup <delay>s set <local time>
       summary <path> <VERDICT>
@@ -35,8 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 STALL_SECONDS = 30 * 60
-# keep in step with START_MARKERS in plugins/workflow/hooks/loop_guard.py
-START_MARKERS = ("# /loop", "Self-drive overnight in ")
+LOOP_HEADER = "# /loop"  # as in plugins/workflow/hooks/loop_guard.py
 
 
 def slug(folder: str) -> str:
@@ -120,10 +118,8 @@ def analyse(entries: list[dict]) -> dict | None:
             if _is_tool_result(content):
                 continue
             text = _texts(content).lstrip()
-            if text.startswith(START_MARKERS):
-                # a fired wakeup of a selfdrive.ps1 run repeats the brief, so it lands here too:
-                # either way no wakeup is pending any more
-                started, stopped, wake_pending = True, False, False
+            if text.startswith(LOOP_HEADER):
+                started, stopped, wake, wake_pending = True, False, None, False
             elif not e.get("origin") and not text.startswith("<"):
                 # a fired wakeup arrives as plain text with no origin. A human, a peer chat or a
                 # task notification carries an origin; system reminders, local slash commands
@@ -138,6 +134,7 @@ def analyse(entries: list[dict]) -> dict | None:
                 if isinstance(b, dict) and b.get("type") == "tool_use" \
                         and b.get("name") == "ScheduleWakeup":
                     inp = b.get("input") or {}
+                    started = True  # a ScheduleWakeup call marks a self-paced loop
                     stopped = bool(inp.get("stop"))
                     if stopped:
                         wake_pending = False

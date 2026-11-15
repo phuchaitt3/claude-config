@@ -171,3 +171,15 @@ def test_summary_unknown_before_the_first_write(tmp_path, capsys):
     write(tmp_path, "r", overnight("rrr", "selfdrive-proj", "2026-11-14T11:00:00Z",
                                    "2026-11-14T11:50:00Z", delaySeconds=1200), 10)
     assert "summary ? WAITING" in run(tmp_path, capsys)
+
+
+def test_reworded_brief_is_still_a_loop_once_it_schedules(tmp_path, capsys):
+    e = [user("2026-11-14T11:00:00Z", "Totally different wording, no marker.", "sss"),
+         wake("2026-11-14T11:50:00Z", "sss", delaySeconds=1200)]
+    write(tmp_path, "s", e, 10)
+    assert run(tmp_path, capsys).strip().endswith("WAITING")
+
+
+def test_chat_that_never_scheduled_is_no_loop(tmp_path, capsys):
+    write(tmp_path, "t", [user("2026-11-14T11:00:00Z", "Self-drive overnight in proj (main checkout)", "ttt")], 10)
+    assert run(tmp_path, capsys).strip().endswith("NO LOOP")

@@ -142,11 +142,16 @@ def test_session_start_main_emits_rearm(tmp_path, monkeypatch, capsys):
     assert "Re-arm now" in out["additionalContext"]
 
 
-def test_selfdrive_ps1_brief_starts_a_loop():
-    brief = {"type": "user", "message": {"content": "Self-drive overnight in proj (main checkout, branch main)."}}
-    assert loop_guard.should_nudge(payload(), [brief])
+def test_schedulewakeup_call_alone_marks_a_loop_whatever_the_brief_says():
+    brief = {"type": "user", "message": {"content": "Any wording at all, no /loop header."}}
+    assert loop_guard.should_nudge(payload(), [brief, wake()])
 
 
-def test_stop_after_the_brief_still_counts():
+def test_brief_without_a_wakeup_call_is_not_a_loop():
     brief = {"type": "user", "message": {"content": "Self-drive overnight in proj (main checkout)."}}
-    assert not loop_guard.should_nudge(payload(), [brief, wake(stop=True)])
+    assert not loop_guard.should_nudge(payload(), [brief])
+
+
+def test_stop_after_a_wakeup_call_still_counts():
+    brief = {"type": "user", "message": {"content": "Whatever."}}
+    assert not loop_guard.should_nudge(payload(), [brief, wake(), wake(stop=True)])

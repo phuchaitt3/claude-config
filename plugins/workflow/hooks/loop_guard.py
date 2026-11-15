@@ -7,12 +7,11 @@ findings/agent-loop-control-enforcement, checked 2026-11-14). This hook enforces
 of use: when a turn that belongs to a self-drive loop ends with no wakeup pending and no
 background task running, it tells the chat to schedule the next round, or to stop on purpose.
 
-How it knows a self-paced loop is live: the transcript holds a message that starts with the /loop
-skill header (the loop's prompt is the model's own paraphrase of the brief, so the brief's wording
-cannot be matched) or with the fixed overnight brief that `scripts/selfdrive.ps1` sends to a
-`claude --bg` session (`START_MARKERS`; such a run never goes through /loop, so before workflow
-0.57.2 the hook missed every one of them), and the last `ScheduleWakeup` call after it was not
-`stop: true`. A fixed
+How it knows a self-paced loop is live: the transcript holds a `ScheduleWakeup` call (the tool
+exists only for a self-paced loop, so no brief wording has to be matched; since workflow 0.57.3,
+after runs started by `scripts/selfdrive.ps1` were missed for lack of a /loop header) or a message
+that starts with the /loop skill header (covers a first turn that forgot to schedule), and the last
+`ScheduleWakeup` call was not `stop: true`. A fixed
 interval loop keeps its wakeups in `session_crons`, so it stays silent.
 The Stop payload's `session_crons` (pending wakeups) and `background_tasks` (work that will wake
 the chat) are both empty. One nudge per turn (`stop_hook_active`); Claude Code also caps
@@ -50,13 +49,8 @@ RESUME_NOTE = (
     "ScheduleWakeup with the loop prompt, or stop: true if the user stopped the loop."
 )
 
-# A user message that starts a self-paced loop: the /loop skill header, or the overnight brief
-# that scripts/selfdrive.ps1 writes ("Self-drive overnight in <repo> (main checkout, ...").
-START_MARKERS = ("# /loop", "Self-drive overnight in ")
-
-
-def is_loop_start(text: str) -> bool:
-    return text.lstrip().startswith(START_MARKERS)
+# The /loop skill header: marks a loop whose first turn has not scheduled a wakeup yet.
+LOOP_HEADER = "# /loop"
 
 
 def _texts(content) -> str:
@@ -77,12 +71,13 @@ def loop_live(entries: list[dict]) -> bool:
         message = entry.get("message") or {}
         if entry.get("type") == "user":
             text = _texts(message.get("content"))
-            if is_loop_start(text):
+            if text.lstrip().startswith(LOOP_HEADER):
                 started, stopped = True, False
         elif entry.get("type") == "assistant":
             for block in message.get("content") or []:
                 if isinstance(block, dict) and block.get("type") == "tool_use" \
                         and block.get("name") == "ScheduleWakeup":
+                    started = True
                     stopped = bool((block.get("input") or {}).get("stop"))
     return started and not stopped
 
