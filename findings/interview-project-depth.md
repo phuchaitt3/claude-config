@@ -1,3 +1,11 @@
+---
+topic: interview-project-depth
+area: Career
+question: In an entry-level interview, does explaining an existing project in depth count for more than having more or newer projects?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Interviews: depth on existing projects vs more projects
 
 - **Question:** For an entry-level engineering interview, does being able to explain an existing project in depth count for more than having more or newer projects?

@@ -1,3 +1,11 @@
+---
+topic: resume-one-page-fill
+area: Career
+question: Must a one-page resume fill the page, or may it stay partly empty when no relevant bullets are left?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Must a one-page resume fill the page?
 
 - **Question:** When a tailored one-page resume has free space after the irrelevant bullets are cut, should the space be filled (with bullets cut earlier) or left empty?

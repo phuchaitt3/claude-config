@@ -1,3 +1,11 @@
+---
+topic: agent-session-handoff-reset
+area: Agent setup
+question: Is it standard for a long-running agent to end its session and start a fresh one with a written handoff, and is the trigger a context-size threshold?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # A session that hands over to its own successor (context reset)
 
 - **Question:** Is it a standard approach for a long-running agent to end its session and start a fresh one with a written handoff, rather than clear or compact in place? Is it triggered by a context-size threshold, and can an agent chain successors itself?

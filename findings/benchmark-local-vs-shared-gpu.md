@@ -1,3 +1,11 @@
+---
+topic: benchmark-local-vs-shared-gpu
+area: ML systems
+question: Is a personal laptop a worse place to time a benchmark than a free shared cloud GPU, and what keeps a timing number trustworthy on either?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Timing benchmarks on a personal machine versus a shared cloud GPU
 
 - **Question:** Is a personal laptop a worse place to time a benchmark than a free shared cloud GPU (a Kaggle notebook), and what keeps a timing number trustworthy on either?

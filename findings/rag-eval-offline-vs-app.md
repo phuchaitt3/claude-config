@@ -1,3 +1,11 @@
+---
+topic: rag-eval-offline-vs-app
+area: Research methods
+question: Should a RAG pipeline be evaluated in separate offline scripts or through the running application, and which result goes on a resume?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # RAG evaluation: separate offline scripts or the running application?
 
 - **Question:** Where should a RAG pipeline be evaluated: in separate offline evaluation scripts, or through the application (production)? And which result belongs on a resume?

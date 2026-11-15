@@ -1,3 +1,11 @@
+---
+topic: long-agent-run-context
+area: Agent setup
+question: How does a long agent run (a loop or overnight run) keep its context, and token cost, from growing with every task: subagents, a fresh session per task, or other chats?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Keeping a long agent run from piling every task into one context
 
 - **Question:** When one agent works through many tasks in a row (a self-paced loop, an overnight run), how do practitioners stop its context, and so its token cost, growing with every task? Subagents, a fresh session per task, or a handoff to other chats?

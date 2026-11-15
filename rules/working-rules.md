@@ -56,7 +56,7 @@ The user sees the context meter in the status line; you do not. Suggest once per
 
 ## Industry practice (user's decision, 2026-11-01)
 
-Before searching the web for an established practice (software, research methods, hiring or any other field), read `~/claude-config/findings/README.md`. If an entry covers the question and is under 12 months old, answer from it and cite it; do not search. After a search that checks a practice, add or update the entry in the same turn (finding in a few lines, source links, date, limits of the sources) and tag the point where it is written: `(standard: findings/<topic>, checked YYYY-MM-DD)`. The register names no project and holds no private detail: the repository is public.
+Before searching the web for an established practice (software, research methods, hiring or any other field), read `~/claude-config/findings/README.md`. If a current entry covers the question and today is before its Review by date in the index (`checked` plus `review_months`, 12 unless set; user's decision, 2026-11-15), answer from it and cite it; do not search. After a search that checks a practice, add or update the entry in the same turn (front matter, finding in a few lines, source links, date, limits of the sources; then run `scripts/build_findings_index.py`, which rebuilds the index) and tag the point where it is written: `(standard: findings/<topic>, checked YYYY-MM-DD)`. The register names no project and holds no private detail: the repository is public.
 
 ## Skills to load (the `workflow` plugin)
 

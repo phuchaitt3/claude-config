@@ -1,3 +1,11 @@
+---
+topic: keep-awake-long-jobs
+area: Agent setup
+question: How do people keep a laptop awake while long (agent) jobs run without guessing their length, and how are never-ending processes handled?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Keeping a machine awake while long jobs run
 
 - **Question:** How do people keep a laptop from sleeping while a long job (or an AI agent's job) runs, without guessing how long it takes, and how are processes that never end handled?

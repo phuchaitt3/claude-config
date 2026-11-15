@@ -1,3 +1,11 @@
+---
+topic: rag-retrieval-eval-without-benchmark
+area: Research methods
+question: With no benchmark that fits, how do teams evaluate RAG retrieval, and can LLM-generated test questions be trusted?
+checked: 2026-11-09
+review_months: 12
+status: current
+---
 # Evaluating RAG retrieval when no benchmark fits the use case
 
 - **Question:** When no public benchmark matches a RAG system's documents and users (for example a low-resource language over long books), how do teams evaluate retrieval, and how far can LLM-generated test questions be trusted?

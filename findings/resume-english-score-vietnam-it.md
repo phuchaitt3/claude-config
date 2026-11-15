@@ -1,3 +1,11 @@
+---
+topic: resume-english-score-vietnam-it
+area: Career
+question: How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume?
+checked: 2026-11-09
+review_months: 6
+status: current
+---
 # English test scores on IT resumes in Vietnam
 
 - **Question:** How much does an English test score (IELTS) matter in Vietnamese software hiring, and where does it go on a resume?

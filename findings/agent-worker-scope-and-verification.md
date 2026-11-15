@@ -1,3 +1,11 @@
+---
+topic: agent-worker-scope-and-verification
+area: Agent setup
+question: Is it standard for a worker agent to do the whole task through opening the PR while the coordinator reads only a short report, and how is the result checked?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # How much a worker agent does, and how the coordinator checks it
 
 - **Question:** In an orchestrator and worker setup for coding, is it standard for the worker to do the whole task (tests, commit, push, open the PR) while the coordinator reads only a short report? What checking of the worker's result is standard?

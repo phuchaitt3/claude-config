@@ -1,3 +1,11 @@
+---
+topic: interview-post-application-work
+area: Career
+question: After submitting a resume, may a candidate talk about project upgrades made since, or must they stay within the resume, and is building more before the deadline worth it?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Interviews: work done after the resume was submitted
 
 - **Question:** After submitting a resume, may a candidate improve a project and talk about the new work in interviews even though the resume does not show it, or must they stay within what the resume says? Is it worth building more before the deadline?

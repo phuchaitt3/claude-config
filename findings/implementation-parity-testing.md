@@ -1,3 +1,11 @@
+---
+topic: implementation-parity-testing
+area: ML systems
+question: When a model pipeline is re-implemented, how many samples and settings does a parity test need, and what counts as a match?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Implementation parity testing: how many samples, how strict
 
 **Question:** When a model pipeline is re-implemented (a port, a new inference engine), how many samples and how many settings does a parity test need, and what counts as a match?

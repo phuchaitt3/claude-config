@@ -1,3 +1,11 @@
+---
+topic: rag-retrieval-relevance-without-llm
+area: Research methods
+question: Without an LLM judge, how is a retrieved chunk labelled relevant (gold evidence, answer string, keyword recall), and how reliable is each?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Deciding retrieval relevance without an LLM judge
 
 - **Question:** Without an LLM judge, how do retrieval evaluations decide whether a retrieved passage or chunk is relevant, and how reliable are those non-LLM labels? (Which ranking metric to report on top of the labels is findings/rag-retrieval-metrics.)

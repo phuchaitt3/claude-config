@@ -1,3 +1,11 @@
+---
+topic: claude-code-usage-limit-resume
+area: Agent setup
+question: Does a Claude Code session or loop resume by itself after a usage limit resets, can an agent see its quota and pause first, and can resume be tested without using up the quota?
+checked: 2026-11-14
+review_months: 6
+status: current
+---
 # Does a Claude Code session or loop resume by itself after a usage limit resets?
 
 - **Question:** When a long-running interactive Claude Code session or a self-paced `/loop` hits the subscription usage limit overnight, does it resume on its own at the reset? Can an agent see how close it is to the limit and pause before it, and can resume be tested without using up the quota?

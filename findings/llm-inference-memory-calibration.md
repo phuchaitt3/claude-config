@@ -1,3 +1,11 @@
+---
+topic: llm-inference-memory-calibration
+area: ML systems
+question: How do inference systems size the batch token budget, how is it calibrated, where does a bigger batch stop paying, and what must an inference benchmark report?
+checked: 2026-11-09
+review_months: 12
+status: current
+---
 # LLM inference: sizing the batch token budget and benchmarking it
 
 - **Question:** How do inference systems decide how many tokens fit in a GPU batch, how is that calibration run, and what must an inference benchmark report?

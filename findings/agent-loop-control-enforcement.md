@@ -1,3 +1,11 @@
+---
+topic: agent-loop-control-enforcement
+area: Agent setup
+question: In a long agent loop, does a text rule ("end each turn by scheduling the next") get skipped as context grows, and what enforces it instead?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Keeping an agent loop going: text rule vs enforced control
 
 - **Question:** In a long agent loop, does a text instruction ("end every turn by scheduling the next one") get skipped as task context grows, and what more automatic ways keep the loop going?

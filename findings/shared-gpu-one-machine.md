@@ -1,3 +1,11 @@
+---
+topic: shared-gpu-one-machine
+area: Software process
+question: How is one GPU machine shared between several users or agents without collisions (jobs and long-running services such as model servers), and how is that checked afterwards?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # Sharing one GPU machine between several users or agents
 
 - **Question:** How do teams share one GPU machine between several users (or agent chats) so that jobs do not collide, and how do they know afterwards that it was shared properly?

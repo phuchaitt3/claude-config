@@ -1,3 +1,11 @@
+---
+topic: claude-code-plugin-reload-running-chat
+area: Agent setup
+question: Does a running Claude Code chat pick up a changed plugin skill, does `/reload-plugins` change that, and can an agent trigger a reload in another chat (no)?
+checked: 2026-11-15
+review_months: 6
+status: current
+---
 # Does a running Claude Code chat pick up a changed plugin skill?
 
 - **Question:** After a plugin skill is edited, its version bumped and the installed copy updated, does a chat that is already running get the new skill text? Does `/reload-plugins` change that? What about a loop that keeps re-sending an older copy of the skill's text as its prompt?

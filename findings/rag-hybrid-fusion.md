@@ -1,3 +1,11 @@
+---
+topic: rag-hybrid-fusion
+area: Research methods
+question: How do hybrid search systems merge vector and keyword results; is RRF the default?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Merging vector and keyword results in hybrid search
 
 - **Question:** How do hybrid search systems merge vector (dense) and keyword (sparse, BM25 or full-text) results, and is Reciprocal Rank Fusion (RRF) the default?

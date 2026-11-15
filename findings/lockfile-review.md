@@ -1,3 +1,11 @@
+---
+topic: lockfile-review
+area: Software process
+question: How is a dependency lockfile change reviewed, and must the owner do it?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Reviewing dependency lockfile changes
 
 - **Question:** How is a dependency lockfile change reviewed, and must the repository owner do it?

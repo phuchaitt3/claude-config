@@ -1,3 +1,11 @@
+---
+topic: scaling-tests-on-a-budget
+area: Software process
+question: How do teams learn how a system behaves at a much larger size or load without a production-size environment?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Scaling tests on a small budget
 
 - **Question:** How do teams learn how a system behaves at a much larger size or load without paying for a production-size environment?

@@ -1,3 +1,11 @@
+---
+topic: resume-benchmark-range-reporting
+area: Career
+question: May a result measured on several setups be reported as a range, or only the best one?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Reporting a benchmark result measured on several setups: a range, the best case, or each one?
 
 - **Question:** When one method was measured on several setups (two GPUs, two workloads) with different gains, may a resume or report give a range ("1.8-2.5x"), or should it give only the best one?

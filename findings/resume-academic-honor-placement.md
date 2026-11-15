@@ -1,3 +1,11 @@
+---
+topic: resume-academic-honor-placement
+area: Career
+question: Where does a top academic honor (valedictorian, Latin honors) go so it is seen, and may it go in the summary?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Where a top academic honor goes on a resume
 
 - **Question:** Where does a top academic honor (valedictorian, Latin honors, class rank) go on a new graduate's resume so that it is seen, and may it go in the summary?

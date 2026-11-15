@@ -1,3 +1,11 @@
+---
+topic: lenovo-legion-power-modes
+area: Software process
+question: How is the power mode switched on an older Legion when Fn+Q does nothing, and how can a script read CPU temperature without admin rights?
+checked: 2026-11-14
+review_months: 6
+status: current
+---
 # Lenovo Legion power modes and reading CPU temperature on Windows
 
 - **Question:** How is the power or thermal mode switched on an older Lenovo Legion laptop when Fn+Q does nothing and Vantage shows no thermal-mode setting, and how can a script read CPU temperature on such a machine without administrator rights?

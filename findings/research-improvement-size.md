@@ -1,3 +1,11 @@
+---
+topic: research-improvement-size
+area: Research methods
+question: Is there a rule of thumb for how large an NLP/ML gain is good, and is a gain diluted by weak retrieval normal to report?
+checked: 2026-11-11
+review_months: 24
+status: current
+---
 # How large an improvement counts in NLP results
 
 - **Question:** Is there a rule of thumb for how many points (or %) of improvement is acceptable or good in an NLP/ML result, and is a modest overall gain diluted by a weak upstream stage (e.g. retrieval in RAG) normal to report?

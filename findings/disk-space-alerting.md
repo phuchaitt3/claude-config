@@ -1,3 +1,11 @@
+---
+topic: disk-space-alerting
+area: Software process
+question: At what free-space level should a machine warn about a filling drive, and is there a standard threshold?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Low disk space alerts: thresholds
 
 - **Question:** At what free-space level should a machine warn about a filling drive, and is there a standard threshold?

@@ -1,3 +1,11 @@
+---
+topic: data-versioning-cadence
+area: Software process
+question: Must every change to a DVC-tracked data folder be committed and pushed, and what do projects do instead?
+checked: 2026-11-08
+review_months: 12
+status: current
+---
 # Data versioning cadence (DVC)
 
 - **Question:** With data kept out of git and versioned by DVC, must every change to the data folder, however small, be followed by `dvc commit` and `dvc push`? What do projects do instead?

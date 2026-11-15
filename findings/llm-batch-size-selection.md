@@ -1,3 +1,11 @@
+---
+topic: llm-batch-size-selection
+area: ML systems
+question: How is the batch size for LLM inference chosen (search and pick rule): largest that fits, fastest, or the knee?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # How is the batch size for LLM inference chosen: largest that fits, fastest, or the knee?
 
 - **Question:** How do inference tools and papers pick a batch size for a given model, GPU and workload: how do they search, and which rule picks the winner?

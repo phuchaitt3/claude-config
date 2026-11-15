@@ -1,3 +1,11 @@
+---
+topic: resume-matching-published-baseline
+area: Career
+question: Does a bullet that matches a paper's published baseline read as replication rather than engineering or research, and is it a red flag?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Resume: a bullet that matches a published baseline
 
 - **Question:** Does a resume bullet that says a result is "on par with" a paper's published baseline read as replication work, not engineering or research, and is that a red flag?

@@ -1,3 +1,11 @@
+---
+topic: laptop-thermal-tiers
+area: Software process
+question: Which GPU temperatures are normal or dangerous on a laptop, what wears it out, and is an 8-10 h nightly load wise?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Laptop temperature tiers for long unattended jobs
 
 - **Question:** Which GPU temperatures are normal, worth flagging or dangerous on a laptop running long jobs, what wears the laptop out over time, and is a steady load for 8-10 hours a night (GPU around 75 °C) a good idea?

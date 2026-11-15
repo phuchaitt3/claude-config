@@ -1,3 +1,11 @@
+---
+topic: auto-merge-without-protection
+area: Software process
+question: Does `gh pr merge --auto` wait for CI on a private GitHub Free repository, and what replaces it?
+checked: 2026-11-05
+review_months: 6
+status: current
+---
 # Auto-merge on a repository without branch protection
 
 - **Question:** Does `gh pr merge --auto` wait for CI on a private repository under GitHub Free, and what replaces it where it cannot?

@@ -1,3 +1,11 @@
+---
+topic: attention-steering-terminology
+area: Research methods
+question: Is "attention steering" or "attention intervention" the right term for an inference-time method that edits attention scores?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # "Attention steering" vs "attention intervention"
 
 - **Question:** For an inference-time method that changes a language model's attention scores (e.g. adds a bias to pre-softmax logits to up- or down-weight chosen context tokens), is "attention steering" or "attention intervention" the more correct and recognised term?

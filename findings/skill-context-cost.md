@@ -1,3 +1,11 @@
+---
+topic: skill-context-cost
+area: Agent setup
+question: What do installed skills cost in context at startup, and how are unused ones switched off (claude.ai and Claude Code)?
+checked: 2026-11-12
+review_months: 6
+status: current
+---
 # Skill listings: context cost and how to switch skills off
 
 - **Question:** what do installed skills cost in context at startup, and how are unused ones switched off (claude.ai account skills and Claude Code skills)?

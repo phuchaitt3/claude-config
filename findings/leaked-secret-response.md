@@ -1,3 +1,11 @@
+---
+topic: leaked-secret-response
+area: Software process
+question: What to do first when a secret has been pushed.
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Responding to a leaked secret
 
 - **Question:** What to do first when a secret has been pushed.

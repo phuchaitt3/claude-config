@@ -1,3 +1,11 @@
+---
+topic: resume-llm-api-listing
+area: Career
+question: Is naming a hosted LLM API (OpenAI, DeepSeek) on a resume worth it, and which APIs should be named?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Listing LLM APIs (OpenAI, DeepSeek, ...) on a resume
 
 - **Question:** Is naming a hosted LLM API (OpenAI API, DeepSeek, Anthropic, Gemini) on a resume worth anything, or does it read as low-effort "wrapper" work? And when several APIs were used, which should be named?

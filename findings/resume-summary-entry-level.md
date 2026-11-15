@@ -1,3 +1,11 @@
+---
+topic: resume-summary-entry-level
+area: Career
+question: Does an entry-level resume need a summary, what should it say, and may it restate the top entry?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Resume summary for a new graduate
 
 - **Question:** Does an entry-level resume need a summary, and what should it say? Is a summary that restates the top entry (for example a thesis) good practice?

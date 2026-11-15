@@ -1,3 +1,11 @@
+---
+topic: knowledge-register-maintenance
+area: Software process
+question: What keeps a register that gains entries constantly usable: owners, review dates, archiving, a generated index?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Keeping a growing practice register maintainable
 
 - **Question:** What do knowledge-base and decision-log practices say about keeping a register that gains entries constantly usable: ownership, review dates, archiving, and the index?

@@ -1,3 +1,11 @@
+---
+topic: multi-repo-agent-review
+area: Agent setup
+question: How are review requests routed when agents work across several repositories?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Review and coordination when agents work across several repositories
 
 **Question:** When several AI coding agents work across more than one repository, how do teams route review requests and keep each agent aware of work outside the repository it is in?

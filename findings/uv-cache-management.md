@@ -1,3 +1,11 @@
+---
+topic: uv-cache-management
+area: Software process
+question: Is clearing the uv package cache on a schedule good practice, or how else is its size managed?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Managing the uv package cache
 
 - **Question:** The uv cache keeps filling a small system drive. Is clearing it on a schedule good practice, or is there a better way to manage it?

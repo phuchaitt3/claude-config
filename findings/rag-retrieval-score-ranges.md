@@ -1,3 +1,11 @@
+---
+topic: rag-retrieval-score-ranges
+area: Research methods
+question: Is a top-5 hit rate near 100% normal, or a sign of evaluation bias? What drives retrieval scores up?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # What retrieval scores to expect, and when a high one is suspect
 
 - **Question:** Is a top-5 hit rate near 100% normal for RAG retrieval, or a sign of evaluation bias? What ranges are reasonable?

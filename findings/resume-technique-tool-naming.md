@@ -1,3 +1,11 @@
+---
+topic: resume-technique-tool-naming
+area: Career
+question: When a bullet names a method and the tool behind it, which form: "bge-m3 vector search", "vector search (bge-m3)" or "with bge-m3"?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Naming a technique and the tool behind it in resume bullets
 
 - **Question:** When a bullet names a method together with the model, library or service that implements it, which form is best: the tool as a modifier ("bge-m3 vector search", "PostgreSQL queue"), the technique with the tool in parentheses ("vector search (bge-m3)"), or "technique with/via tool"?

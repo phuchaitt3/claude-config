@@ -1,3 +1,11 @@
+---
+topic: ats-resume-section-headings
+area: Career
+question: Does an ATS look for the exact heading "Work Experience", and does a resume without it get rejected?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # ATS and resume section headings
 
 **Question:** Does an applicant tracking system (ATS) look for the exact heading "Work Experience", and does a resume without it get rejected?

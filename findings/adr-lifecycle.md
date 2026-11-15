@@ -1,3 +1,11 @@
+---
+topic: adr-lifecycle
+area: Software process
+question: What statuses does an ADR have, and does a review block work?
+checked: 2026-11-01
+review_months: 24
+status: current
+---
 # Architecture decision record lifecycle
 
 - **Question:** What statuses does an ADR have, and does a review block the work?

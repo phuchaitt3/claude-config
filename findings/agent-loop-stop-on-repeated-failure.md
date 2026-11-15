@@ -1,3 +1,11 @@
+---
+topic: agent-loop-stop-on-repeated-failure
+area: Agent setup
+question: In an unattended agent loop, should a task failing twice end the whole loop or only that task, and is a low count sound?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Stopping an unattended agent loop after repeated failures
 
 - **Question:** In an unattended agent loop, should "the same task fails twice" end the whole loop, or only that task? Is a low failure count a sound stop rule?

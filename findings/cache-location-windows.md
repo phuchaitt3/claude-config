@@ -1,3 +1,11 @@
+---
+topic: cache-location-windows
+area: Software process
+question: Should every cache (developer tools, apps such as a browser or music player) move to a second drive, and is that standard practice?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Where developer and app caches should live on a Windows machine with a small system drive
 
 - **Question:** Should every cache (developer tools, apps such as a browser or music player) be moved to a second drive, and is that standard practice?

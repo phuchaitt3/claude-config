@@ -1,3 +1,11 @@
+---
+topic: policy-single-source
+area: Software process
+question: How do rules in prose and in enforcement code stay in step?
+checked: 2026-11-01
+review_months: 24
+status: current
+---
 # One source of truth for a policy
 
 - **Question:** How do rules written in prose and rules enforced in code stay in step?

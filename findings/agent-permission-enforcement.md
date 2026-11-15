@@ -1,3 +1,11 @@
+---
+topic: agent-permission-enforcement
+area: Agent setup
+question: Which Claude Code mechanisms enforce a rule instead of asking the model to follow it?
+checked: 2026-11-05
+review_months: 6
+status: current
+---
 # Enforcing rules on a coding agent
 
 - **Question:** Which Claude Code mechanisms enforce a rule instead of asking the model to follow it, and how strong is each?

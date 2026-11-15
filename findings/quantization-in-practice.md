@@ -1,3 +1,11 @@
+---
+topic: quantization-in-practice
+area: ML systems
+question: In real research and applications, when is quantization the natural choice, and how often do LLM job postings ask for it?
+checked: 2026-11-12
+review_months: 6
+status: current
+---
 # Where quantization is used in practice, and how much jobs ask for it
 
 - **Question:** In real research and applications, when is quantization the natural choice (as opposed to using a smaller model), and how often do LLM job postings ask for it?

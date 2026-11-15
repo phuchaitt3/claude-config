@@ -1,3 +1,11 @@
+---
+topic: code-owners-required-review
+area: Software process
+question: How does GitHub enforce a list of paths that only the owner may merge?
+checked: 2026-11-01
+review_months: 6
+status: current
+---
 # GitHub code owners and required review
 
 - **Question:** How does GitHub enforce a list of paths that only the owner may merge?

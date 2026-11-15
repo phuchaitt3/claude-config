@@ -1,3 +1,11 @@
+---
+topic: resume-ml-model-names-and-baselines
+area: Career
+question: Should an ML bullet name the specific model (including an outdated one in an older project), and give a result against a baseline or alone?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Naming models and baselines in ML resume bullets
 
 - **Question:** Should an ML resume bullet name the specific model (e.g. "bge-m3", "Qwen3-0.6B") or use generic terms, and should a result be given as a gain over a baseline or as the final figure alone?

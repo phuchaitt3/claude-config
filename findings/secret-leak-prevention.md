@@ -1,3 +1,11 @@
+---
+topic: secret-leak-prevention
+area: Software process
+question: How is a secret kept out of a public repository, and how common are leaks?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Keeping secrets out of a public repository
 
 - **Question:** How is a secret kept out of a public repository, and how common are leaks?

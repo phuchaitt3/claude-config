@@ -1,3 +1,11 @@
+---
+topic: adr-length-and-scope
+area: Software process
+question: How long should an ADR be, and what stays out of it?
+checked: 2026-11-01
+review_months: 24
+status: current
+---
 # How long an architecture decision record is, and what stays out
 
 - **Question:** How long should an ADR be, and may it carry teaching material?

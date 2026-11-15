@@ -1,3 +1,11 @@
+---
+topic: resume-submission-readiness
+area: Career
+question: What are the final refinement steps, and how do you know a resume is ready to submit?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Is a resume ready to submit
 
 - **Question:** What are the refinement steps before submitting a tailored resume, and how do you know it is ready?

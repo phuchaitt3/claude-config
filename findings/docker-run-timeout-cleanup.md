@@ -1,3 +1,11 @@
+---
+topic: docker-run-timeout-cleanup
+area: Software process
+question: Does `timeout docker run` stop the container, and how is a container run time-limited and always cleaned up?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # Time-limiting a `docker run` without leaving the container behind
 
 - **Question:** Does wrapping `docker run` in `timeout` (or a job runner's time limit) stop the container, and how do teams time-limit a container run so it is always cleaned up?

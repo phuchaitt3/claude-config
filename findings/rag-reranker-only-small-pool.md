@@ -1,3 +1,11 @@
+---
+topic: rag-reranker-only-small-pool
+area: Research methods
+question: Is scoring every chunk with a cross-encoder, with no first-stage retriever, established practice, and when does it fit?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Cross-encoder over every chunk, with no first-stage retriever
 
 - **Question:** Is it established practice to skip first-stage retrieval (BM25, dense, hybrid) and score every chunk with a cross-encoder reranker, and when does that fit?

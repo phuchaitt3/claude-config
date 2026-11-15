@@ -1,3 +1,11 @@
+---
+topic: agent-worker-task-creation
+area: Agent setup
+question: Is it standard for a worker agent to create new tasks, or only the coordinator, and what goes wrong when workers spawn work?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Whether a worker agent may create new tasks for itself or others
 
 - **Question:** In an orchestrator and worker setup, is it standard for a worker (or the whole loop) to file new tasks, or does only the coordinator create work? What goes wrong when workers spawn work?

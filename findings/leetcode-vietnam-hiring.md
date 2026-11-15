@@ -1,3 +1,11 @@
+---
+topic: leetcode-vietnam-hiring
+area: Career
+question: How often do companies in Vietnam use LeetCode-style coding tests for CS and software jobs?
+checked: 2026-11-13
+review_months: 6
+status: current
+---
 # LeetCode-style coding tests in Vietnamese software hiring
 
 - **Question:** How often do companies in Vietnam use LeetCode-style coding tests when hiring for CS and software jobs?

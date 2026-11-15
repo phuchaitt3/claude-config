@@ -1,3 +1,11 @@
+---
+topic: quantized-large-vs-small-model
+area: ML systems
+question: At a fixed memory budget, is a larger 4-bit model better than a smaller 16-bit one, and is 4-bit nearly free below 1B parameters?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Quantized larger model or smaller full-precision model
 
 - **Question:** At a fixed memory budget, is a larger model quantized to 4 bits generally better than a smaller model kept in 16-bit, and is "4-bit is nearly free" true for models under 1B parameters?

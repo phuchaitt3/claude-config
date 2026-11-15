@@ -1,3 +1,11 @@
+---
+topic: benchmark-setup-consistency
+area: ML systems
+question: Must every benchmark run on the same hardware and configuration, or may results come from different setups?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Benchmark setup consistency
 
 - **Question:** Must every benchmark run on the same hardware and configuration, or may results come from different setups (a laptop GPU, then a cloud GPU)?

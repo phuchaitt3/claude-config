@@ -1,3 +1,11 @@
+---
+topic: bot-repo-access
+area: Agent setup
+question: Must a bot account be added to every repository one by one, and what do teams do instead?
+checked: 2026-11-08
+review_months: 6
+status: current
+---
 # Giving a bot account access to many repositories
 
 - **Question:** Must a bot (machine user) be added as a collaborator on every repository one by one? What do teams do instead?

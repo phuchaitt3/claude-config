@@ -1,3 +1,11 @@
+---
+topic: ml-ci-test-tiers
+area: Software process
+question: How do machine-learning projects split tests between pull-request CI and heavier runs?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # Which model tests run in CI
 
 - **Question:** How do machine-learning projects split tests between pull-request CI and heavier runs, when real weights, data or GPUs are not available in CI?

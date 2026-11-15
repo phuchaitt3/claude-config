@@ -1,3 +1,11 @@
+---
+topic: agent-delegation-choice
+area: Agent setup
+question: Subagent or new session (background session, `claude -p`, another chat): which to hand a task to, and does that decide how many run at once?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Subagent or new session: which to hand a task to
 
 - **Question:** When a Claude Code chat hands work off to keep its own context small, when should it use a subagent and when a new session (a background session, `claude -p`, or another chat)? Should it use only one kind? Does the answer change how many to run at once?

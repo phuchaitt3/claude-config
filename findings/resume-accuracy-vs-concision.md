@@ -1,3 +1,11 @@
+---
+topic: resume-accuracy-vs-concision
+area: Career
+question: When shortening a line would make it read wider than the fact, does accuracy or brevity come first?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Accuracy against concision on a resume
 
 - **Question:** When shortening a resume line (an honor, a title, a credential) would make it read wider than the fact, which comes first, accuracy or brevity?

@@ -18,15 +18,15 @@ import sys
 
 BEFORE = (
     "Before searching: if this is about a practice, research result, hiring-market figure or tool behaviour (any field), read `~/claude-config/findings/README.md`. "
-    "If an entry covers the question and is under 12 months old, answer from it and cite it instead of "
+    "If a current entry covers the question and is inside its Review by date, answer from it and cite it instead of "
     "searching. Otherwise ignore this."
 )
 
 AFTER = (
     "If this search checked a rule, a documented point or a fact (practice, research, hiring-market data) outside this repository, add or update its entry "
-    "in `~/claude-config/findings/` in this turn (finding, source links, limits, date), and tag the point "
+    "in `~/claude-config/findings/` in this turn (front matter, finding, source links, limits, date; then run `python ~/claude-config/scripts/build_findings_index.py`), and tag the point "
     "where it is written: `(standard: findings/<topic>, checked YYYY-MM-DD)`, or `(departs from standard: "
-    "<reason>)`. Agents then skip re-checking it for 12 months (`rules/working-rules.md`, \"Industry "
+    "<reason>)`. Agents then skip re-checking it until its Review by date (`rules/working-rules.md`, \"Industry "
     "practice\"). Otherwise ignore this."
 )
 

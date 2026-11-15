@@ -1,3 +1,11 @@
+---
+topic: resume-bullet-standalone
+area: Career
+question: Must each resume bullet make sense without the others in its entry, and does that make bullets too long?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Resume bullets: must each one make sense on its own?
 
 - **Question:** Should every resume bullet be understandable without the other bullets in its entry, or may it lean on context an earlier bullet gave? And does making each self-contained make bullets too long?

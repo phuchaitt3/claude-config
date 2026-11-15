@@ -1,3 +1,11 @@
+---
+topic: heavy-job-scheduling
+area: Software process
+question: How do teams run heavy tests and benchmarks without slowing people, and what scheduling tools exist for an agent on a laptop?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Scheduling heavy test and benchmark jobs
 
 - **Question:** How do teams run heavy tests and benchmarks without slowing the people working, and what scheduling tools exist for an agent on a laptop?

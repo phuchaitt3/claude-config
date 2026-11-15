@@ -1,3 +1,11 @@
+---
+topic: resume-bullet-order
+area: Career
+question: Are bullets inside one entry ordered by significance or by time, and must terms be introduced before use?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Resume bullet order within one entry
 
 - **Question:** Inside one job or project entry, are bullets ordered by significance (impact, relevance) or by the order things happened, and must a bullet's terms be introduced before it uses them?

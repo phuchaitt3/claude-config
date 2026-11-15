@@ -1,3 +1,11 @@
+---
+topic: worktree-hygiene
+area: Software process
+question: How do parallel agents keep a shared checkout current and clean, clean up worktrees, and where do worktrees live on disk?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Worktree hygiene for parallel agents
 
 **Question:** When several agents work in git worktrees of one repository, how do teams keep the shared checkout from going stale or being dirtied, and how are worktrees cleaned up?

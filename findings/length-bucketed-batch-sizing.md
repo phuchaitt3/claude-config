@@ -1,3 +1,11 @@
+---
+topic: length-bucketed-batch-sizing
+area: ML systems
+question: When batches are sorted or bucketed by length, how is the batch size picked, and what sample should a timing sweep use?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Batch sizing when batches are sorted or bucketed by length
 
 - **Question:** When batches are formed by sorting or bucketing inputs by length (to cut padding), how do tools and papers pick the batch size, and what sample should a timing sweep use so it reflects the real batches?

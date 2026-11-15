@@ -1,3 +1,11 @@
+---
+topic: research-baseline-design
+area: Research methods
+question: How is a research baseline built: same pipeline with the studied part switched off, or a separate plain version?
+checked: 2026-11-12
+review_months: 24
+status: current
+---
 # Research baseline design
 
 - **Question:** How is the baseline for a research comparison built, and should it share the implementation (code path, numerics) with the new method or be a separate, plain version?

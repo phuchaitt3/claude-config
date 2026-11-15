@@ -1,3 +1,11 @@
+---
+topic: agent-review-cost
+area: Agent setup
+question: What does an AI code review of one PR cost, and is a second-agent review worth it on a small quota?
+checked: 2026-11-01
+review_months: 6
+status: current
+---
 # What an AI code review of a pull request costs
 
 **Question:** How much does an AI code review of one pull request cost, and is a second-agent review worth it on a small subscription quota?

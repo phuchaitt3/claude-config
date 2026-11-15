@@ -1,3 +1,11 @@
+---
+topic: agent-state-freshness
+area: Agent setup
+question: When should a long-running agent re-check state others can change: every step, end of turn, on a timer, or before acting?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # When an agent re-checks external state
 
 - **Question:** When should a long-running agent re-check state that others can change (a PR's status, a file, a branch): on every step, at the end of each turn, on a timer, or just before it acts on it?

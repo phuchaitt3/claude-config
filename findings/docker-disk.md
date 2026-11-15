@@ -1,3 +1,11 @@
+---
+topic: docker-disk
+area: Software process
+question: How do teams keep Docker Desktop's disk use under control on Windows (WSL 2), and how is the space given back?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Docker disk space on Windows (WSL 2)
 
 - **Question:** How do teams keep Docker Desktop's disk use under control on Windows with the WSL 2 backend, and how is the space given back?

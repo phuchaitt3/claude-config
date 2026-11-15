@@ -1,3 +1,11 @@
+---
+topic: bottleneck-tasks
+area: Software process
+question: Do teams automatically find the tasks blocking other work and put them first?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Bottleneck tasks
 
 **Question:** Do teams build an automatic system that finds the tasks blocking other work and puts them first?

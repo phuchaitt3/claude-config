@@ -1,3 +1,11 @@
+---
+topic: resume-degree-name-abbreviation
+area: Career
+question: Must a resume spell out "Bachelor of Science in …" for ATS, or can it be abbreviated?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Degree name on a resume: spelled out or abbreviated
 
 - **Question:** Does a resume have to spell out the degree ("Bachelor of Science in …") for ATS keyword matching, or can it be shortened ("B.S. in …", "BSc …")?

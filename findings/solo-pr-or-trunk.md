@@ -1,3 +1,11 @@
+---
+topic: solo-pr-or-trunk
+area: Software process
+question: Should a solo developer running AI agents use pull requests or commit straight to main?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # Pull requests or direct commits for a solo developer with agents
 
 - **Question:** Should a solo developer running AI agents use pull requests or commit straight to the main branch?

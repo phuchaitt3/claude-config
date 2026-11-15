@@ -1,3 +1,11 @@
+---
+topic: entry-level-ai-engineer-market
+area: Career
+question: How hard is an entry-level AI engineer role to get, what are the common routes to a first job, and are most entry roles residencies or internships (no data)?
+checked: 2026-11-13
+review_months: 6
+status: current
+---
 # Entry-level AI engineer: how hard, and the common routes to a first job
 
 - **Question:** How hard is it to get an entry-level AI engineering role, and what are the most common ways to get the first AI engineer job?

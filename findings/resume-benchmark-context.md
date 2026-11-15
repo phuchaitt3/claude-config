@@ -1,3 +1,11 @@
+---
+topic: resume-benchmark-context
+area: Career
+question: How much benchmark detail (sample size, batch size, hardware) does a resume bullet carry, and must all benchmark bullets list the same fields?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Benchmark context in resume bullets
 
 - **Question:** How much benchmark detail (sample size, batch size, hardware, input length) should a resume bullet carry with a performance number, and must every benchmark bullet list the same fields?

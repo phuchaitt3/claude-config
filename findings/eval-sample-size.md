@@ -1,3 +1,11 @@
+---
+topic: eval-sample-size
+area: Research methods
+question: How many test questions or timed requests does an evaluation need, and is 30 or about 200 too small?
+checked: 2026-11-15
+review_months: 24
+status: current
+---
 # How many test samples a reliable evaluation needs
 
 - **Question:** How many test questions (accuracy, retrieval hit rate) or timed requests (latency) does an evaluation need before its number is reliable, and is a set of 30 or about 200 too small?

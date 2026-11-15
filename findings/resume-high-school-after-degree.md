@@ -1,3 +1,11 @@
+---
+topic: resume-high-school-after-degree
+area: Career
+question: After a university degree, does a prestigious or selective high school stay on the resume?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # High school on a resume after a university degree
 
 - **Question:** Once a candidate holds (or is finishing) a university degree, do people keep a prestigious or selective high school (e.g. a specialised school for the gifted) in the Education section?

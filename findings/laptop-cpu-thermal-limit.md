@@ -1,3 +1,11 @@
+---
+topic: laptop-cpu-thermal-limit
+area: Software process
+question: Is a laptop CPU at 95-100 °C under load overheating or normal?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # Laptop CPU at 95-100 °C under load
 
 - **Question:** Is a laptop CPU that swings between 70 and 100 °C under sustained load overheating, or working as designed?

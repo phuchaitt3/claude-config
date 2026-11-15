@@ -1,3 +1,11 @@
+---
+topic: thesis-as-research-experience
+area: Career
+question: Can an undergraduate thesis be listed as "Research Experience" on a resume?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # Undergraduate thesis as research experience
 
 **Question:** Can an undergraduate thesis be listed as "Research Experience" on a resume?

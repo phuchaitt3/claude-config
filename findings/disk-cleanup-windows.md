@@ -1,3 +1,11 @@
+---
+topic: disk-cleanup-windows
+area: Software process
+question: How do people quickly find and clean old, unused data on a full Windows drive, and should an agent scan the disk itself?
+checked: 2026-11-15
+review_months: 12
+status: current
+---
 # Freeing disk space on a Windows developer machine
 
 - **Question:** How do people quickly find and clean old, unused data on a full Windows drive, and should an agent scan the disk itself?

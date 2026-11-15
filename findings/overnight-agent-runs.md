@@ -1,3 +1,11 @@
+---
+topic: overnight-agent-runs
+area: Agent setup
+question: Does running several coding agents overnight get more work out of a subscription, and what makes the morning result usable?
+checked: 2026-11-13
+review_months: 6
+status: current
+---
 # Running several coding agents overnight to get more work done
 
 - **Question:** Does letting several Claude Code agents run overnight, unattended, get more work out of a subscription, and what do practitioners set up so the result is usable in the morning?

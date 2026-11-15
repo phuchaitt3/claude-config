@@ -1,3 +1,11 @@
+---
+topic: resume-projects-as-experience
+area: Career
+question: With no formal work history, should projects be formatted like jobs and carry job titles, and may a class project carry a lead title?
+checked: 2026-11-09
+review_months: 12
+status: current
+---
 # Resume: presenting projects as experience
 
 **Question:** With no formal work history, should projects be formatted like jobs, and should they carry job titles such as "Machine Learning Engineer"?

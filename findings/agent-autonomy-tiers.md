@@ -1,3 +1,11 @@
+---
+topic: agent-autonomy-tiers
+area: Agent setup
+question: Is it standard to have speed-first modes that relax human review beside stricter ones, and how does dependent work proceed while a gated PR waits? Automate with stronger review, or gate?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Separate speed-first and oversight-first modes for agent work
 
 - **Question:** Is it standard to have separate modes (or tiers) where some work favours speed and relaxes human-in-the-loop review, while other work keeps a human gate, and how do teams keep dependent work moving while a human-gated change waits?

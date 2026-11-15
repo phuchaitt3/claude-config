@@ -1,3 +1,11 @@
+---
+topic: rag-hypothetical-question-indexing
+area: Research methods
+question: Is indexing LLM-generated questions per chunk, instead of the chunk text, an established RAG practice?
+checked: 2026-11-09
+review_months: 12
+status: current
+---
 # Indexing generated questions instead of chunks in RAG
 
 - **Question:** Is it an established RAG practice to embed LLM-generated questions for each chunk, match the user's query against those questions, and return the parent chunk?

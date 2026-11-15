@@ -1,3 +1,11 @@
+---
+topic: claude-code-clear-vs-compact
+area: Agent setup
+question: What is recommended about when to clear or compact a Claude Code chat?
+checked: 2026-11-13
+review_months: 6
+status: current
+---
 # When to clear or compact a Claude Code chat
 
 - **Question:** What is recommended about when to `/clear` or `/compact` a Claude Code chat?

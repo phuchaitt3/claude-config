@@ -1,3 +1,11 @@
+---
+topic: precision-across-model-sizes
+area: ML systems
+question: When comparing one model family at several sizes, is numeric precision (fp32, fp16, bf16) held fixed or chosen per model, and what if a model overflows in fp16?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Numeric precision when comparing model sizes
 
 - **Question:** When one model family is compared at several sizes (and quantization formats), is the numeric precision (fp32, fp16, bf16) chosen per model, or held fixed across the comparison; and what happens when a model overflows in fp16?

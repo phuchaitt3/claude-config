@@ -1,3 +1,11 @@
+---
+topic: knowledge-register-layout
+area: Software process
+question: Should a practice register stay one flat folder as it grows, or use categories or subfolders?
+checked: 2026-11-08
+review_months: 24
+status: current
+---
 # Layout of a practice or decision register as it grows
 
 - **Question:** Should a register of checked practices stay one flat folder as it grows, or move to categories or subfolders, and what keeps lookup working?

@@ -1,3 +1,11 @@
+---
+topic: private-repo-commit-checks
+area: Software process
+question: Can the secret and output checks before a commit be skipped in a private repository?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # Commit checks in a private repository
 
 - **Question:** Can the secret and output checks before a commit be skipped in a private repository that is never meant to be public?

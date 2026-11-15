@@ -1,3 +1,11 @@
+---
+topic: resume-master-subtractive-tailoring
+area: Career
+question: Is cutting a master resume down to one page the best way to tailor, how long should it take, and should every posting get its own version?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # Tailoring by cutting down a master resume
 
 - **Question:** Is cutting a full master resume down, piece by piece, until a one-page version remains the best way to tailor a resume to a posting? How much time should it take, and should every posting get its own version?

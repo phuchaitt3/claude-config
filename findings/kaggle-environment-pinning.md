@@ -1,3 +1,11 @@
+---
+topic: kaggle-environment-pinning
+area: ML systems
+question: Can a Kaggle notebook be pinned to its original software environment, and from the command line?
+checked: 2026-11-12
+review_months: 6
+status: current
+---
 # Pinning a Kaggle notebook's software environment
 
 **Question:** Can a Kaggle notebook be pinned to the environment it was created with, and can that be set from the command line?

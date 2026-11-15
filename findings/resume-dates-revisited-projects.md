@@ -1,3 +1,11 @@
+---
+topic: resume-dates-revisited-projects
+area: Career
+question: Should a project revisited after a gap show "start -- Present" or its separate periods?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Resume dates for a project revisited after a gap
 
 - **Question:** When a project from years ago gets new work now, should its date range run "start -- Present", or show the separate periods, so the reader does not assume continuous development?

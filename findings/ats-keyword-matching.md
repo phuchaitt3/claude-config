@@ -1,3 +1,11 @@
+---
+topic: ats-keyword-matching
+area: Career
+question: Does an ATS match only the posting's keywords, or also assumed skills (Git, Jupyter) the posting omits?
+checked: 2026-11-11
+review_months: 6
+status: current
+---
 # How ATS keyword matching finds a resume
 
 - **Question:** Does an applicant tracking system (ATS) match only the keywords in the job description, or also "assumed" skills that recruiters expect but the posting does not name (e.g. Git, Jupyter)?

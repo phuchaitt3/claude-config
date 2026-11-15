@@ -1,3 +1,11 @@
+---
+topic: lora-vs-qlora
+area: ML systems
+question: For fine-tuning a small language model, 16-bit LoRA or QLoRA, and which is more in demand in research and hiring?
+checked: 2026-11-12
+review_months: 6
+status: current
+---
 # LoRA vs QLoRA
 
 - **Question:** For fine-tuning a small language model (about 0.5B to 7B), should a project use 16-bit LoRA or QLoRA (LoRA on a 4-bit quantized base), and which is more in demand in research and hiring?

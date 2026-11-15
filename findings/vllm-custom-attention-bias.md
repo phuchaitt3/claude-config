@@ -1,3 +1,11 @@
+---
+topic: vllm-custom-attention-bias
+area: ML systems
+question: Can vLLM apply a custom, per-request bias to pre-softmax attention scores, and what would it take?
+checked: 2026-11-11
+review_months: 6
+status: current
+---
 # Can vLLM apply a custom, per-request bias to pre-softmax attention scores?
 
 - **Question:** Can an inference-time method that adds a bias to pre-softmax attention scores, with token masks specific to each request, run inside vLLM, and what would it take?

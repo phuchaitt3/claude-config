@@ -1,3 +1,11 @@
+---
+topic: llm-judge-vs-em-f1
+area: Research methods
+question: Does an LLM judge add anything over exact match and F1 when scoring QA or RAG answers?
+checked: 2026-11-09
+review_months: 12
+status: current
+---
 # LLM-as-a-judge against exact match and F1 for QA answers
 
 - **Question:** Does an LLM judge add anything over exact match (EM) and token F1 when scoring question-answering output, including extractive QA and RAG answers?

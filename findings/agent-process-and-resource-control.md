@@ -1,3 +1,11 @@
+---
+topic: agent-process-and-resource-control
+area: Agent setup
+question: How are runaway or orphaned shell processes from AI agents stopped, how are CPU and memory limited when several agents share one machine, and is that sharing normally hard?
+checked: 2026-11-12
+review_months: 12
+status: current
+---
 # Stopping runaway agent processes and sharing one machine's resources
 
 - **Question:** How do tools and teams stop shell commands started by AI coding agents from outliving their call (orphaned `find`, `grep`, `yes`), and how do they limit CPU and memory when several agents share one machine?

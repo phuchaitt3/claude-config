@@ -1,3 +1,11 @@
+---
+topic: project-path-portability
+area: Software process
+question: What should depend on a project's absolute path on disk, so that moving or renaming its folder stays cheap?
+checked: 2026-11-05
+review_months: 12
+status: current
+---
 # Project path portability
 
 **Question:** What should depend on a project's absolute path on disk, so that moving or renaming its folder stays cheap?

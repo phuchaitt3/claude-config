@@ -1,3 +1,11 @@
+---
+topic: resume-project-stack-line
+area: Career
+question: How many technologies should a project's stack line list; is "at most 4–5" a rule?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Resume project stack line length
 
 - **Question:** How many technologies should a project's stack line on a resume list, and is "at most 4–5" a real rule?

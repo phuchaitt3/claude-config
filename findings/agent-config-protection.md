@@ -1,3 +1,11 @@
+---
+topic: agent-config-protection
+area: Agent setup
+question: How are an AI agent's own config files (instructions, settings, hooks) protected from automated changes?
+checked: 2026-11-01
+review_months: 12
+status: current
+---
 # Protecting an AI agent's own config files
 
 - **Question:** How are an agent's instruction, settings and hook files protected from automated changes?

@@ -1,3 +1,11 @@
+---
+topic: resume-skills-section-tailoring
+area: Career
+question: When tailoring, should the skills section and stack lines keep every tool, or only relevant ones backed by bullets?
+checked: 2026-11-11
+review_months: 12
+status: current
+---
 # Resume skills section: tailor per posting, back each skill
 
 - **Question:** When a resume is tailored for one posting, should the skills section (and project stack lines) keep every tool from the master copy, or be trimmed to what is relevant and backed by the entries?

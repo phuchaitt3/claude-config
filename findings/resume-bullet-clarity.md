@@ -1,3 +1,11 @@
+---
+topic: resume-bullet-clarity
+area: Career
+question: Should resume bullets be understandable in one read by someone new to the work, and what shape do guides recommend?
+checked: 2026-11-08
+review_months: 12
+status: current
+---
 # Resume bullet clarity
 
 - **Question:** Should resume bullets be written so that a reader new to the work understands them in one read, and what shape do recruiters and guides recommend?

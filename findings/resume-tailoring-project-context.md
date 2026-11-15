@@ -1,3 +1,11 @@
+---
+topic: resume-tailoring-project-context
+area: Career
+question: When tailoring cuts bullets, does an entry lose what the project was, and is that accepted practice?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Resume tailoring: cutting bullets without losing what a project is
 
 - **Question:** When a resume is cut to fit one page for a posting, does keeping only the bullets relevant to that posting leave project entries fragmented, so a reader no longer knows what each project was for? Is that accepted practice?

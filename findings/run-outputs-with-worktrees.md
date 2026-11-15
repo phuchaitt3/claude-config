@@ -1,3 +1,11 @@
+---
+topic: run-outputs-with-worktrees
+area: Software process
+question: Is copying each worktree's git-ignored run outputs back to one DVC-tracked place normal, or is there a better way?
+checked: 2026-11-14
+review_months: 12
+status: current
+---
 # Run outputs and git worktrees
 
 - **Question:** When ML run outputs (logs, per-sample results, large files) are git-ignored and versioned with DVC, and runs happen in several git worktrees, is it normal to copy each worktree's output back to one place and `dvc push`? Is there a better way?

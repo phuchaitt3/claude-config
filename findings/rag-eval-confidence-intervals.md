@@ -1,3 +1,11 @@
+---
+topic: rag-eval-confidence-intervals
+area: Research methods
+question: Do RAG and retrieval evaluations report bootstrap confidence intervals, and is it worth it on a small set?
+checked: 2026-11-10
+review_months: 12
+status: current
+---
 # Confidence intervals in RAG and retrieval evaluation
 
 - **Question:** Do practitioners and researchers report confidence intervals (bootstrap) for RAG or retrieval test results, and is it worth it on a small set compared with writing more questions?

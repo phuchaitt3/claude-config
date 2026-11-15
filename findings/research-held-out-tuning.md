@@ -1,3 +1,11 @@
+---
+topic: research-held-out-tuning
+area: Research methods
+question: Can hyperparameters be chosen on the samples a result is reported on, and what does research practice do instead?
+checked: 2026-11-08
+review_months: 24
+status: current
+---
 # Tuning on the test set, and what research practice does instead
 
 - **Question:** Is it acceptable to choose hyperparameters on the same samples a result is reported on, and what is the accepted practice in ML/NLP research?

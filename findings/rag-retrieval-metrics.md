@@ -1,3 +1,11 @@
+---
+topic: rag-retrieval-metrics
+area: Research methods
+question: Which metric leads when reporting RAG retrieval: Hit@k, Recall@k, MRR or nDCG?
+checked: 2026-11-13
+review_months: 12
+status: current
+---
 # Which metric to report for RAG retrieval
 
 - **Question:** Is top-k hit rate (Hit@k) the standard single measure of retrieval quality, or should another metric lead?
