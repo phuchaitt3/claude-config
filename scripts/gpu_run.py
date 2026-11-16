@@ -7,8 +7,8 @@ report instead of in a mysterious slowdown. Standard library only; no per-reposi
 
     python gpu_run.py run [--wait] [--purpose TEXT] [--keep-ollama] -- <command ...>   a GPU job
     python gpu_run.py run --resource ram [--wait] [--purpose TEXT] -- <command ...>   a RAM/CPU-heavy job
-    python gpu_run.py hold [--wait] [--purpose TEXT] [--keep-ollama] [--max-minutes N] -- <start command ...>
-                                                     a GPU service: hold the lock until its containers stop
+    python gpu_run.py hold [--resource ram] [--wait] [--purpose TEXT] [--keep-ollama] [--max-minutes N] -- <start command ...>
+                                                     a service or Compose stack: hold the lock(s) until its containers stop
                                                      (with --max-minutes: `docker stop` them at the deadline)
     python gpu_run.py status [--resource ram]                           who holds the GPU (or the RAM lock) now
     python gpu_run.py check                                             GPU busy with no holder?
@@ -36,8 +36,27 @@ checked 2026-11-12: memory, not CPU, limits how many agents fit; run the heavy s
 It is a separate lock file (``local-ram.lock``) with the same ``--wait``, queue messages and events
 (each carries ``resource``); ``report --resource ram`` shows its jobs, waits and refusals. The child
 gets ``GPU_GUARD_RAM_HELD_BY``. A job that needs both takes ``ram`` first and runs the GPU job inside
-it (``run --resource ram -- python gpu_run.py run -- ...``), never the reverse, so two chats cannot
-wait on each other. Nothing forces a job through it: whether it is a rule is the user's decision.
+it, never the reverse, so two chats cannot wait on each other. Since 2026-11-17 a GPU ``run`` or
+``hold`` takes the RAM lock itself, first (skipped when a parent ``run --resource ram`` already holds it
+for this process, so the older nested form still works): overnight 2026-11-16/17 two loops ran model
+jobs under the GPU lock alone and filled the 16 GB between them (user's decision, 2026-11-17).
+
+Memory admission: whoever takes the RAM lock then waits (``--wait``) or is refused while free memory
+is under ``--min-free-gb`` (default 4, or ``$GPU_RUN_MIN_FREE_GB``). Free memory is commit headroom on
+Windows (what Kubernetes reads there), MemAvailable on Linux. A lock is a mutex; chats, editors and
+Docker use memory no lock counts, so schedulers admit against a memory figure with a reserve kept for
+the system (standard: findings/memory-admission-one-machine, checked 2026-11-17). Each ``start`` event
+and each thermal sample logs ``mem_free_gb``, so the threshold can be tuned from data.
+
+``hold --resource ram`` holds the RAM lock for a Compose stack or any container that keeps running
+after its start command returns (a database, an API); a GPU ``hold`` holds both locks. Either keeps
+them until every container the command started has stopped, and logs ``peak_stack_mem_mb`` in its
+``end`` event (a lower bound for sizing the WSL VM's memory cap).
+
+On Windows ``run`` puts its child in a Job Object that is killed when the wrapper exits, so a wrapper
+killed under memory pressure takes its job with it instead of leaving it running after the OS has
+freed the lock. A holder that dies without releasing leaves its record in the lock file; the next
+holder logs it as a ``lost`` event (``report`` counts them).
 
 Ollama loads models onto the GPU on demand, outside this lock. When ``run`` or ``hold`` takes the lock
 it unloads whatever Ollama has on the GPU (keep_alive 0, as Ollama's FAQ documents) and logs an
@@ -88,6 +107,13 @@ IDLE_UTIL_PCT = 10  # above this, or ...
 IDLE_MEM_MB = 300  # ... this much memory, with no holder, is "unguarded use"
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
+ENV_MIN_FREE = "GPU_RUN_MIN_FREE_GB"
+# Admission: a heavy job starts only while this much memory is free (commit headroom on Windows,
+# MemAvailable on Linux). 4 GB = a ~2 GB system reserve (Kubernetes' example: 10% of RAM plus the
+# 500 MiB Windows eviction threshold) plus ~2 GB for the job itself; a starting value to tune from the
+# `mem_free_gb` logged in events and thermal samples (user's decision, 2026-11-17; standard:
+# findings/memory-admission-one-machine, checked 2026-11-17).
+MIN_FREE_GB = 4.0
 RESOURCES = {"gpu": "local GPU", "ram": "RAM/CPU lock"}  # name -> what a refused job is told
 THERMAL_FIELDS = (
     "temperature.gpu", "power.draw", "clocks.sm", "utilization.gpu",
@@ -111,6 +137,94 @@ def env_held(resource: str) -> str:
     return ENV_HELD if resource == "gpu" else f"GPU_GUARD_{resource.upper()}_HELD_BY"
 
 
+def mem_free_gb() -> float | None:
+    """Memory a new job can still commit, in GB: commit headroom (CommitLimit - CommitTotal) on
+    Windows, which is what Kubernetes reads there, or MemAvailable on Linux. None when unknown."""
+    try:
+        if sys.platform == "win32":
+            from ctypes import wintypes
+
+            class _MemStatus(ctypes.Structure):
+                _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                            ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                            ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                            ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+            s = _MemStatus()
+            s.dwLength = ctypes.sizeof(_MemStatus)
+            if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(s)):
+                return None
+            return round(s.ullAvailPageFile / 2**30, 2)
+        with open("/proc/meminfo", encoding="ascii") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    return round(int(line.split()[1]) / 2**20, 2)
+    except (OSError, ValueError, AttributeError):
+        return None
+    return None
+
+
+def min_free_gb(args: argparse.Namespace | None = None) -> float:
+    value = getattr(args, "min_free_gb", None) if args is not None else None
+    if value is None:
+        try:
+            value = float(os.environ.get(ENV_MIN_FREE, MIN_FREE_GB))
+        except ValueError:
+            value = MIN_FREE_GB
+    return value
+
+
+def kill_with_me(proc: subprocess.Popen) -> object | None:
+    """Windows: put the child in a Job Object that is killed when this wrapper's handle closes, so a
+    wrapper killed under memory pressure does not leave its job running after the OS has released the
+    lock (seen 2026-11-17 02:40: the holder vanished with no `end`, and the next job took the lock
+    27 s later). Grandchildren started after this call are in the job too. Returns the handle to keep
+    open; None elsewhere or on failure (fails open; standard: findings/agent-process-and-resource-control,
+    checked 2026-11-12)."""
+    if sys.platform != "win32":
+        return None
+    try:
+        from ctypes import wintypes
+
+        class _Basic(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class _Io(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("r", "w", "o", "rb", "wb", "ob")]
+
+        class _Extended(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", _Basic), ("IoInfo", _Io),
+                        ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
+                        ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.CreateJobObjectW.restype = wintypes.HANDLE
+        k.OpenProcess.restype = wintypes.HANDLE
+        job = k.CreateJobObjectW(None, None)
+        if not job:
+            return None
+        info = _Extended()
+        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not k.SetInformationJobObject(wintypes.HANDLE(job), 9, ctypes.byref(info), ctypes.sizeof(info)):
+            k.CloseHandle(wintypes.HANDLE(job))
+            return None
+        ph = k.OpenProcess(0x0101, False, proc.pid)  # PROCESS_SET_QUOTA | PROCESS_TERMINATE
+        ok = bool(ph) and k.AssignProcessToJobObject(wintypes.HANDLE(job), wintypes.HANDLE(ph))
+        if ph:
+            k.CloseHandle(wintypes.HANDLE(ph))
+        if not ok:
+            k.CloseHandle(wintypes.HANDLE(job))
+            return None
+        return job  # never closed by us: it closes, and kills the job, when this process exits
+    except (OSError, AttributeError):
+        return None
+
+
 def log_event(event: str, **fields) -> None:
     """Append one JSON line. Never raises: a logging problem must not stop a job."""
     try:
@@ -127,6 +241,7 @@ class Lock:
         self.resource = resource
         self.path = guard_dir() / f"local-{resource}.lock"
         self.fd: int | None = None
+        self.previous: dict = {}
 
     def _lock(self, fd: int) -> None:
         if sys.platform == "win32":
@@ -147,6 +262,7 @@ class Lock:
         except OSError:
             os.close(fd)
             return False
+        self.previous = self._read(fd)  # left behind only when the last holder died without release
         os.ftruncate(fd, INFO_OFFSET)
         os.lseek(fd, INFO_OFFSET, os.SEEK_SET)
         os.write(fd, json.dumps(info).encode("utf-8"))
@@ -166,6 +282,10 @@ class Lock:
             return
         fd, self.fd = self.fd, None
         try:
+            try:
+                os.ftruncate(fd, INFO_OFFSET)  # a clean release leaves no holder behind
+            except OSError:
+                pass
             if sys.platform == "win32":
                 import msvcrt
 
@@ -173,6 +293,15 @@ class Lock:
                 msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
         finally:
             os.close(fd)
+
+    @staticmethod
+    def _read(fd: int) -> dict:
+        try:
+            os.lseek(fd, INFO_OFFSET, os.SEEK_SET)
+            data = os.read(fd, 65536)
+            return json.loads(data.decode("utf-8")) if data.strip() else {}
+        except (OSError, ValueError):
+            return {}
 
     def holder(self) -> dict:
         try:
@@ -428,8 +557,9 @@ def classify(reading: dict | None, locked: bool, ollama_mb: float) -> str:
 # ------------------------------------------------------------------------------- docker
 
 
-def gpu_containers() -> dict[str, str] | None:
-    """Running containers that requested a GPU, {id: name}; None when Docker cannot be asked."""
+def containers(gpu_only: bool = True) -> dict[str, str] | None:
+    """Running containers, {id: name} (only those that requested a GPU when ``gpu_only``); None when
+    Docker cannot be asked."""
     try:
         ids = subprocess.run(["docker", "ps", "-q", "--no-trunc"], check=True, capture_output=True,
                              text=True, timeout=30, **NO_WINDOW).stdout.split()
@@ -445,9 +575,42 @@ def gpu_containers() -> dict[str, str] | None:
     found = {}
     for line in out.splitlines():
         parts = line.split(" ", 2)
-        if len(parts) == 3 and "gpu" in parts[2].lower():
+        if len(parts) == 3 and (not gpu_only or "gpu" in parts[2].lower()):
             found[parts[0]] = parts[1].lstrip("/")
     return found
+
+
+def gpu_containers() -> dict[str, str] | None:
+    return containers(gpu_only=True)
+
+
+_UNITS = {"b": 1 / 2**20, "kib": 1 / 1024, "kb": 1 / 1024, "mib": 1, "mb": 1, "gib": 1024, "gb": 1024}
+
+
+def _mem_mb(text: str) -> float:
+    """'1.234GiB' -> 1263.6 (MB); 0 when it cannot be read."""
+    t = text.strip().lower()
+    for unit in sorted(_UNITS, key=len, reverse=True):
+        if t.endswith(unit):
+            try:
+                return float(t[: -len(unit)]) * _UNITS[unit]
+            except ValueError:
+                return 0.0
+    return 0.0
+
+
+def containers_mem_mb(ids: list[str]) -> float | None:
+    """Summed memory use of these containers now (`docker stats`), MB; None when Docker cannot say.
+    The WSL VM uses more than this sum (its kernel and page cache), so it is a lower bound for sizing
+    the VM's cap (findings/memory-admission-one-machine)."""
+    if not ids:
+        return 0.0
+    try:
+        out = subprocess.run(["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", *ids],
+                             check=True, capture_output=True, text=True, timeout=60, **NO_WINDOW).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return round(sum(_mem_mb(line.split("/")[0]) for line in out.splitlines() if line.strip()), 1)
 
 
 # ---------------------------------------------------------------------------------- run
@@ -457,9 +620,34 @@ def _command(args: argparse.Namespace) -> list[str]:
     return [c for c in args.command if c != "--"] if args.command[:1] == ["--"] else args.command
 
 
-def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[Lock | None, dict]:
-    """Take the lock (queueing with --wait); log start. (None, info) when refused."""
-    res = getattr(args, "resource", "gpu")
+def _ended(pid: object, res: str) -> bool:
+    """True when the event log has an `end` for this holder (so its record is not a lost holder)."""
+    try:
+        with open(guard_dir() / "events.jsonl", "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 200_000))
+            tail = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return False
+    for line in reversed(tail):
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if e.get("event") == "end" and e.get("pid") == pid and e.get("resource", "gpu") == res:
+            return True
+    return False
+
+
+def _note_lost(lock: Lock, res: str) -> None:
+    """Log a holder that died without releasing (killed wrapper): the OS freed the lock, no `end` exists."""
+    prev = lock.previous
+    if prev.get("pid") and not prev.get("probe") and not _ended(prev.get("pid"), res):
+        log_event("lost", resource=res, held_by=prev)
+
+
+def _take(args: argparse.Namespace, res: str, command: list[str], kind: str) -> tuple[Lock | None, dict]:
+    """Take one lock (queueing with --wait); log start. (None, info) when refused."""
     info = {
         "resource": res,
         "pid": os.getpid(),
@@ -483,12 +671,79 @@ def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[Lo
             log_event("waiting", resource=res, purpose=info["purpose"], cwd=info["cwd"], held_by=who)
             print(f"Waiting for the {RESOURCES[res]}: held by {describe(who)}", file=sys.stderr)
         time.sleep(POLL_SECONDS)
-    waited_s = round(time.time() - started_wait) if waited else 0
-    log_event("start", **{k: info[k] for k in ("resource", "pid", "kind", "purpose", "cmd", "cwd")},
-              waited_s=waited_s)
+    _note_lost(lock, res)
+    info["waited_s"] = round(time.time() - started_wait) if waited else 0
+    return lock, info
+
+
+def _admit(args: argparse.Namespace, info: dict) -> bool:
+    """Memory admission, done while holding the outer lock so the job stays first in line: wait (with
+    --wait) or refuse while free memory is under the threshold. Other chats and Docker use memory
+    that no lock counts, so the lock alone is not enough (findings/memory-admission-one-machine)."""
+    need, waited = min_free_gb(args), False
+    while True:
+        free = mem_free_gb()
+        info["mem_free_gb"] = free
+        if free is None or free >= need:
+            return True
+        if not args.wait:
+            log_event("refused", resource=info["resource"], reason="low_memory", mem_free_gb=free,
+                      min_free_gb=need, **{k: info[k] for k in ("purpose", "cmd", "cwd")})
+            print(f"Only {free:.1f} GB of memory is free (commit headroom); a heavy job needs {need:g} GB. "
+                  f"Rerun with --wait to queue until memory frees, or close something.", file=sys.stderr)
+            return False
+        if not waited:
+            waited = True
+            log_event("waiting", resource=info["resource"], reason="low_memory", mem_free_gb=free,
+                      min_free_gb=need, purpose=info["purpose"], cwd=info["cwd"])
+            print(f"Waiting for memory: {free:.1f} GB free, need {need:g} GB", file=sys.stderr)
+        time.sleep(POLL_SECONDS)
+
+
+def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[list[Lock] | None, dict]:
+    """Take the locks a job needs and log `start` for each. A GPU job takes the RAM lock first (unless
+    a parent `gpu_run.py run --resource ram` already holds it for this process), then the GPU lock,
+    always in that order so two chats cannot wait on each other (user's decision, 2026-11-17). The
+    memory check runs once, by whichever wrapper takes the RAM lock. Returns (locks, info of the
+    requested resource), or (None, info) when refused; on refusal nothing stays held."""
+    res = getattr(args, "resource", "gpu")
+    order = ["ram", "gpu"] if res == "gpu" else [res]
+    taken: list[Lock] = []
+    info: dict = {}
+    for r in order:
+        if r == "ram" and os.environ.get(env_held("ram")):
+            continue  # the parent wrapper holds it, and has done the memory check
+        lock, info = _take(args, r, command, kind)
+        if lock is None:
+            for held in reversed(taken):
+                held.release()
+                log_event("end", resource=held.resource, pid=os.getpid(), purpose=info["purpose"],
+                          cwd=info["cwd"], seconds=0, exit_code=3, note="released: next lock refused")
+            return None, info
+        if r == "ram" and not _admit(args, info):
+            lock.release()
+            for held in reversed(taken):
+                held.release()
+            return None, info
+        log_event("start", **{k: info[k] for k in ("resource", "pid", "kind", "purpose", "cmd", "cwd")},
+                  waited_s=info["waited_s"], mem_free_gb=info.get("mem_free_gb", mem_free_gb()))
+        taken.append(lock)
     if res == "gpu":
         ollama_note(getattr(args, "keep_ollama", False))
-    return lock, info
+    return taken, info
+
+
+def _release_all(locks: list[Lock], info: dict, t0: float, code: int, **extra) -> None:
+    """Release in reverse order of taking; log `end` for each."""
+    for lock in reversed(locks):
+        lock.release()
+        fields = extra if lock.resource == info["resource"] else {}
+        log_event("end", resource=lock.resource, pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
+                  seconds=round(time.time() - t0), exit_code=code, **fields)
+
+
+def _child_env(locks: list[Lock]) -> dict:
+    return {**os.environ, **{env_held(lock.resource): str(os.getpid()) for lock in locks}}
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -496,8 +751,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     if not command:
         print("gpu_run run: no command given (put it after --)", file=sys.stderr)
         return 2
-    lock, info = acquire(args, command, "job")
-    if lock is None:
+    locks, info = acquire(args, command, "job")
+    if locks is None:
         return 3
     res = info["resource"]
 
@@ -517,7 +772,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         threading.Thread(target=sample, daemon=True).start()
     t0, code = time.time(), 1
     try:
-        code = subprocess.run(command, env={**os.environ, env_held(res): str(os.getpid())}).returncode
+        proc = subprocess.Popen(command, env=_child_env(locks))
+        kill_with_me(proc)
+        code = proc.wait()
     except KeyboardInterrupt:
         code = 130
     except OSError as e:
@@ -525,12 +782,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         code = 127
     finally:
         stop.set()
-        lock.release()
-        log_event("end", resource=res, pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
-                  seconds=round(time.time() - t0), exit_code=code,
-                  peak_gpu_util_pct=peak["util_pct"] or None,
-                  peak_gpu_mem_mb=peak["mem_mb"] or None,
-                  peak_gpu_temp_c=peak["temp_c"] or None)
+        _release_all(locks, info, t0, code,
+                     peak_gpu_util_pct=peak["util_pct"] or None,
+                     peak_gpu_mem_mb=peak["mem_mb"] or None,
+                     peak_gpu_temp_c=peak["temp_c"] or None)
     return code
 
 
@@ -545,43 +800,50 @@ def stop_containers(ids: list[str]) -> bool:
 
 
 def cmd_hold(args: argparse.Namespace) -> int:
-    """Run a start command that leaves GPU containers running; hold the lock until they stop."""
+    """Run a start command that leaves containers running (a Compose stack, a model server); hold the
+    lock(s) until every container it started has stopped. ``--resource ram`` (any stack) holds the RAM
+    lock; the default, gpu, holds the RAM and GPU locks. Logs the stack's peak memory, the figure a
+    WSL cap is sized from (user's decision, 2026-11-17: measure, then set)."""
     command = _command(args)
     if not command:
         print("gpu_run hold: no command given (put it after --)", file=sys.stderr)
         return 2
-    lock, info = acquire(args, command, "service")
-    if lock is None:
+    locks, info = acquire(args, command, "service")
+    if locks is None:
         return 3
-    t0, code, held = time.time(), 1, {}
+    t0, code, held, peak_mb = time.time(), 1, {}, None
     try:
-        before = gpu_containers() or {}
+        before = containers(gpu_only=False) or {}
         try:
-            code = subprocess.run(command, env={**os.environ, ENV_HELD: str(os.getpid())},
-                                  check=False).returncode
+            code = subprocess.run(command, env=_child_env(locks), check=False).returncode
         except OSError as e:
             print(f"gpu_run: cannot start {command[0]}: {e}", file=sys.stderr)
             code = 127
-        after = gpu_containers()
+        after = containers(gpu_only=False)
         if after is None:
             print("gpu_run hold: cannot list Docker containers; releasing the lock.", file=sys.stderr)
             return code
         held = {cid: name for cid, name in after.items() if cid not in before}
         if not held:
-            print("gpu_run hold: the command left no new GPU container running; lock released.",
+            print("gpu_run hold: the command left no new container running; lock released.",
                   file=sys.stderr)
             return code
-        lock.update({**info, "containers": held})
-        log_event("hold", pid=info["pid"], purpose=info["purpose"], cwd=info["cwd"],
-                  containers=sorted(held.values()))
+        for lock in locks:
+            lock.update({**info, "resource": lock.resource, "containers": held})
+        log_event("hold", resource=info["resource"], pid=info["pid"], purpose=info["purpose"],
+                  cwd=info["cwd"], containers=sorted(held.values()))
         deadline = t0 + args.max_minutes * 60 if getattr(args, "max_minutes", None) else None
         until = f" (deadline: {args.max_minutes} min, then `docker stop`)" if deadline else ""
-        print(f"gpu_run hold: holding the GPU lock while {', '.join(held.values())} run; stop them "
+        names = "RAM and GPU locks" if len(locks) > 1 else f"{RESOURCES[locks[0].resource]}"
+        print(f"gpu_run hold: holding the {names} while {', '.join(held.values())} run; stop them "
               f"to release it{until}.", file=sys.stderr, flush=True)
         while True:
-            time.sleep(HOLD_POLL_SECONDS)
-            running = gpu_containers()
-            if running is not None and not set(held) & set(running):
+            running = containers(gpu_only=False)
+            alive = [cid for cid in held if running is None or cid in running]
+            mb = containers_mem_mb(alive) if running is not None else None
+            if mb is not None:
+                peak_mb = max(peak_mb or 0.0, mb)
+            if running is not None and not alive:
                 break
             if deadline and time.time() >= deadline:
                 ok = stop_containers(list(held))
@@ -591,14 +853,13 @@ def cmd_hold(args: argparse.Namespace) -> int:
                       file=sys.stderr)
                 code = 124  # what `timeout` returns
                 break
+            time.sleep(HOLD_POLL_SECONDS)
         return code
     except KeyboardInterrupt:
         return 130
     finally:
-        lock.release()
-        log_event("end", pid=info["pid"], kind="service", purpose=info["purpose"], cwd=info["cwd"],
-                  seconds=round(time.time() - t0), exit_code=code,
-                  containers=sorted(held.values()) or None)
+        _release_all(locks, info, t0, code, kind="service",
+                     containers=sorted(held.values()) or None, peak_stack_mem_mb=peak_mb)
 
 
 # ----------------------------------------------------------------------------- status, check
@@ -612,6 +873,9 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"{name} held by {describe(lock.holder())}")
     else:
         print(f"{name} lock is free")
+    free = mem_free_gb()
+    if free is not None:
+        print(f"memory free (commit headroom): {free:.1f} GB; heavy jobs start at {min_free_gb():g} GB or more")
     return 0
 
 
@@ -666,7 +930,7 @@ def cmd_thermal(args: argparse.Namespace) -> int:
     try:
         while deadline is None or time.time() < deadline:
             r = thermal_reading() or {}
-            r.update({"cpu_temp_c": None, **cpu_reading()})
+            r.update({"cpu_temp_c": None, **cpu_reading(), "mem_free_gb": mem_free_gb()})
             log_thermal({"event": "sample", **r})
             n += 1
             time.sleep(args.interval)
@@ -812,6 +1076,8 @@ def cmd_report(args: argparse.Namespace) -> int:
     ollama = [r for r in rows if r["event"] == "ollama"]
     print(f"  Ollama models seen on the GPU outside the lock: {len(ollama)}   "
           f"unloaded at lock take: {sum(1 for r in rows if r['event'] == 'ollama_unload' and r.get('ok'))}")
+    lost = [r for r in rows if r["event"] == "lost"]
+    print(f"  lost holders (wrapper died without releasing; job may have been killed): {len(lost)}")
     print(f"  UNGUARDED use seen (GPU busy, no lock held): {len(unguarded)}")
     for r in unguarded[-5:]:
         who = f"  containers: {', '.join(r['containers'])}" if r.get("containers") else ""
@@ -843,6 +1109,12 @@ def report_lock(args: argparse.Namespace, rows: list[dict], res: str) -> int:
               f"{(r.get('held_by') or {}).get('purpose', '?')}")
     print(f"  queued (waited for the lock): {len(waited)}   "
           f"longest wait: {max((r['waited_s'] for r in waited), default=0)} s")
+    low = [r for r in rows if r.get("reason") == "low_memory"]
+    print(f"  held back for low memory (waited or refused): {len(low)}")
+    print(f"  lost holders (wrapper died without releasing): {sum(1 for r in rows if r['event'] == 'lost')}")
+    peaks = [r["peak_stack_mem_mb"] for r in ends if r.get("peak_stack_mem_mb")]
+    if peaks:
+        print(f"  container stacks held: {len(peaks)}   peak memory: {max(peaks):.0f} MB")
     if not ends:
         print(f"  (no jobs recorded; run heavy jobs through `gpu_run.py run --resource {res}`)")
     return 0
@@ -852,11 +1124,13 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     for name, text in (("run", "run a command under the GPU lock"),
-                       ("hold", "start GPU containers and hold the lock until they stop")):
+                       ("hold", "start containers (a Compose stack, a GPU service) and hold the lock(s) until they stop")):
         r = sub.add_parser(name, help=text)
-        if name == "run":
-            r.add_argument("--resource", choices=sorted(RESOURCES), default="gpu",
-                           help="which lock: gpu (default) or ram (RAM/CPU-heavy jobs)")
+        r.add_argument("--resource", choices=sorted(RESOURCES), default="gpu",
+                       help="which lock: gpu (default; takes the RAM lock first) or ram (RAM/CPU-heavy jobs)")
+        r.add_argument("--min-free-gb", type=float,
+                       help=f"memory that must be free before the job starts (default {MIN_FREE_GB:g}, "
+                            f"or ${ENV_MIN_FREE})")
         r.add_argument("--wait", action="store_true", help="queue behind the holder instead of failing")
         r.add_argument("--purpose", help="short label shown to whoever is refused (default: program)")
         r.add_argument("--keep-ollama", action="store_true",

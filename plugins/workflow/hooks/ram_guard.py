@@ -5,11 +5,17 @@ or dataset into system RAM goes through `gpu_run.py run --resource ram`, so two 
 at once on the 16 GB laptop. That was text only, and on 2026-11-15 an agent ran a 537-test suite
 bare (user's decision, 2026-11-15: refuse unguarded, as `gpu_guard` does for GPU containers).
 
-Refused unless the command goes through `gpu_run.py run ... --resource ram`:
+Refused unless the command goes through `gpu_run.py run` or `hold` (a GPU `run`/`hold` takes the RAM
+lock first since 2026-11-17, so any of them covers RAM):
 - a full test run: `pytest` (also `python -m pytest`, `uv run pytest`, `poetry run pytest`) with no
   test file or `::node` target, and `npm|pnpm|yarn test`;
 - a build: `npm|pnpm|yarn [run] build*`, `next build`, `docker build`, `docker buildx build`,
-  `docker compose build`, `docker-compose build`.
+  `docker compose build`, `docker-compose build`;
+- a Compose stack: `docker compose ... up` / `docker-compose up`. A detached one (`-d`, `--detach`,
+  `--wait`) keeps its memory after the command returns, so only `gpu_run.py hold` (which keeps the lock
+  until the stack stops) covers it; `run` would release at once (user's decision, 2026-11-17, after a
+  stack held RAM between another loop's model loads overnight; standard: findings/shared-gpu-one-machine
+  and findings/memory-admission-one-machine, checked 2026-11-13 and 2026-11-17).
 A single test file, linters, type checks and git pass. A large model or dataset load inside a script
 is invisible here and stays the agent's judgement.
 
@@ -23,9 +29,10 @@ import json
 import re
 import sys
 
-from gpu_guard import _name, _segments, _strip_wrappers
+from gpu_guard import _compose_subcommand, _detached, _name, _segments, _strip_wrappers
 
-_GUARDED = re.compile(r"gpu_run\.py[\"']?\s+run\b[^;&|]*--resource[=\s]+ram\b")
+_GUARDED = re.compile(r"gpu_run\.py[\"']?\s+(?:run|hold)\b")
+_HELD = re.compile(r"gpu_run\.py[\"']?\s+hold\b")
 _RUNNERS = {"uv", "poetry", "pipenv", "pdm", "hatch", "rye"}  # `<runner> run <cmd>`
 _PKG = {"npm", "pnpm", "yarn"}
 
@@ -34,6 +41,15 @@ _REFUSED = (
     "could run beside it on the 16 GB laptop. Run it as "
     "`python ~/claude-config/scripts/gpu_run.py run --resource ram --wait -- {cmd}` (the lock is "
     "immediate when free; a GPU job goes inside it). A single test file needs no lock. "
+    "(Rule: working-rules, \"Heavy RAM/CPU jobs\".)"
+)
+
+_REFUSED_STACK = (
+    "Refused: `{cmd}` starts a Docker Compose stack, which keeps its memory after the command returns, "
+    "outside the machine-wide RAM lock. Start it in the background as "
+    "`python ~/claude-config/scripts/gpu_run.py hold --resource ram --wait --purpose <task> -- {cmd}` "
+    "(a stack with a GPU service: leave out `--resource ram`, and it holds both locks). The lock is "
+    "released when the stack stops (`docker compose down`). "
     "(Rule: working-rules, \"Heavy RAM/CPU jobs\".)"
 )
 
@@ -73,8 +89,8 @@ def _full_pytest(args: list[str]) -> bool:
 
 
 def kind_of(words: list[str]) -> str:
-    """'full test run', 'build' or '' for one command's words."""
-    if any(_name(w) == "gpu_run.py" for w in words) and "--" in words:  # GPU-only lock: check its command
+    """'full test run', 'build', 'stack' (detached compose up), 'stack in foreground' or ''."""
+    if any(_name(w) == "gpu_run.py" for w in words) and "--" in words:  # a wrapper: check its command
         words = words[words.index("--") + 1:]
     words = _unwrap(_strip_wrappers(words))
     if not words:
@@ -94,20 +110,37 @@ def kind_of(words: list[str]) -> str:
     if head == "docker" and rest:
         if rest[0] == "build" or rest[:2] == ["buildx", "build"] or rest[:2] == ["image", "build"]:
             return "build"
-        if rest[0] == "compose" and "build" in rest[1:]:
+        if rest[0] == "compose":
+            sub, after = _compose_subcommand(rest[1:])
+            if sub == "up":
+                return "stack" if _detached(after) else "stack in foreground"
+            if "build" in rest[1:]:
+                return "build"
+    if head == "docker-compose":
+        sub, after = _compose_subcommand(rest)
+        if sub == "up":
+            return "stack" if _detached(after) else "stack in foreground"
+        if "build" in rest:
             return "build"
-    if head == "docker-compose" and "build" in rest:
-        return "build"
     return ""
 
 
+def _inner(words: list[str]) -> str:
+    """The wrapped command of `gpu_run.py ... -- <command>`, else the whole segment."""
+    if any(_name(w) == "gpu_run.py" for w in words) and "--" in words:
+        words = words[words.index("--") + 1:]
+    return " ".join(words)[:120]
+
+
 def refusal(command: str) -> str:
-    if _GUARDED.search(command):
-        return ""
     for words in _segments(command):
         kind = kind_of(words)
-        if kind:
-            return _REFUSED.format(cmd=" ".join(words)[:120], kind=kind)
+        text = " ".join(words)
+        if kind == "stack" and not _HELD.search(text):  # `run` would release while the stack runs
+            return _REFUSED_STACK.format(cmd=_inner(words))
+        if kind and kind != "stack" and not _GUARDED.search(text):
+            template = _REFUSED_STACK if kind.startswith("stack") else _REFUSED
+            return template.format(cmd=_inner(words), kind=kind)
     return ""
 
 
@@ -120,7 +153,7 @@ def main() -> int:
         return 0
     tool_input = payload.get("tool_input")
     command = str(tool_input.get("command", "")) if isinstance(tool_input, dict) else ""
-    if not re.search(r"pytest|py\.test|\btest\b|build", command):
+    if not re.search(r"pytest|py\.test|\btest\b|build|\bup\b", command):
         return 0
     try:
         reason = refusal(command)
