@@ -55,7 +55,7 @@ def test_a_gpu_run_now_covers_ram_too():
 
 @pytest.mark.parametrize("command", [
     "docker compose up -d",
-    "docker compose -p real285 -f compose.yaml -f compose.reranker.yaml up -d",
+    "docker compose -p app -f compose.yaml -f compose.extra.yaml up -d",
     "docker-compose up -d db",
     "docker compose up --wait",
     "cd app && docker compose up -d --build",
