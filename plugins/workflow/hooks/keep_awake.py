@@ -21,7 +21,9 @@ Three entry points, one file:
   that gap. So after its command exits the holder waits for the session's next turn to end: a turn
   start (UserPromptSubmit, which also fires for a task notification) after the exit, then a turn
   end (Stop) after that start. It also releases when claude.exe exits, or GRACE_CAP_S after the exit
-  (a turn cut off by Esc or an API error may fire no Stop). It polls the turn marks every GRACE_POLL_S.
+  (a turn cut off by Esc or an API error may fire no Stop). It also releases IDLE_GRACE_S after the
+  exit (or after the last Stop, if later) when the session is idle and no turn started after the exit,
+  e.g. a stopped overnight loop whose wait ended with nobody to read it (claude-config#20). It polls the turn marks every GRACE_POLL_S.
 - **Timer holds** (user's decision, 2026-11-12, after a review found that a chat idling on a timer
   held nothing): PreToolUse on `ScheduleWakeup`, `CronCreate` and `Monitor` starts the same
   holder with a `timer` in its spec instead of a shell to watch. It holds until the wake time
@@ -66,6 +68,7 @@ POLL_S = 0.25
 LONG_HOLD_H = 4.0
 GRACE_CAP_S = 3600.0
 GRACE_POLL_S = 5.0
+IDLE_GRACE_S = 120.0  # an idle session that starts no turn this long after the exit holds nothing more
 LOG_MAX = 200_000
 TIMER_SLACK_S = 120.0
 TIMER_RECURRING_CAP_S = 12 * 3600.0  # a recurring CronCreate job holds this long at most
@@ -210,12 +213,19 @@ def matches_shell(tool: str, name: str, cmdline: str, words: list[str]) -> bool:
     return False
 
 
-def grace_over(exited: float, marks: dict, now: float, cap: float = GRACE_CAP_S) -> str | None:
+def grace_over(
+    exited: float, marks: dict, now: float, cap: float = GRACE_CAP_S, idle_grace: float = IDLE_GRACE_S
+) -> str | None:
     """Why a hold whose command exited at `exited` may end now, or None to keep holding.
     `marks` holds the session's last turn start (`prompt`) and turn end (`stop`) times."""
     prompt, stop = marks.get("prompt", 0.0), marks.get("stop", 0.0)
     if prompt > exited and stop > prompt:
         return "the next turn ended"
+    # Idle: the last turn has ended and none started after the exit, so no turn is reading the
+    # result. A task notification or a wake-up starts one within seconds; if none came, the chat
+    # is done (a stopped loop), so release instead of waiting out the cap (claude-config#20).
+    if stop > 0 and prompt <= exited and stop >= prompt and now - max(exited, stop) >= idle_grace:
+        return f"session idle, no turn within {idle_grace:.0f} s"
     if now - exited >= cap:
         return f"no turn end within {cap / 60:.0f} min"
     return None

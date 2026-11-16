@@ -209,8 +209,34 @@ def test_grace_waits_for_a_turn_that_starts_after_the_exit():
 
 
 def test_grace_has_a_cap():
-    assert ka.grace_over(100.0, {}, now=100.0 + ka.GRACE_CAP_S - 1) is None
+    # Busy session (turn started after the last stop, before the exit): only the cap ends it.
+    busy = {"prompt": 90.0, "stop": 60.0}
+    assert ka.grace_over(100.0, busy, now=100.0 + ka.GRACE_CAP_S - 1) is None
+    assert ka.grace_over(100.0, busy, now=100.0 + ka.GRACE_CAP_S).startswith("no turn end")
+    # Never a stop mark at all: the cap is the fallback; idle release needs a known idle session.
     assert ka.grace_over(100.0, {}, now=100.0 + ka.GRACE_CAP_S).startswith("no turn end")
+
+
+def test_grace_releases_an_idle_session_after_a_short_wait():
+    exited = 1000.0
+    idle = {"prompt": 500.0, "stop": 600.0}  # last turn ended long before the exit; none since
+    # Within the idle grace the wake-up or notification turn may still arrive.
+    assert ka.grace_over(exited, idle, now=exited + ka.IDLE_GRACE_S - 1) is None
+    assert ka.grace_over(exited, idle, now=exited + ka.IDLE_GRACE_S).startswith("session idle")
+    # A turn that ends late (stop after the exit) restarts the wait from that stop.
+    late = {"prompt": 900.0, "stop": 1050.0}
+    assert ka.grace_over(exited, late, now=1050.0 + ka.IDLE_GRACE_S - 1) is None
+    assert ka.grace_over(exited, late, now=1050.0 + ka.IDLE_GRACE_S).startswith("session idle")
+
+
+def test_grace_does_not_release_a_busy_session():
+    exited = 1000.0
+    # A turn started before the exit and has not ended: busy, however long.
+    busy = {"prompt": 900.0, "stop": 600.0}
+    assert ka.grace_over(exited, busy, now=exited + 1000) is None
+    # A turn started after the exit and has not ended: busy.
+    reading = {"prompt": 1010.0, "stop": 600.0}
+    assert ka.grace_over(exited, reading, now=exited + 1000) is None
 
 
 def test_marks_round_trip(tmp_path, monkeypatch):
