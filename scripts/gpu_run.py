@@ -62,6 +62,9 @@ at or above the target and the slowdown point, thermal-slowdown time, and how ma
 ``--trigger-c`` (default: the card's target), which is what a pause rule would have acted on. For
 the CPU it gives peak and mean, minutes at or above ``--cpu-threshold-c`` (default 90) and within
 5 C of TjMax, and the clock under load (median, lowest tenth, minimum; a low tail means throttling).
+The logger also starts ``laptop_health.py snapshot`` at its start and end (battery, disk, error counts);
+``laptop_health.py report`` turns the thermal log and the snapshots into heavy hours, heat-cool cycles,
+GB written and health trends (standard: findings/laptop-overnight-heavy-jobs, checked 2026-11-16).
 """
 
 from __future__ import annotations
@@ -300,6 +303,19 @@ def cpu_reading() -> dict:
             k.UnmapViewOfFile(view)
     finally:
         k.CloseHandle(h)
+
+
+def health_snapshot(label: str) -> None:
+    """Start a laptop_health snapshot (battery, disk, error counts) in the background; never raises.
+    The logger calls it at its start and end, so each night has a before and an after."""
+    script = Path(__file__).with_name("laptop_health.py")
+    if not script.exists():
+        return
+    try:
+        subprocess.Popen([sys.executable, str(script), "snapshot", "--label", label], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, **NO_WINDOW)
+    except OSError:
+        pass
 
 
 def log_thermal(record: dict) -> None:
@@ -642,6 +658,7 @@ def cmd_thermal(args: argparse.Namespace) -> int:
     limits = gpu_limits()
     log_thermal({"event": "start", "pid": os.getpid(), "purpose": args.purpose or "thermal",
                  "interval_s": args.interval, "limits": limits})
+    health_snapshot("thermal-start")
     print(f"gpu_run thermal: logging every {args.interval:g} s to {guard_dir() / 'thermal.jsonl'}; "
           f"card limits {limits or 'unknown'}", flush=True)
     deadline = time.time() + args.minutes * 60 if args.minutes else None
@@ -657,6 +674,7 @@ def cmd_thermal(args: argparse.Namespace) -> int:
         pass
     finally:
         log_thermal({"event": "end", "pid": os.getpid(), "samples": n})
+        health_snapshot("thermal-end")
         single.release()
     return 0
 
