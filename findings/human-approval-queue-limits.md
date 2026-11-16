@@ -18,6 +18,8 @@ status: current
   - **Batching is a workload tool, not a fix**, and expired requests should not be silently cleared: return them to the agent with a signal that the window was missed, so it retries or drops them (practitioner blogs).
   - **Checker's inference (not stated by the sources):** a fixed cap per repository does not scale with the number of repositories or with the user's real capacity. A better shape is one limit on what the user reads in a sitting, with items ranked by priority, and overflow collected in one digest (a single list of waiting decisions) instead of being left unflagged. Skipping an item without any flag is the failure the sources warn about (silent expiry).
 
+- **Departure (decision recorded in the self-drive skill, 2026-11-17):** the user set no limit on items waiting for review, because their agents help review them; the loop never stops or slows for review capacity (departs from standard: WIP limit on the review step; the sources' fatigue warning is met by agent-assisted review, not by a cap).
+
 - **Evidence strength:** common practice for WIP limits and Little's Law (many independent sources); anecdotal for agent-approval numbers (vendor and practitioner blogs); no data found for a numeric cap.
 
 - **Sources:**
