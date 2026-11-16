@@ -8,6 +8,8 @@ the worktrees and the ranked startable issues, so the loop chat makes one tool c
 Reads open issues and their GitHub issue dependencies ("blocked by" / "blocking" links) with one
 GraphQL call, then prints the issues a chat may start, best first (user's decision, 2026-11-15):
 
+0. `priority:first`: the user's override (2026-11-17), ahead of everything else, including resume work;
+   among several, the oldest. A blocked, `claimed` or `needs-you` issue is still left out;
 1. resume-relevant: an issue labelled `resume:1` to `resume:6` (set by the triage pass, TRIAGE.md),
    or one that blocks such an issue, directly or through others (it takes the best label it unblocks);
    by that label, then the `gap:<group>` rank in ~/.claude/resume-gaps.md, then the shorter chain
@@ -35,6 +37,7 @@ from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
 SKIP_LABELS = {"claimed", "needs-you"}
+FIRST = "priority:first"  # the user's override: runs before resume work and everything else
 TIERS = {"priority:now": 0, "priority:next": 1, "priority:later": 2}
 TEXT_DEP = re.compile(r"\bblocked by\s+#(\d+)", re.IGNORECASE)
 RESUME = re.compile(r"^resume:([1-6])$")  # kinds of resume work, 1 best; meanings in TRIAGE.md
@@ -169,12 +172,14 @@ def rank(issues: list[dict], ranks: dict[str, int] | None = None) -> tuple[list[
         options += [(*own[m], d) for m, d in chain[n].items() if own.get(m)]
         resume = min(options) if options else None
         ranked.append({"number": n, "title": issue["title"], "tier": tier, "blocks": fan,
-                       "resume": resume, "createdAt": issue["createdAt"]})
+                       "resume": resume, "first": FIRST in labels, "createdAt": issue["createdAt"]})
     ranked.sort(key=sort_key)
     return ranked, fixups
 
 
 def sort_key(r: dict) -> tuple:
+    if r.get("first"):
+        return (-1, 0, 0, 0, 0, 0, r["createdAt"])
     if r["resume"]:
         return (0, *r["resume"], 0, 0, r["createdAt"])
     return (1, 0, 0, 0, r["tier"], -r["blocks"], r["createdAt"])
@@ -185,6 +190,8 @@ def render(ranked: list[dict], limit: int) -> list[str]:
     names = ["now", "next", "later", "unlabelled"]
 
     def tag(r: dict) -> str:
+        if r.get("first"):
+            return "first"
         if not r["resume"]:
             return names[r["tier"]]
         kind, _, d = r["resume"]

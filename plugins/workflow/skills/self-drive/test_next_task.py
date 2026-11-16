@@ -127,3 +127,16 @@ def test_gap_rank_breaks_ties_within_a_resume_kind(tmp_path) -> None:
 def test_claimed_lists_only_claimed_issues_in_number_order() -> None:
     issues = [issue(5, ["claimed"]), issue(2, ["priority:now"]), issue(3, ["claimed", "priority:next"])]
     assert next_task.claimed(issues) == ["#3	t3", "#5	t5"]
+
+
+def test_priority_first_beats_resume_work_and_still_skips_blocked_or_claimed() -> None:
+    issues = [
+        issue(1, ["resume:1"], created="2026-10-01"),
+        issue(2, ["priority:first"], created="2026-11-17"),
+        issue(3, ["priority:first", "claimed"], created="2026-11-01"),
+        issue(4, ["priority:first"], blocked_by=[1], created="2026-11-01"),
+        issue(5, ["priority:now"], created="2026-10-01"),
+    ]
+    ranked, _ = next_task.rank(issues, ranks={})
+    assert numbers(ranked) == [2, 1, 5]
+    assert next_task.render(ranked, 5)[0].split("	")[1] == "first"
