@@ -42,6 +42,7 @@ else { & $claude plugin update workflow@personal-config 2>&1 | Select-Object -La
 Step 'thermal logger task (only on a machine with an NVIDIA GPU)'
 # Always-on logger, independent of chats (user's decision, 2026-11-17): at logon and every 5 minutes;
 # a start while it runs is ignored, so the repeat acts as a watchdog. Re-registering is harmless.
+# 60 s samples (standard: findings/monitoring-sample-interval, checked 2026-11-17).
 if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
     $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source
     if (-not $py) { Write-Host 'PROBLEM  pythonw not on PATH; thermal logger task not registered.' }
