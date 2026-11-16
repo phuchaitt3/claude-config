@@ -92,3 +92,10 @@ def test_smart_lines_show_ssd_writes_and_changes():
     line = lh.smart_lines(snaps)[0]
     assert "written 3.0 GB" in line and "wear % 25 -> 26" in line and "PASSED" in line
     assert "not read" in lh.smart_lines([{}])[0]
+
+
+def test_room_proxy_prefers_the_hdd():
+    smart = [{"type": "nvme", "temperature_c": 47}, {"type": "ata", "temperature_c": 37}]
+    assert lh.room_proxy(smart) == 37
+    assert lh.room_proxy([{"type": "nvme", "temperature_c": 45}]) == 45
+    assert lh.room_proxy([]) is None

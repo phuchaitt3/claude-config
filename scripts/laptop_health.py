@@ -41,7 +41,11 @@ the sources ask for the same workload, power mode and room each time, not a maxi
 at the same clock means dust or dried paste. Run it at the same Lenovo mode each time, with no heavy
 job running (idle apps are fine; keep them the same). Start it as
 ``python gpu_run.py run --resource ram --wait -- python laptop_health.py reference``.
-It measures the laptop, so Kaggle-first does not apply to it.
+It measures the laptop, so Kaggle-first does not apply to it. Comparable conditions are kept by a
+room check: before loading, it reads the HDD's idle temperature (a rough stand-in for the room) and
+skips the test, logging ``reference_skipped``, when that differs from the usual value of past runs by
+more than ``--room-band-c`` (default 2 C), for example on a night the AC is on. A skipped test costs
+no load; ``due`` stays true, so the next night tries again.
 """
 
 from __future__ import annotations
@@ -335,6 +339,14 @@ def _gpu_burn(stop_at: float) -> None:
         torch.cuda.synchronize()
 
 
+def room_proxy(smart: list[dict]) -> float | None:
+    """The HDD's idle temperature: it sits away from the CPU and follows the room, roughly. Falls back to
+    the coolest disk. Rough: a disk that has just been busy reads warmer."""
+    ata = [r["temperature_c"] for r in smart if r.get("type") == "ata" and r.get("temperature_c") is not None]
+    temps = ata or [r["temperature_c"] for r in smart if r.get("temperature_c") is not None]
+    return min(temps) if temps else None
+
+
 def cmd_reference(args: argparse.Namespace) -> int:
     """Idle for --idle-seconds (the starting point, standing in for room temperature), then a fixed
     moderate load; logs the mean rise over idle in the second half of the load."""
@@ -346,6 +358,19 @@ def cmd_reference(args: argparse.Namespace) -> int:
         r.update(gpu_run.cpu_reading())
         return r
 
+    smart = read_smart() or []
+    disks_idle = {r.get("model") or r.get("device"): r.get("temperature_c") for r in smart}
+    room = room_proxy(smart)
+    past = [r["room_proxy_c"] for r in read_lines("health.jsonl", datetime.now().astimezone() - timedelta(days=365))
+            if r.get("event") == "reference" and r.get("room_proxy_c") is not None and not r.get("aborted")]
+    if past and room is not None and not args.force:
+        usual = sorted(past)[len(past) // 2]
+        if abs(room - usual) > args.room_band_c:
+            append("health.jsonl", {"event": "reference_skipped", "room_proxy_c": room, "usual_c": usual,
+                                    "note": args.note, "hour": datetime.now().hour})
+            print(f"laptop_health: skipped: the room looks different (HDD {room} C, usual {usual} C, band "
+                  f"{args.room_band_c:g} C); try another night or pass --force")
+            return 0
     idle = []
     t_idle = time.time() + args.idle_seconds
     while time.time() < t_idle:
@@ -381,7 +406,8 @@ def cmd_reference(args: argparse.Namespace) -> int:
               "cpu_idle_c": mean(idle, "cpu_temp_c"), "gpu_idle_c": mean(idle, "gpu_temp_c"),
               "cpu_temp_c": mean(tail, "cpu_temp_c"), "cpu_mhz": mean(tail, "cpu_mhz"),
               "gpu_temp_c": mean(tail, "gpu_temp_c"), "gpu_power_w": mean(tail, "power_w"),
-              "gpu_mhz": mean(tail, "sm_mhz"),
+              "gpu_mhz": mean(tail, "sm_mhz"), "note": args.note, "hour": datetime.now().hour,
+              "disk_idle_c": disks_idle, "room_proxy_c": room,  # the HDD sits away from the CPU: a rough stand-in for room temperature
               "cpu_temp_peak_c": max((r["cpu_temp_c"] for r in samples if r.get("cpu_temp_c") is not None), default=None)}
     for k in ("cpu", "gpu"):
         if result[f"{k}_temp_c"] is not None and result[f"{k}_idle_c"] is not None:
@@ -468,6 +494,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             print(f"    {r['ts'][:10]}: CPU {r.get('cpu_temp_c')} C (rise {r.get('cpu_rise_c')} over idle) at "
                   f"{r.get('cpu_mhz')} MHz, {r.get('threads')} threads, {r.get('minutes')} min"
                   + (f"; GPU {r.get('gpu_temp_c')} C at {r.get('gpu_power_w')} W" if r.get("gpu_load") else "")
+                  + (f"; disks idle {r.get('disk_idle_c')}" if r.get("disk_idle_c") else "")
+                  + (f"; {r['note']}" if r.get("note") else "")
                   + (" ABORTED" if r.get("aborted") else ""))
     else:
         print("  cooling reference: none yet (`laptop_health.py due` says when to run it)")
@@ -489,6 +517,10 @@ def main(argv: list[str] | None = None) -> int:
     ref.add_argument("--idle-seconds", type=float, default=60.0)
     ref.add_argument("--abort-c", type=float, default=85.0, help="stop the load if CPU or GPU reaches this")
     ref.add_argument("--gpu", action="store_true")
+    ref.add_argument("--note", default="", help="conditions, e.g. 'AC off, door closed'")
+    ref.add_argument("--room-band-c", type=float, default=2.0,
+                     help="skip when the room stand-in differs from the usual by more than this")
+    ref.add_argument("--force", action="store_true", help="run even when the room looks different")
     d = sub.add_parser("due")
     d.add_argument("--days", type=int, default=7)
     args = p.parse_args(argv)
