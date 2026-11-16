@@ -45,9 +45,9 @@ It measures the laptop, so Kaggle-first does not apply to it. Comparable conditi
 room check: before loading, it reads the HDD's idle temperature (a rough stand-in for the room) and
 skips the test, logging ``reference_skipped``, when that differs from the usual value of past runs by
 more than ``--room-band-c`` (default 2 C), for example on a night the AC is on. "The usual" is the
-median of past accepted runs, so it follows a slow change of season. The first run has no usual
-value: it refuses unless ``--first`` confirms the room is normal, so an odd night never becomes the
-baseline. A skipped test costs
+median of past accepted runs, so it follows a slow change of season. The check starts after the first
+three runs, whose median outvotes one odd night; the report marks any run whose room differs from
+the usual by more than the band, so an odd early run is set aside, not compared. A skipped test costs
 no load; ``due`` stays true, so the next night tries again.
 """
 
@@ -65,6 +65,7 @@ from pathlib import Path
 
 NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 ENV_DIR = "GPU_GUARD_DIR"
+BASELINE_RUNS = 3  # runs before the room check starts; their median outvotes one odd night
 
 
 def guard_dir() -> Path:
@@ -366,11 +367,7 @@ def cmd_reference(args: argparse.Namespace) -> int:
     room = room_proxy(smart)
     past = [r["room_proxy_c"] for r in read_lines("health.jsonl", datetime.now().astimezone() - timedelta(days=365))
             if r.get("event") == "reference" and r.get("room_proxy_c") is not None and not r.get("aborted")]
-    if not past and not args.first:
-        print("laptop_health: no earlier result, so this run sets 'the usual' room. Run it on a normal night "
-              "(AC off) with --first, so an unusual night never becomes the baseline.")
-        return 0
-    if past and room is not None and not args.force:
+    if len(past) >= BASELINE_RUNS and room is not None and not args.force:
         usual = sorted(past)[len(past) // 2]
         if abs(room - usual) > args.room_band_c:
             append("health.jsonl", {"event": "reference_skipped", "room_proxy_c": room, "usual_c": usual,
@@ -497,13 +494,17 @@ def cmd_report(args: argparse.Namespace) -> int:
     refs = [r for r in read_lines("health.jsonl", since - timedelta(days=365)) if r.get("event") == "reference"]
     if refs:
         print("  cooling reference (compare the rise over idle at the same clock and threads; a higher rise means worse cooling):")
+        rooms = sorted(r["room_proxy_c"] for r in refs if r.get("room_proxy_c") is not None)
+        usual = rooms[len(rooms) // 2] if rooms else None
         for r in refs[-6:]:
+            odd = usual is not None and r.get("room_proxy_c") is not None and abs(r["room_proxy_c"] - usual) > 2
             print(f"    {r['ts'][:10]}: CPU {r.get('cpu_temp_c')} C (rise {r.get('cpu_rise_c')} over idle) at "
                   f"{r.get('cpu_mhz')} MHz, {r.get('threads')} threads, {r.get('minutes')} min"
                   + (f"; GPU {r.get('gpu_temp_c')} C at {r.get('gpu_power_w')} W" if r.get("gpu_load") else "")
                   + (f"; disks idle {r.get('disk_idle_c')}" if r.get("disk_idle_c") else "")
                   + (f"; {r['note']}" if r.get("note") else "")
-                  + (" ABORTED" if r.get("aborted") else ""))
+                  + (" ABORTED" if r.get("aborted") else "")
+                  + (f" [room {r['room_proxy_c']} C vs usual {usual} C: not comparable]" if odd else ""))
     else:
         print("  cooling reference: none yet (`laptop_health.py due` says when to run it)")
     return 0
@@ -528,7 +529,6 @@ def main(argv: list[str] | None = None) -> int:
     ref.add_argument("--room-band-c", type=float, default=2.0,
                      help="skip when the room stand-in differs from the usual by more than this")
     ref.add_argument("--force", action="store_true", help="run even when the room looks different")
-    ref.add_argument("--first", action="store_true", help="confirm this run sets the baseline (normal room)")
     d = sub.add_parser("due")
     d.add_argument("--days", type=int, default=7)
     args = p.parse_args(argv)

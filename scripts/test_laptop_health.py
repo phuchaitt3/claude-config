@@ -101,7 +101,10 @@ def test_room_proxy_prefers_the_hdd():
     assert lh.room_proxy([]) is None
 
 
-def test_reference_refuses_first_run_without_confirmation(tmp_path):
-    r = run(tmp_path, "reference", "--minutes", "0.01", "--idle-seconds", "0")
-    assert r.returncode == 0 and "--first" in r.stdout
-    assert not (tmp_path / "health.jsonl").exists()
+def test_report_marks_a_reference_from_an_unusual_room(tmp_path):
+    now = datetime.now().astimezone()
+    refs = [{"ts": (now - timedelta(days=d)).isoformat(), "event": "reference", "room_proxy_c": c, "cpu_temp_c": 70}
+            for d, c in ((21, 36), (14, 37), (7, 31))]
+    (tmp_path / "health.jsonl").write_text("\n".join(json.dumps(x) for x in refs))
+    out = run(tmp_path, "report").stdout
+    assert out.count("not comparable") == 1 and "room 31 C vs usual 36 C" in out
