@@ -1,5 +1,5 @@
 {
   "version": "0.60.12",
-  "since": "2026-11-17T05:00:00+07:00",
+  "since": "2026-11-17T04:30:00+07:00",
   "why": "Heavy RAM/CPU jobs rule changed: a GPU run/hold now takes the RAM lock itself, heavy jobs wait for 4 GB of free memory, and the ram_guard hook refuses a bare `docker compose up` (use `gpu_run.py hold --resource ram`)"
 }
