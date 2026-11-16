@@ -39,4 +39,20 @@ if ($installed -notmatch 'workflow@personal-config') { & $claude plugin install 
 else { & $claude plugin update workflow@personal-config 2>&1 | Select-Object -Last 1 | Out-Host }
 & $claude plugin list 2>&1 | Select-String -Pattern 'workflow@personal-config|Version|Status' | Out-Host
 
+Step 'thermal logger task (only on a machine with an NVIDIA GPU)'
+# Always-on logger, independent of chats (user's decision, 2026-11-17): at logon and every 5 minutes;
+# a start while it runs is ignored, so the repeat acts as a watchdog. Re-registering is harmless.
+if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
+    $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source
+    if (-not $py) { Write-Host 'PROBLEM  pythonw not on PATH; thermal logger task not registered.' }
+    else {
+        $act = New-ScheduledTaskAction -Execute $py -Argument "`"$(Join-Path $cfg 'scripts\gpu_run.py')`" thermal --interval 60 --purpose always-on" -WorkingDirectory $HOME
+        $trg = @((New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME),
+                 (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)))
+        $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
+        Register-ScheduledTask -TaskName gpu-thermal-logger -Action $act -Trigger $trg -Settings $set -Force -Description 'Always-on thermal logger (gpu_run.py thermal), independent of Claude chats' | Out-Null
+        Write-Host 'gpu-thermal-logger registered'
+    }
+} else { Write-Host 'no nvidia-smi; skipped' }
+
 Write-Host "`nDone. Restart Claude Code (close and reopen VS Code windows) to apply."
