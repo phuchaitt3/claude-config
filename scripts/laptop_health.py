@@ -31,14 +31,17 @@ Slow health readings (from snapshots, one line each; a failed source is recorded
   * Windows hardware error events (WHEA) and unexpected-shutdown events (Kernel-Power 41), counted
     since the last snapshot: a rising count is an early sign that a component is failing.
 
-``reference`` is the cooling check: a fixed load for M minutes (default 20): every logical CPU busy
-and, with ``--gpu``, a fixed GPU matrix multiply loop (needs torch with CUDA), sampling temperature,
-power and clocks. It logs the mean over the last half. Run it at the same Lenovo mode and power
-setting each time, with nothing else running; a result that creeps up month after month means dust
-or dried paste. It is a heavy job: start it as
-``python gpu_run.py run --resource ram --wait -- python laptop_health.py reference``
-(add ``--gpu`` and wrap in a second ``gpu_run.py run --wait`` for the GPU part). It is the one heavy job
-that must run on the laptop (it measures the laptop), so Kaggle-first does not apply to it.
+``reference`` is the cooling check: one minute idle (the starting point; it stands in for room
+temperature, which shifts every reading), then a fixed moderate load for M minutes (default 10): half
+the logical CPUs busy and, with ``--gpu``, a fixed GPU matrix multiply (torch with CUDA). It logs the
+mean temperature and clock in the second half and the rise over idle, and stops the load at once if
+CPU or GPU reaches ``--abort-c`` (default 85 C). It is a repeatable everyday load, not a stress test:
+the sources ask for the same workload, power mode and room each time, not a maximum load
+(standard: findings/laptop-cooling-baseline, checked 2026-11-16). A rise that grows month after month
+at the same clock means dust or dried paste. Run it at the same Lenovo mode each time, with no heavy
+job running (idle apps are fine; keep them the same). Start it as
+``python gpu_run.py run --resource ram --wait -- python laptop_health.py reference``.
+It measures the laptop, so Kaggle-first does not apply to it.
 """
 
 from __future__ import annotations
@@ -205,16 +208,68 @@ def read_disks() -> dict:
     if rows and any(any(v is not None for k, v in r.items() if k != "Name") for r in rows):
         out["reliability"] = rows
     else:
-        out["reliability_note"] = "no counters (needs administrator rights or smartctl)"
-    try:
-        smart = subprocess.run(["smartctl", "--scan"], check=False, capture_output=True, text=True, timeout=20,
-                               **NO_WINDOW).stdout
-        out["smartctl"] = [subprocess.run(["smartctl", "-H", "-A", line.split()[0]], check=False, capture_output=True,
-                                          text=True, timeout=30, **NO_WINDOW).stdout[-3000:]
-                           for line in smart.splitlines() if line.strip()]
-    except (OSError, subprocess.SubprocessError):
-        pass
+        out["reliability_note"] = "Windows reliability counters empty (need administrator rights)"
+    smart = read_smart()
+    if smart:
+        out["smart"] = smart
     return out
+
+
+def smartctl_path() -> str | None:
+    """smartctl on PATH, or where the smartmontools installer puts it on Windows."""
+    import shutil
+
+    found = shutil.which("smartctl")
+    if found:
+        return found
+    default = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "smartmontools" / "bin" / "smartctl.exe"
+    return str(default) if default.exists() else None
+
+
+def parse_smart(data: dict) -> dict:
+    """The fields that track wear and failure, from `smartctl -j -H -A` output (NVMe or ATA)."""
+    row = {"device": (data.get("device") or {}).get("name"), "type": (data.get("device") or {}).get("type"),
+           "model": data.get("model_name"), "passed": (data.get("smart_status") or {}).get("passed")}
+    nv = data.get("nvme_smart_health_information_log")
+    if nv:  # NVMe: data units are 1000 blocks of 512 bytes
+        row.update({"percentage_used": nv.get("percentage_used"), "available_spare": nv.get("available_spare"),
+                    "written_bytes": None if nv.get("data_units_written") is None else nv["data_units_written"] * 512000,
+                    "temperature_c": nv.get("temperature"), "power_on_hours": nv.get("power_on_hours"),
+                    "unsafe_shutdowns": nv.get("unsafe_shutdowns"), "media_errors": nv.get("media_errors"),
+                    "critical_warning": nv.get("critical_warning")})
+    attrs = ((data.get("ata_smart_attributes") or {}).get("table")) or []
+    wanted = {5: "reallocated_sectors", 197: "pending_sectors", 198: "offline_uncorrectable"}
+    for a in attrs:
+        if a.get("id") in wanted:
+            row[wanted[a["id"]]] = (a.get("raw") or {}).get("value")
+    if attrs:  # decoded by smartctl: some drives pack extra bits into the raw hours and temperature
+        row["power_on_hours"] = (data.get("power_on_time") or {}).get("hours")
+        row["temperature_c"] = (data.get("temperature") or {}).get("current")
+    return row
+
+
+def read_smart() -> list[dict] | None:
+    """SMART health per disk. Without administrator rights this laptop's NVMe SSD reports in full, the
+    SATA HDD only its pass/fail status; missing fields stay out."""
+    exe = smartctl_path()
+    if not exe:
+        return None
+    try:
+        scan = subprocess.run([exe, "--scan"], check=False, capture_output=True, text=True, timeout=20, **NO_WINDOW).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    rows = []
+    for line in scan.splitlines():
+        parts = line.split("#")[0].split()
+        if not parts:
+            continue
+        try:
+            out = subprocess.run([exe, "-j", "-i", "-H", "-A", *parts[1:], parts[0]], check=False, capture_output=True,
+                                 text=True, timeout=30, **NO_WINDOW).stdout
+            rows.append(parse_smart(json.loads(out)))
+        except (OSError, subprocess.SubprocessError, ValueError):
+            continue
+    return rows or None
 
 
 def read_disk_bytes() -> dict | None:
@@ -281,12 +336,24 @@ def _gpu_burn(stop_at: float) -> None:
 
 
 def cmd_reference(args: argparse.Namespace) -> int:
+    """Idle for --idle-seconds (the starting point, standing in for room temperature), then a fixed
+    moderate load; logs the mean rise over idle in the second half of the load."""
     sys.path.insert(0, str(Path(__file__).parent))
     import gpu_run  # same folder: thermal and Core Temp readers
 
-    seconds = args.minutes * 60
-    stop_at = time.time() + seconds
-    procs = [multiprocessing.Process(target=_burn, args=(stop_at,)) for _ in range(os.cpu_count() or 4)]
+    def sample() -> dict:
+        r = gpu_run.thermal_reading() or {}
+        r.update(gpu_run.cpu_reading())
+        return r
+
+    idle = []
+    t_idle = time.time() + args.idle_seconds
+    while time.time() < t_idle:
+        idle.append(sample())
+        time.sleep(5)
+    threads = args.threads or max(1, (os.cpu_count() or 4) // 2)
+    stop_at = time.time() + args.minutes * 60
+    procs = [multiprocessing.Process(target=_burn, args=(stop_at,)) for _ in range(threads)]
     if args.gpu:
         procs.append(multiprocessing.Process(target=_gpu_burn, args=(stop_at,)))
     for p in procs:
@@ -294,23 +361,31 @@ def cmd_reference(args: argparse.Namespace) -> int:
     samples = []
     try:
         while time.time() < stop_at:
-            r = gpu_run.thermal_reading() or {}
-            r.update(gpu_run.cpu_reading())
+            r = sample()
             samples.append(r)
+            if (r.get("cpu_temp_c") or 0) >= args.abort_c or (r.get("gpu_temp_c") or 0) >= args.abort_c:
+                print(f"laptop_health: aborted at {r} (>= {args.abort_c:g} C)")
+                break
             time.sleep(5)
     finally:
         for p in procs:
             p.terminate()
     tail = samples[len(samples) // 2:]  # the second half: the load has settled
 
-    def mean(key: str):
-        v = [r[key] for r in tail if r.get(key) is not None]
+    def mean(rows: list[dict], key: str):
+        v = [r[key] for r in rows if r.get(key) is not None]
         return round(sum(v) / len(v), 1) if v else None
 
-    result = {"event": "reference", "minutes": args.minutes, "gpu_load": args.gpu, "samples": len(samples),
-              "cpu_temp_c": mean("cpu_temp_c"), "cpu_mhz": mean("cpu_mhz"), "gpu_temp_c": mean("gpu_temp_c"),
-              "gpu_power_w": mean("power_w"), "gpu_mhz": mean("sm_mhz"),
+    result = {"event": "reference", "minutes": args.minutes, "threads": threads, "gpu_load": args.gpu,
+              "samples": len(samples), "aborted": len(samples) < args.minutes * 12 - 2,
+              "cpu_idle_c": mean(idle, "cpu_temp_c"), "gpu_idle_c": mean(idle, "gpu_temp_c"),
+              "cpu_temp_c": mean(tail, "cpu_temp_c"), "cpu_mhz": mean(tail, "cpu_mhz"),
+              "gpu_temp_c": mean(tail, "gpu_temp_c"), "gpu_power_w": mean(tail, "power_w"),
+              "gpu_mhz": mean(tail, "sm_mhz"),
               "cpu_temp_peak_c": max((r["cpu_temp_c"] for r in samples if r.get("cpu_temp_c") is not None), default=None)}
+    for k in ("cpu", "gpu"):
+        if result[f"{k}_temp_c"] is not None and result[f"{k}_idle_c"] is not None:
+            result[f"{k}_rise_c"] = round(result[f"{k}_temp_c"] - result[f"{k}_idle_c"], 1)
     append("health.jsonl", result)
     print(f"laptop_health: reference result {result}")
     return 0
@@ -326,6 +401,30 @@ def cmd_due(args: argparse.Namespace) -> int:
 
 
 # -------------------------------------------------------------------------------------- report
+
+
+def smart_lines(snaps: list[dict]) -> list[str]:
+    """Per disk: writes between the first and last snapshot (NVMe's own lifetime counter, so no reboot
+    reset), wear, and the failure counters, first -> last."""
+    by_dev: dict[str, list[dict]] = {}
+    for snap in snaps:
+        for row in ((snap.get("disks") or {}).get("smart") or []):
+            by_dev.setdefault(row.get("model") or row.get("device") or "?", []).append(row)
+    if not by_dev:
+        return ["  disk SMART: not read (smartctl not found)"]
+    out = []
+    for name, rows in by_dev.items():
+        a, b = rows[0], rows[-1]
+        parts = [f"health {'PASSED' if b.get('passed') else 'FAILED' if b.get('passed') is False else '?'}"]
+        if b.get("written_bytes") is not None and a.get("written_bytes") is not None:
+            parts.append(f"written {(b['written_bytes'] - a['written_bytes']) / 1e9:.1f} GB")
+        for key, label in (("percentage_used", "wear %"), ("unsafe_shutdowns", "unsafe shutdowns"),
+                           ("media_errors", "media errors"), ("reallocated_sectors", "reallocated"),
+                           ("pending_sectors", "pending"), ("temperature_c", "temp C")):
+            if b.get(key) is not None:
+                parts.append(f"{label} {a.get(key)} -> {b[key]}" if a.get(key) != b[key] else f"{label} {b[key]}")
+        out.append(f"  {name}: " + ", ".join(parts))
+    return out
 
 
 def cmd_report(args: argparse.Namespace) -> int:
@@ -349,7 +448,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     snaps = [r for r in read_lines("health.jsonl", since) if r.get("event") == "snapshot"]
     if snaps:
         written = total_with_resets([(s.get("disk") or {}).get("written_bytes") for s in snaps])
-        print(f"  written to disk between snapshots: {written / 1e9:.1f} GB (all disks; counter resets at reboot are handled)")
+        print(f"  written, all disks (Windows counter, includes the HDD): {written / 1e9:.1f} GB")
         ev = {k: sum((s.get("events_since_last") or {}).get(k) or 0 for s in snaps) for k in ("whea", "kernel_power_41")}
         print(f"  hardware errors (WHEA): {ev['whea']}   unexpected shutdowns (Kernel-Power 41): {ev['kernel_power_41']}")
         bats = [(s["ts"], s["battery"]) for s in snaps if s.get("battery") and s["battery"].get("full_mwh")]
@@ -358,17 +457,18 @@ def cmd_report(args: argparse.Namespace) -> int:
             pct = lambda b: 100 * b["full_mwh"] / b["design_mwh"] if b.get("design_mwh") else None
             print(f"  battery full charge {first['full_mwh']} -> {last['full_mwh']} mWh ({pct(last):.0f}% of design), "
                   f"cycles {first.get('cycles')} -> {last.get('cycles')}")
-        notes = {(s.get("disks") or {}).get("reliability_note") for s in snaps} - {None}
-        if notes:
-            print(f"  disk wear / SMART: {', '.join(sorted(notes))}")
+        for line in smart_lines(snaps):
+            print(line)
     else:
         print("  no snapshots yet (`laptop_health.py snapshot`)")
     refs = [r for r in read_lines("health.jsonl", since - timedelta(days=365)) if r.get("event") == "reference"]
     if refs:
-        print("  cooling reference (CPU mean temp at clock; higher temp at the same clock means worse cooling):")
+        print("  cooling reference (compare the rise over idle at the same clock and threads; a higher rise means worse cooling):")
         for r in refs[-6:]:
-            print(f"    {r['ts'][:10]}: CPU {r.get('cpu_temp_c')} C at {r.get('cpu_mhz')} MHz, "
-                  f"GPU {r.get('gpu_temp_c')} C at {r.get('gpu_power_w')} W ({r.get('minutes')} min)")
+            print(f"    {r['ts'][:10]}: CPU {r.get('cpu_temp_c')} C (rise {r.get('cpu_rise_c')} over idle) at "
+                  f"{r.get('cpu_mhz')} MHz, {r.get('threads')} threads, {r.get('minutes')} min"
+                  + (f"; GPU {r.get('gpu_temp_c')} C at {r.get('gpu_power_w')} W" if r.get("gpu_load") else "")
+                  + (" ABORTED" if r.get("aborted") else ""))
     else:
         print("  cooling reference: none yet (`laptop_health.py due` says when to run it)")
     return 0
@@ -384,7 +484,10 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--swing-c", type=float, default=25.0)
     r.add_argument("--heavy-pct", type=float, default=80.0)
     ref = sub.add_parser("reference")
-    ref.add_argument("--minutes", type=float, default=20.0)
+    ref.add_argument("--minutes", type=float, default=10.0)
+    ref.add_argument("--threads", type=int, default=0, help="busy threads (default: half the logical CPUs)")
+    ref.add_argument("--idle-seconds", type=float, default=60.0)
+    ref.add_argument("--abort-c", type=float, default=85.0, help="stop the load if CPU or GPU reaches this")
     ref.add_argument("--gpu", action="store_true")
     d = sub.add_parser("due")
     d.add_argument("--days", type=int, default=7)

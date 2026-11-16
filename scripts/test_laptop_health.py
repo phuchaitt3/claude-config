@@ -63,7 +63,7 @@ def test_report_reads_thermal_and_health_logs(tmp_path):
     out = run(tmp_path, "report").stdout
     assert "heavy (>= 80% load)" in out
     assert "heat-cool cycles (swing >= 25 C): 1" in out
-    assert "written to disk between snapshots: 12.0 GB" in out
+    assert "written, all disks (Windows counter, includes the HDD): 12.0 GB" in out
     assert "WHEA): 1" in out
     assert "44600 -> 44500" in out
 
@@ -72,3 +72,23 @@ def test_due_exits_1_without_a_reference_and_0_after(tmp_path):
     assert run(tmp_path, "due").returncode == 1
     (tmp_path / "health.jsonl").write_text(json.dumps({"ts": datetime.now().astimezone().isoformat(), "event": "reference"}))
     assert run(tmp_path, "due").returncode == 0
+
+
+def test_parse_smart_nvme_and_ata():
+    nv = lh.parse_smart({"device": {"name": "/dev/sdb", "type": "nvme"}, "model_name": "SSD", "smart_status": {"passed": True},
+                         "nvme_smart_health_information_log": {"percentage_used": 25, "data_units_written": 2,
+                                                               "unsafe_shutdowns": 201, "temperature": 47}})
+    assert nv["written_bytes"] == 1024000 and nv["percentage_used"] == 25 and nv["passed"] is True
+    ata = lh.parse_smart({"device": {"name": "/dev/sda"}, "smart_status": {"passed": True},
+                          "ata_smart_attributes": {"table": [{"id": 5, "raw": {"value": 0}},
+                                                             {"id": 9, "raw": {"value": 230455060218021}}]},
+                          "power_on_time": {"hours": 16549}, "temperature": {"current": 37}})
+    assert ata["power_on_hours"] == 16549 and ata["temperature_c"] == 37 and ata["reallocated_sectors"] == 0
+
+
+def test_smart_lines_show_ssd_writes_and_changes():
+    snaps = [{"disks": {"smart": [{"model": "SSD", "passed": True, "written_bytes": 10e9, "percentage_used": 25}]}},
+             {"disks": {"smart": [{"model": "SSD", "passed": True, "written_bytes": 13e9, "percentage_used": 26}]}}]
+    line = lh.smart_lines(snaps)[0]
+    assert "written 3.0 GB" in line and "wear % 25 -> 26" in line and "PASSED" in line
+    assert "not read" in lh.smart_lines([{}])[0]
