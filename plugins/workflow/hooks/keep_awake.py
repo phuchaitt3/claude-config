@@ -31,6 +31,9 @@ Three entry points, one file:
   context when the set of holds changed since this session's last line, or while one is over
   LONG_HOLD_H hours old, so a forgotten hold is seen. Holds are machine-wide, so all are listed.
 
+Watch only (no hold, a record for checks/overdue_run_check.py): a `# keepawake: off` command that is
+not a recognised server (claude-config#18).
+
 Skipped (no hold): `pnpm|npm|yarn [run] dev`, `next dev`, `--reload`, `--watch`, `serve` as a word,
 `docker compose up` without `-d`. A `# keepawake: on` or `# keepawake: off` marker in the command
 overrides. The power plan is never changed, and a closed lid still sleeps the machine.
@@ -84,17 +87,28 @@ PS_LAUNCHER = "CLAUDE_CODE_SHELL_LAUNCHER_SCRIPT"
 # --- deciding -------------------------------------------------------------------------------
 
 
+def is_server(command: str) -> bool:
+    """True for a recognised long-lived server (dev server, watcher, attached compose up)."""
+    if any(p.search(command) for p in _SERVERS):
+        return True
+    return any(not _DETACH.search(m.group(1)) for m in _COMPOSE_UP.finditer(command))
+
+
 def wants_hold(command: str) -> bool:
     """True when a background command should hold off idle sleep."""
     marker = _MARKER.findall(command)
     if marker:
         return marker[-1].lower() == "on"
-    if any(p.search(command) for p in _SERVERS):
-        return False
-    for match in _COMPOSE_UP.finditer(command):
-        if not _DETACH.search(match.group(1)):
-            return False
-    return True
+    return not is_server(command)
+
+
+def wants_watch(command: str) -> bool:
+    """True when a command that holds nothing is still watched, so a hang is reported.
+
+    A `# keepawake: off` command that is not a recognised server gets a record without a hold
+    (checks/overdue_run_check.py reads it); servers are meant to run long and are not watched.
+    """
+    return not wants_hold(command) and not is_server(command)
 
 
 def _cron_field(spec: str, lo: int, hi: int) -> set[int] | None:
@@ -418,7 +432,9 @@ def hold(spec_path: str) -> int:
     spec = json.loads(Path(spec_path).read_text(encoding="utf-8"))
     Path(spec_path).unlink(missing_ok=True)
     before = set(spec["before"])
-    k32.SetThreadExecutionState(0x80000000 | 0x1)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+    awake = bool(spec.get("awake", True))  # False: a watch-only record, no hold
+    if awake:
+        k32.SetThreadExecutionState(0x80000000 | 0x1)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
     record = HOLDS_DIR / f"{os.getpid()}.json"
     shell: int | None = None
     try:
@@ -432,6 +448,7 @@ def hold(spec_path: str) -> int:
         data = {
             "holder": os.getpid(), "shell": shell, "tool": spec["tool"], "command": spec["command"],
             "cwd": spec.get("cwd", ""), "session": spec.get("session", ""), "started": time.time(),
+            "awake": awake,
         }
         record.write_text(json.dumps(data), encoding="utf-8")
         if timer:
@@ -451,6 +468,9 @@ def hold(spec_path: str) -> int:
             exited = time.time()
             log_run(spec, exited)
             record.write_text(json.dumps({**data, "exited": exited}), encoding="utf-8")
+            if not awake:
+                log(f"watched shell {shell} exited")
+                return 0
             log(f"shell {shell} exited; holding until the next turn ends")
         while True:
             if not alive(spec["claude"]):
@@ -463,7 +483,8 @@ def hold(spec_path: str) -> int:
         log(f"released: shell {shell} exited, {reason}")
         return 0
     finally:
-        k32.SetThreadExecutionState(0x80000000)
+        if awake:
+            k32.SetThreadExecutionState(0x80000000)
         record.unlink(missing_ok=True)
         if shell is not None:
             (CLAIMS_DIR / f"{shell}.claim").unlink(missing_ok=True)
@@ -475,7 +496,7 @@ def pythonw() -> str:
     return str(candidate if candidate.is_file() else exe)
 
 
-def start_holder(payload: dict, timer: float = 0.0) -> None:
+def start_holder(payload: dict, timer: float = 0.0, awake: bool = True) -> None:
     tool_input = payload.get("tool_input") or {}
     command = str(tool_input.get("command", ""))
     if timer:  # a waiting tool call: label the hold for the status line
@@ -492,7 +513,7 @@ def start_holder(payload: dict, timer: float = 0.0) -> None:
         "claude": claude, "tool": payload.get("tool_name"), "command": command,
         "words": fingerprint(command), "before": sorted(procs),
         "cwd": payload.get("cwd", ""), "session": payload.get("session_id", ""),
-        "launched": time.time(), "timer": timer,
+        "launched": time.time(), "timer": timer, "awake": awake,
     }), encoding="utf-8")
     flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED | NEW_PROCESS_GROUP | NO_WINDOW
     args = [pythonw(), str(Path(__file__).resolve()), "hold", str(spec)]
@@ -514,8 +535,11 @@ def pre_tool_use(payload: dict) -> None:
         return
     if payload.get("tool_name") not in ("Bash", "PowerShell") or not tool_input.get("run_in_background"):
         return
-    if wants_hold(str(tool_input.get("command", ""))):
+    command = str(tool_input.get("command", ""))
+    if wants_hold(command):
         start_holder(payload)
+    elif wants_watch(command):
+        start_holder(payload, awake=False)
 
 
 # --- status ----------------------------------------------------------------------------------
@@ -537,7 +561,7 @@ def active_holds() -> list[dict]:
 
 def status(payload: dict) -> None:
     write_mark(payload.get("session_id", ""), "prompt")
-    holds = active_holds()
+    holds = [h for h in active_holds() if h.get("awake", True)]
     now = time.time()
     session = session_key(payload.get("session_id", ""))
     seen_file = CACHE_DIR / f"seen-{session}.json"

@@ -119,7 +119,7 @@ def test_claude_pid_walks_up_to_claude():
 
 
 def _run_hook(monkeypatch, payload, started):
-    monkeypatch.setattr(ka, "start_holder", lambda p, timer=0.0: started.append((p, timer)))
+    monkeypatch.setattr(ka, "start_holder", lambda p, timer=0.0, awake=True: started.append((p, timer, awake)))
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload)))
     monkeypatch.setattr(sys, "platform", "win32")
     assert ka.main([]) == 0
@@ -282,3 +282,31 @@ def test_other_tools_do_not_hold():
 ])
 def test_next_cron_delay(cron, seconds):
     assert ka.next_cron_delay(cron, NOW) == seconds
+
+
+def test_off_marker_on_a_plain_command_is_watched_not_held():
+    cmd = "uv run python long_job.py # keepawake: off"
+    assert not ka.wants_hold(cmd) and ka.wants_watch(cmd)
+
+
+def test_servers_and_normal_commands_are_not_watch_only():
+    assert not ka.wants_watch("npm run dev")  # server: no hold, no watch
+    assert not ka.wants_watch("pnpm dev  # keepawake: off")  # off marker on a server
+    assert not ka.wants_watch("python x.py")  # held, not watch-only
+
+
+def test_watch_only_records_stay_out_of_the_status_line(monkeypatch, capsys):
+    holds = [{"holder": 5, "started": 0.0, "command": "x", "awake": False}]
+    monkeypatch.setattr(ka, "active_holds", lambda: holds)
+    ka.status({"session_id": "watch-only-test"})
+    assert "keep-awake: 1 hold" not in capsys.readouterr().out
+
+
+def test_hook_watches_an_off_marker_job_without_a_hold(monkeypatch):
+    started: list = []
+    off = {"tool_name": "Bash", "tool_input": {"command": "python x.py # keepawake: off", "run_in_background": True}}
+    _run_hook(monkeypatch, off, started)
+    assert [s[2] for s in started] == [False]  # awake=False
+    server = {"tool_name": "Bash", "tool_input": {"command": "npm run dev # keepawake: off", "run_in_background": True}}
+    _run_hook(monkeypatch, server, started)
+    assert len(started) == 1  # a server is not watched
