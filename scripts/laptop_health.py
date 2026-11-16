@@ -44,7 +44,10 @@ job running (idle apps are fine; keep them the same). Start it as
 It measures the laptop, so Kaggle-first does not apply to it. Comparable conditions are kept by a
 room check: before loading, it reads the HDD's idle temperature (a rough stand-in for the room) and
 skips the test, logging ``reference_skipped``, when that differs from the usual value of past runs by
-more than ``--room-band-c`` (default 2 C), for example on a night the AC is on. A skipped test costs
+more than ``--room-band-c`` (default 2 C), for example on a night the AC is on. "The usual" is the
+median of past accepted runs, so it follows a slow change of season. The first run has no usual
+value: it refuses unless ``--first`` confirms the room is normal, so an odd night never becomes the
+baseline. A skipped test costs
 no load; ``due`` stays true, so the next night tries again.
 """
 
@@ -363,6 +366,10 @@ def cmd_reference(args: argparse.Namespace) -> int:
     room = room_proxy(smart)
     past = [r["room_proxy_c"] for r in read_lines("health.jsonl", datetime.now().astimezone() - timedelta(days=365))
             if r.get("event") == "reference" and r.get("room_proxy_c") is not None and not r.get("aborted")]
+    if not past and not args.first:
+        print("laptop_health: no earlier result, so this run sets 'the usual' room. Run it on a normal night "
+              "(AC off) with --first, so an unusual night never becomes the baseline.")
+        return 0
     if past and room is not None and not args.force:
         usual = sorted(past)[len(past) // 2]
         if abs(room - usual) > args.room_band_c:
@@ -521,6 +528,7 @@ def main(argv: list[str] | None = None) -> int:
     ref.add_argument("--room-band-c", type=float, default=2.0,
                      help="skip when the room stand-in differs from the usual by more than this")
     ref.add_argument("--force", action="store_true", help="run even when the room looks different")
+    ref.add_argument("--first", action="store_true", help="confirm this run sets the baseline (normal room)")
     d = sub.add_parser("due")
     d.add_argument("--days", type=int, default=7)
     args = p.parse_args(argv)

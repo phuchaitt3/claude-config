@@ -99,3 +99,9 @@ def test_room_proxy_prefers_the_hdd():
     assert lh.room_proxy(smart) == 37
     assert lh.room_proxy([{"type": "nvme", "temperature_c": 45}]) == 45
     assert lh.room_proxy([]) is None
+
+
+def test_reference_refuses_first_run_without_confirmation(tmp_path):
+    r = run(tmp_path, "reference", "--minutes", "0.01", "--idle-seconds", "0")
+    assert r.returncode == 0 and "--first" in r.stdout
+    assert not (tmp_path / "health.jsonl").exists()
