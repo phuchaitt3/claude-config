@@ -361,8 +361,12 @@ def check(command: str, gh: Gh) -> str | None:
             if not gh.may_merge(pr_args):
                 return (
                     "Agents may merge only in a project that declares the solo-fast tier in its "
-                    "CLAUDE.md. Here the user merges: label the PR `needs-you` and request their "
-                    "review."
+                    "CLAUDE.md. The gate reads that file from this chat's own folder, not from a "
+                    "`cd` inside the command. If the PR is in another repository, name it: "
+                    "`gh pr merge <n> --repo <owner>/<name> ...` reads that repository's "
+                    "CLAUDE.md, or run the merge from a chat started in that project. If that "
+                    "repository is not solo-fast either, the user merges: label the PR "
+                    "`needs-you` and request their review."
                 )
             hits = user_merge_hits(gh.files(pr_args), gh.codeowners(pr_args))
             if hits:

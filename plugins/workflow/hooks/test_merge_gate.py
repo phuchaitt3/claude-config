@@ -173,6 +173,7 @@ def test_an_empty_codeowners_leaves_only_secrets() -> None:
 def test_outside_a_solo_fast_repo_every_merge_is_refused() -> None:
     reason = merge_gate.check("gh pr merge 4 --squash", FakeGh(solo=False))
     assert reason and "solo-fast" in reason
+    assert "--repo" in reason and "needs-you" in reason  # says how to name the other repository
 
 
 def test_admin_is_refused_before_anything_else() -> None:
