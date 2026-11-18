@@ -59,7 +59,7 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
 Step 'GPU clock cap tasks (only on a machine with an NVIDIA GPU; one administrator prompt)'
 # Overnight clock cap (user's decision, 2026-11-17, claude-config issue #22): `schtasks /run /tn
 # gpu-clock-cap-on` locks the GPU at 1000-1350 MHz; `-off` resets it. Both run elevated on demand only, so
-# an unattended chat needs no prompt. The marker file lets `gpu_run.py check` see a cap left on.
+# an unattended chat needs no prompt. cmd /c needs the whole command wrapped in one more pair of quotes. The marker file lets `gpu_run.py check` see a cap left on.
 if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) { Write-Host 'NEEDS ADMIN  run this script once from an administrator PowerShell to register gpu-clock-cap-on and -off; skipped.' }
@@ -70,7 +70,7 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
         $cmds = @{ 'gpu-clock-cap-on'  = "`"$smi`" -lgc 1000,1350 && echo on> `"$marker`""
                    'gpu-clock-cap-off' = "`"$smi`" -rgc && del `"$marker`"" }
         foreach ($name in $cmds.Keys) {
-            $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c $($cmds[$name])"
+            $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$($cmds[$name])`""
             $pri = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
             $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
             Register-ScheduledTask -TaskName $name -Action $act -Principal $pri -Settings $set -Force -Description 'GPU clock cap (claude-config issue #22); run on demand with schtasks /run' | Out-Null
