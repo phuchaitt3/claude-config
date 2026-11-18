@@ -32,11 +32,16 @@ An issue labelled `heavy` (its finish needs a GPU, a full test suite, a large mo
 stack; set by triage or when filed) is held back while `gpu_run.py status` shows the GPU lock held or
 free memory under its 4 GB gate: a `HEAVY HOLD:` line names the skipped issue and the light one to
 take instead, and the next round checks again (#26, 2026-11-18).
+The label is learned from evidence, not set by an up-front pass (#28, 2026-11-18; standard:
+findings/heavy-task-tagging, checked 2026-11-18): `--wait-evidence` prints each lock start in the
+`gpu_run.py` events that waited WAIT_HEAVY_S (10 minutes) or more, so the loop can label the issue
+that worker was on; a worker killed for low memory is the other evidence (SKILL.md, "Heavy-task hold").
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -46,6 +51,7 @@ from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
 SKIP_LABELS = {"claimed", "needs-you"}
+WAIT_HEAVY_S = 600  # a lock wait this long is evidence the issue is heavy (#28; 10 min = the run-estimate bar)
 HEAVY = "heavy"  # finish needs a heavy local job (GPU, full test suite, large model, Compose stack)
 FIRST = "priority:first"  # the user's override: runs before resume work and everything else
 TIERS = {"priority:now": 0, "priority:next": 1, "priority:later": 2}
@@ -300,6 +306,24 @@ def hold_lines(ranked: list[dict], clear: bool, reason: str) -> list[str]:
     return [f"HEAVY HOLD: {reason}; skipped heavy {nums} (retry next round; put it in the summary); {nxt}"]
 
 
+def long_waits(events: list[dict], threshold: int = WAIT_HEAVY_S) -> list[str]:
+    """One line per `start` event in gpu_run.py's log that waited `threshold` seconds or more for a lock
+    (resource, wait, purpose, folder): the evidence that the issue being worked was heavy (#28)."""
+    return [f"HEAVY EVIDENCE: waited {e['waited_s']} s on the {e.get('resource', 'gpu')} lock: "
+            f"{e.get('purpose') or '-'} ({e.get('cwd') or '-'})"
+            for e in events if e.get("event") == "start" and (e.get("waited_s") or 0) >= threshold]
+
+
+def read_wait_events(days: int) -> list[dict]:
+    """Events of the last `days` days from gpu_run.py's log (same file and cutoff as `gpu_run.py report`)."""
+    spec = importlib.util.spec_from_file_location("gpu_run", GPU_RUN)
+    if spec is None or spec.loader is None:
+        return []
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.read_events(days)
+
+
 PICKS_LOG = Path.home() / ".claude" / "overnight-picks.jsonl"
 
 
@@ -372,8 +396,14 @@ def main() -> int:
                         help="print the whole round sync: open PRs, claims, worktrees, then issues")
     parser.add_argument("--log-picks", action="store_true",
                         help="append this ranking to ~/.claude/overnight-picks.jsonl (local, never committed)")
+    parser.add_argument("--wait-evidence", type=float, metavar="DAYS",
+                        help="print the lock waits of 10 minutes or more in the last DAYS days (heavy evidence) and exit")
     parser.add_argument("--handoff", help="with --status: a handoff repo to pull first")
     args = parser.parse_args()
+    if args.wait_evidence is not None:
+        for line in long_waits(read_wait_events(args.wait_evidence)) or ["no lock wait over 10 minutes"]:
+            print(line)
+        return 0
     try:
         repo = args.repo or gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).strip()
         issues = fetch(repo)

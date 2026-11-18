@@ -209,3 +209,15 @@ def test_append_log_writes_one_json_line_per_call(tmp_path) -> None:
     next_task.append_log({"a": 1}, path)
     next_task.append_log({"a": 2}, path)
     assert path.read_text(encoding="utf-8").splitlines() == ['{"a": 1}', '{"a": 2}']
+
+
+def test_long_waits_lists_only_starts_that_waited_over_the_threshold() -> None:
+    events = [
+        {"event": "start", "resource": "gpu", "waited_s": 1500, "purpose": "eval", "cwd": "/r"},
+        {"event": "start", "resource": "ram", "waited_s": 599, "purpose": "tests", "cwd": "/r"},
+        {"event": "waiting", "resource": "gpu", "waited_s": 9000},
+        {"event": "start", "resource": "ram", "waited_s": 0},
+    ]
+    (line,) = next_task.long_waits(events)
+    assert line.startswith("HEAVY EVIDENCE: waited 1500 s on the gpu lock: eval")
+    assert next_task.long_waits(events, threshold=599)[1].startswith("HEAVY EVIDENCE: waited 599 s on the ram")
