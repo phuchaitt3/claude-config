@@ -16,11 +16,14 @@
   <root>\<name>\main). Set SELFDRIVE_ROOT once, e.g.
   [Environment]::SetEnvironmentVariable('SELFDRIVE_ROOT', '<your projects folder>', 'User')
   -ResumeFirst adds one line to the brief: take resume-gap items before existing open issues.
+  -ReadyOnly starts no loop: a background session runs the readiness pass (READY.md) and ends,
+  so the needs-you items it files can be cleared before bed.
   One loop per repository: the script refuses to start a second session for the same repo and date.
 #>
 param(
     [Parameter(Mandatory, Position = 0)][string]$Repo,
     [switch]$ResumeFirst,
+    [switch]$ReadyOnly,
     [string]$Name
 )
 
@@ -46,7 +49,8 @@ if (Test-Path -LiteralPath $Repo) {
 }
 if (-not (Test-Path -LiteralPath (Join-Path $dir '.git'))) { throw "$dir is not a git checkout." }
 $repoName = if ((Split-Path $dir -Leaf) -eq 'main') { Split-Path (Split-Path $dir -Parent) -Leaf } else { Split-Path $dir -Leaf }
-if (-not $Name) { $Name = "selfdrive-$repoName-$(Get-Date -Format 'yyyy-MM-dd')" }
+$prefix = if ($ReadyOnly) { 'ready' } else { 'selfdrive' }
+if (-not $Name) { $Name = "$prefix-$repoName-$(Get-Date -Format 'yyyy-MM-dd')" }
 
 # One loop per repository: refuse if a session with this name is already listed.
 $existing = & $c agents --json 2>$null | Out-String
@@ -56,6 +60,9 @@ if ($existing -match [regex]::Escape($Name)) { throw "A session named $Name alre
 $env:CLAUDE_CODE_LOOP_KEEPALIVE = '1'
 $brief = "Self-drive overnight in $repoName (main checkout, branch main). Load workflow:self-drive and follow Overnight mode."
 if ($ResumeFirst) { $brief += ' Tonight, take resume-gap items from ~/.claude/resume-gaps.md before existing open issues.' }
+if ($ReadyOnly) {
+    $brief = "Readiness pass in $repoName (main checkout, branch main). Load workflow:self-drive, read READY.md in its folder and run that pass yourself (no loop, no subagent), then end with its report."
+}
 
 Push-Location $dir
 try { & $c --bg -n $Name --permission-mode auto $brief } finally { Pop-Location }

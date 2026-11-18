@@ -233,3 +233,33 @@ def test_long_waits_lists_only_starts_that_waited_over_the_threshold() -> None:
     (line,) = next_task.long_waits(events)
     assert line.startswith("HEAVY EVIDENCE: waited 1500 s on the gpu lock: eval")
     assert next_task.long_waits(events, threshold=599)[1].startswith("HEAVY EVIDENCE: waited 599 s on the ram")
+
+
+def _run(label, start, end, merged):
+    return {"label": label, "start": start, "end": end, "prs_merged": merged}
+
+
+def test_ready_depth_uses_rate_per_hour_of_own_repo() -> None:
+    runs = [
+        _run("thesis-2026-11-15", "2026-11-14T20:00:00Z", "2026-11-14T22:00:00Z", 4),  # 2/h
+        _run("thesis-2026-11-16", "2026-11-16T16:00:00Z", "2026-11-16T20:00:00Z", 4),  # 1/h
+        _run("thesis-2026-11-17", "2026-11-17T16:00:00Z", "2026-11-17T18:00:00Z", 0),  # no merge: ignored
+        _run("book-rag-app-2026-11-15", "2026-11-14T20:00:00Z", "2026-11-14T21:00:00Z", 10),
+    ]
+    depth, why = next_task.ready_depth(runs, "thesis")
+    assert depth == 12  # 1.5/h x 8 h
+    assert "2 runs (thesis)" in why
+
+
+def test_ready_depth_falls_back_and_has_floor() -> None:
+    runs = [_run("book-rag-app-2026-11-15", "2026-11-14T20:00:00Z", "2026-11-14T22:00:00Z", 1)]
+    depth, why = next_task.ready_depth(runs, "thesis")
+    assert depth == 5 and "all repos" in why  # 0.5/h x 8 = 4, floor 5
+    assert next_task.ready_depth([], "thesis")[0] == 5
+    assert next_task.ready_depth([{"label": "thesis-x", "prs_merged": 2}], "thesis")[0] == 5  # bad row skipped
+
+
+def test_ready_depth_keeps_last_seven_runs() -> None:
+    old = [_run("r-a", "2026-11-01T00:00:00Z", "2026-11-01T01:00:00Z", 50)]
+    new = [_run(f"r-{i}", f"2026-11-1{i}T00:00:00Z", f"2026-11-1{i}T01:00:00Z", 1) for i in range(7)]
+    assert next_task.ready_depth(old + new, "r")[0] == 8  # the old 50/h run drops out

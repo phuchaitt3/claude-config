@@ -393,6 +393,49 @@ def status(repo: str, issues: list[dict], handoff: str | None,
     return lines
 
 
+RUNS_LOG = Path.home() / ".claude" / "selfdrive-runs.jsonl"
+READY_MIN = 5  # floor for the readiness depth (READY.md)
+READY_RUNS = 7  # recent runs with a merge that set the rate
+
+
+def _hours(run: dict) -> float:
+    start = datetime.fromisoformat(run["start"].replace("Z", "+00:00"))
+    end = datetime.fromisoformat(run["end"].replace("Z", "+00:00"))
+    return (end - start).total_seconds() / 3600
+
+
+def ready_depth(runs: list[dict], repo_name: str, hours: float = 8.0) -> tuple[int, str]:
+    """How many ready issues the readiness pass looks for (READY.md; user's decision, 2026-11-18).
+
+    Mean merged PRs per run hour over the repo's last READY_RUNS runs with a merge, times `hours`,
+    at least READY_MIN. Falls back to every repo's runs, then to READY_MIN.
+    (standard: findings/backlog-ready-depth, checked 2026-11-18)
+    """
+    def usable(r: dict) -> bool:
+        try:
+            return (r.get("prs_merged") or 0) > 0 and _hours(r) > 0
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return False
+
+    good = sorted((r for r in runs if usable(r)), key=lambda r: r["start"])
+    own = [r for r in good if str(r.get("label", "")).startswith(repo_name + "-")]
+    pool, scope = (own, repo_name) if own else (good, "all repos")
+    pool = pool[-READY_RUNS:]
+    if not pool:
+        return READY_MIN, f"no logged run with a merge; minimum {READY_MIN}"
+    rate = sum(r["prs_merged"] / _hours(r) for r in pool) / len(pool)
+    depth = max(READY_MIN, round(rate * hours))
+    return depth, (f"{rate:.2f} merged PRs per hour over {len(pool)} runs ({scope}) x {hours:g} h; "
+                   f"minimum {READY_MIN}; read at most {3 * depth} issues")
+
+
+def read_runs(path: Path = RUNS_LOG) -> list[dict]:
+    try:
+        return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--limit", type=int, default=10)
@@ -404,7 +447,16 @@ def main() -> int:
     parser.add_argument("--wait-evidence", type=float, metavar="DAYS",
                         help="print the lock waits of 10 minutes or more in the last DAYS days (heavy evidence) and exit")
     parser.add_argument("--handoff", help="with --status: a handoff repo to pull first")
+    parser.add_argument("--ready-depth", action="store_true",
+                        help="print how many ready issues the readiness pass looks for (READY.md) and exit")
+    parser.add_argument("--hours", type=float, default=8.0, help="with --ready-depth: planned run hours")
     args = parser.parse_args()
+    if args.ready_depth:
+        here = Path.cwd().resolve()  # layout <repo>/main, so a main checkout is named by its parent
+        name = args.repo.split("/")[-1] if args.repo else (here.parent.name if here.name == "main" else here.name)
+        depth, why = ready_depth(read_runs(), name, args.hours)
+        print(f"ready depth: {depth} ({why})")
+        return 0
     if args.wait_evidence is not None:
         for line in long_waits(read_wait_events(args.wait_evidence)) or ["no lock wait over 10 minutes"]:
             print(line)
