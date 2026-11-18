@@ -11,6 +11,9 @@ Standard library only; Windows for the snapshot sources, any OS for the report m
     python laptop_health.py reference [--minutes M] [--gpu]
                                                         the fixed cooling test (see below)
     python laptop_health.py due [--days N]              exit 1 when no reference run in N days (default 7)
+    python laptop_health.py due --kind cap-bench [--days N]
+                                                        exit 1 when no cap benchmark in N days (default 30) or the
+                                                        GPU driver changed; exit 2 on battery power (see gpu_cap_bench.py)
 
 Files sit in ``$GPU_GUARD_DIR`` (default ``~/.gpu-guard``): ``health.jsonl`` (snapshots and reference
 results), read together with ``thermal.jsonl`` that ``gpu_run.py thermal`` writes.
@@ -412,12 +415,72 @@ def cmd_reference(args: argparse.Namespace) -> int:
     return 0
 
 
+def on_ac() -> bool | None:
+    """True on AC power, False on battery, None when unknown (not Windows, or the call failed)."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+
+        class Status(ctypes.Structure):
+            _fields_ = [("ACLineStatus", ctypes.c_ubyte), ("BatteryFlag", ctypes.c_ubyte), ("BatteryLifePercent", ctypes.c_ubyte),
+                        ("SystemStatusFlag", ctypes.c_ubyte), ("BatteryLifeTime", ctypes.c_ulong), ("BatteryFullLifeTime", ctypes.c_ulong)]
+
+        st = Status()
+        if not ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(st)):
+            return None
+        return {0: False, 1: True}.get(st.ACLineStatus)
+    except (OSError, AttributeError):
+        return None
+
+
+def driver_version() -> str | None:
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"], check=True,
+                             capture_output=True, text=True, timeout=15, **NO_WINDOW).stdout.strip()
+        return out.splitlines()[0].strip() if out else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def bench_rows(since: datetime) -> list[dict]:
+    return [r for r in read_lines("health.jsonl", since) if r.get("event") == "cap_bench"]
+
+
+def last_cooling() -> str | None:
+    rows = bench_rows(datetime.now().astimezone() - timedelta(days=3650))
+    return rows[-1].get("cooling") if rows else None
+
+
+def cap_bench_due(rows: list[dict], days: int, driver: str | None) -> str | None:
+    """A reason the cap benchmark is due, or None. ``rows`` are the cap_bench rows of the last ``days`` days."""
+    if not rows:
+        return f"no cap benchmark in the last {days} days"
+    known = [r.get("driver") for r in rows if r.get("driver")]
+    if driver and known and known[-1] != driver:
+        return f"the GPU driver changed ({known[-1]} -> {driver})"
+    return None
+
+
 def cmd_due(args: argparse.Namespace) -> int:
-    since = datetime.now().astimezone() - timedelta(days=args.days)
-    if any(r.get("event") == "reference" for r in read_lines("health.jsonl", since)):
-        print(f"reference test done in the last {args.days} days")
+    if args.kind == "cap-bench":
+        days = args.days or 30
+        if on_ac() is False:
+            print("cap benchmark refused: the laptop is on battery power")
+            return 2
+        since = datetime.now().astimezone() - timedelta(days=days)
+        reason = cap_bench_due(bench_rows(since), days, driver_version())
+        if reason:
+            print(f"{reason}: run `python gpu_run.py run --wait -- python gpu_cap_bench.py` (see the gpu_cap_bench.py docstring)")
+            return 1
+        print(f"cap benchmark done in the last {days} days")
         return 0
-    print(f"no reference test in the last {args.days} days: run it (see `laptop_health.py` docstring)")
+    days = args.days or 7
+    since = datetime.now().astimezone() - timedelta(days=days)
+    if any(r.get("event") == "reference" for r in read_lines("health.jsonl", since)):
+        print(f"reference test done in the last {days} days")
+        return 0
+    print(f"no reference test in the last {days} days: run it (see `laptop_health.py` docstring)")
     return 1
 
 
@@ -445,6 +508,42 @@ def smart_lines(snaps: list[dict]) -> list[str]:
             if b.get(key) is not None:
                 parts.append(f"{label} {a.get(key)} -> {b[key]}" if a.get(key) != b[key] else f"{label} {b[key]}")
         out.append(f"  {name}: " + ", ".join(parts))
+    return out
+
+
+def cap_bench_lines(rows: list[dict]) -> list[str]:
+    """The latest cap benchmark as a table, whether 1350 is still the best setting, and the comparison with
+    earlier benchmarks that have the same cooling note and AC state (a different note starts a new baseline)."""
+    if not rows:
+        return []
+    groups: dict[str, list[dict]] = {}
+    for r in rows:
+        groups.setdefault(r.get("bench_id") or r["ts"], []).append(r)
+    ids = list(groups)
+    last = groups[ids[-1]]
+    cond = (last[0].get("cooling"), last[0].get("ac"))
+    out = [f"  cap benchmark {last[0]['ts'][:10]} (cooling: {cond[0]}; {'AC' if cond[1] else 'battery'}; driver {last[0].get('driver')}; "
+           f"room proxy {last[0].get('room_proxy_c')} C):",
+           "    setting  tokens/s  temp C  power W  tokens/J  stable"]
+    for r in last:
+        out.append(f"    {r['setting']:>8}  {r.get('tokens_s')!s:>8}  {r.get('temp_c')!s:>6}  {r.get('power_w')!s:>7}  "
+                   f"{r.get('tokens_per_joule')!s:>8}  {'yes' if r.get('stable') else 'NOT STABLE'}")
+    unc = next((r for r in last if r.get("clock_mhz") is None), None)
+    if unc and unc.get("tokens_s"):
+        ok = [r for r in last if r.get("tokens_s") and r.get("temp_c") is not None and r["tokens_s"] >= 0.8 * unc["tokens_s"]]
+        if ok:
+            best = min(ok, key=lambda r: r["temp_c"])
+            out.append(f"    best setting (lowest temperature within 20% of uncapped speed): {best['setting']}; "
+                       + ("1350 is still the best." if best.get("clock_mhz") == 1350 else "1350 is NOT the best any more: review the cap."))
+    same = [g for g in ids[:-1] if (groups[g][0].get("cooling"), groups[g][0].get("ac")) == cond]
+    if not same:
+        out.append("    no earlier benchmark with the same cooling note and AC state: this is a new baseline, not a drift")
+    else:
+        prev = {r["setting"]: r for r in groups[same[-1]]}
+        diffs = [f"{r['setting']}: {r['temp_c'] - prev[r['setting']]['temp_c']:+.1f} C, {r['tokens_s'] - prev[r['setting']]['tokens_s']:+.1f} tok/s"
+                 for r in last if r["setting"] in prev and None not in (r.get("temp_c"), prev[r["setting"]].get("temp_c"),
+                                                                        r.get("tokens_s"), prev[r["setting"]].get("tokens_s"))]
+        out.append(f"    against {groups[same[-1]][0]['ts'][:10]} (same cooling and AC): " + "; ".join(diffs))
     return out
 
 
@@ -500,6 +599,8 @@ def cmd_report(args: argparse.Namespace) -> int:
                   + (f" [room {r['room_proxy_c']} C vs usual {usual} C: not comparable]" if odd else ""))
     else:
         print("  cooling reference: none yet (`laptop_health.py due` says when to run it)")
+    for line in cap_bench_lines(bench_rows(since - timedelta(days=365))):
+        print(line)
     return 0
 
 
@@ -523,7 +624,8 @@ def main(argv: list[str] | None = None) -> int:
                      help="skip when the room stand-in differs from the usual by more than this")
     ref.add_argument("--force", action="store_true", help="run even when the room looks different")
     d = sub.add_parser("due")
-    d.add_argument("--days", type=int, default=7)
+    d.add_argument("--days", type=int, default=0, help="window (default 7 for the reference, 30 for cap-bench)")
+    d.add_argument("--kind", choices=["reference", "cap-bench"], default="reference")
     args = p.parse_args(argv)
     return {"snapshot": cmd_snapshot, "report": cmd_report, "reference": cmd_reference, "due": cmd_due}[args.cmd](args)
 

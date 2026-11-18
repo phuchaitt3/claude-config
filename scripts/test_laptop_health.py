@@ -108,3 +108,64 @@ def test_report_marks_a_reference_from_an_unusual_room(tmp_path):
     (tmp_path / "health.jsonl").write_text("\n".join(json.dumps(x) for x in refs))
     out = run(tmp_path, "report").stdout
     assert out.count("not comparable") == 1 and "room 31 C vs usual 36 C" in out
+
+
+# ---------------------------------------------------------------------------- cap benchmark (#23)
+
+import gpu_cap_bench as gcb  # noqa: E402
+
+
+def _bench_row(days_ago, driver="1", setting="1350", mhz=1350, temp=60.0, tps=50.0, cooling="flat", bench="a", ac=True):
+    ts = (datetime.now().astimezone() - timedelta(days=days_ago)).isoformat(timespec="seconds")
+    return {"ts": ts, "event": "cap_bench", "bench_id": bench, "setting": setting, "clock_mhz": mhz, "temp_c": temp,
+            "tokens_s": tps, "power_w": 40.0, "tokens_per_joule": 1.2, "stable": True, "driver": driver, "cooling": cooling, "ac": ac}
+
+
+def _write(tmp, rows):
+    (tmp / "health.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+
+
+def test_cap_bench_due_none_old_and_driver_change():
+    assert "no cap benchmark" in lh.cap_bench_due([], 30, "1")
+    assert lh.cap_bench_due([_bench_row(3)], 30, "1") is None
+    assert "driver changed" in lh.cap_bench_due([_bench_row(3)], 30, "2")
+    assert lh.cap_bench_due([_bench_row(3)], 30, None) is None  # driver unreadable: not a reason
+
+
+def test_due_cap_bench_exit_codes(tmp_path):
+    assert run(tmp_path, "due", "--kind", "cap-bench").returncode in (1, 2)  # 2 only if this machine is on battery
+    _write(tmp_path, [_bench_row(40)])
+    assert run(tmp_path, "due", "--kind", "cap-bench").returncode in (1, 2)  # older than 30 days
+    assert run(tmp_path, "due", "--kind", "cap-bench", "--days", "60").returncode in (0, 1, 2)
+
+
+def test_stability_needs_time_requests_flat_temperature_and_steady_speed():
+    flat = [(s, 60.0 + (0.3 if s % 2 else 0)) for s in range(0, 100, 2)]
+    steady = [50.0, 50.2, 49.9, 50.1, 50.0]
+    assert gcb.is_stable(100, flat, steady)
+    assert not gcb.is_stable(80, flat, steady)  # before 90 s
+    assert not gcb.is_stable(100, flat, steady[:4])  # fewer than 5 requests
+    assert not gcb.is_stable(100, flat, [50, 52, 48, 51, 49])  # CV above 2%
+    rising = [(s, 55 + s * 0.05) for s in range(0, 100, 2)]
+    assert not gcb.is_stable(100, rising, steady)  # temperature moves more than 1 C in 60 s
+
+
+def test_summarise_uses_the_last_window_and_tokens_per_joule():
+    samples = [{"s": s, "gpu_temp_c": 60.0, "power_w": 40.0, "sm_mhz": 1350} for s in range(0, 100, 2)]
+    r = gcb.summarise(100, samples, [48, 50, 50, 50, 50, 50], True)
+    assert r["temp_c"] == 60.0 and r["power_w"] == 40.0 and r["sm_mhz_max"] == 1350
+    assert r["tokens_s"] == 50.0 and r["tokens_per_joule"] == 1.25 and r["stable"]
+
+
+def test_cap_task_names():
+    assert gcb.task_for(1200) == "gpu-clock-cap-1200" and gcb.task_for(None) == "gpu-clock-cap-off"
+
+
+def test_report_table_best_setting_and_same_cooling_comparison(tmp_path):
+    def group(days, bench, cooling, t1350, ac=True):
+        return [_bench_row(days, setting="1200", mhz=1200, temp=t1350 - 2, tps=42, bench=bench, cooling=cooling, ac=ac),
+                _bench_row(days, setting="1350", mhz=1350, temp=t1350, tps=46, bench=bench, cooling=cooling, ac=ac),
+                _bench_row(days, setting="uncapped", mhz=None, temp=t1350 + 9, tps=54, bench=bench, cooling=cooling, ac=ac)]
+    lines = "\n".join(lh.cap_bench_lines(group(40, "a", "flat", 60) + group(1, "b", "flat", 62)))
+    assert "against" in lines and "+2.0 C" in lines
+    assert "1350 is still the best" in lines  # 1200 is cooler but 42 tok/s is under 80% of 54

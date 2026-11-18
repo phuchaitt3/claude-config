@@ -68,6 +68,8 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
         $marker = Join-Path $HOME '.gpu-guard\clock-cap'
         New-Item -ItemType Directory -Force (Split-Path $marker) | Out-Null
         $cmds = @{ 'gpu-clock-cap-on'  = "`"$smi`" -lgc 1000,1350 && echo on> `"$marker`""
+                   'gpu-clock-cap-1200' = "`"$smi`" -lgc 1000,1200 && echo on> `"$marker`""   # the monthly cap benchmark (issue #23) sets these
+                   'gpu-clock-cap-1500' = "`"$smi`" -lgc 1000,1500 && echo on> `"$marker`""
                    'gpu-clock-cap-off' = "`"$smi`" -rgc && del `"$marker`"" }
         foreach ($name in $cmds.Keys) {
             $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$($cmds[$name])`""
