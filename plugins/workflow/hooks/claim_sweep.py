@@ -146,24 +146,24 @@ def decide(
     return True, f"session {prefix} is gone or idle over 6 hours and no active PR names it", prefix
 
 
-def gh_json(main: Path, *args: str) -> list[dict]:
+def gh_json(main: Path, *args: str, repo: str | None = None) -> list[dict]:
     out = subprocess.run(
-        ["gh", *args], cwd=str(main), capture_output=True, text=True, encoding="utf-8",
+        ["gh", *args, *(["-R", repo] if repo else [])], cwd=str(main), capture_output=True, text=True, encoding="utf-8",
         timeout=60, check=True,
     ).stdout
     return json.loads(out)
 
 
-def sweep(main: Path, dry_run: bool, now: datetime | None = None) -> list[str]:
+def sweep(main: Path, dry_run: bool, now: datetime | None = None, repo: str | None = None) -> list[str]:
     """Release the claims `decide` clears; return one line per decision."""
     now = now or datetime.now(timezone.utc)
     host = os.environ.get("COMPUTERNAME") or platform.node()
     issues = gh_json(main, "issue", "list", "--label", "claimed", "--state", "open", "--limit",
-                     "100", "--json", "number,comments")
+                     "100", "--json", "number,comments", repo=repo)
     if not issues:
         return []
     open_prs = gh_json(main, "pr", "list", "--state", "open", "--limit", "100", "--json",
-                       "number,title,body,headRefName,isDraft,commits")
+                       "number,title,body,headRefName,isDraft,commits", repo=repo)
     live = live_prefixes()
     idle = idle_prefixes(live, now)
     lines: list[str] = []

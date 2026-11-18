@@ -104,3 +104,15 @@ def test_idle_prefixes_reads_transcript_age(tmp_path: Path) -> None:
         os.utime(f, (t, t))
     got = claim_sweep.idle_prefixes({"aaaaaaaa", "bbbbbbbb", "cccccccc"}, NOW, tmp_path)
     assert got == {"aaaaaaaa"}
+
+
+def test_sweep_passes_the_repo_to_gh(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    def fake(main, *args, repo=None):
+        calls.append((args[0], repo))
+        return []
+
+    monkeypatch.setattr(claim_sweep, "gh_json", fake)
+    assert claim_sweep.sweep(tmp_path, dry_run=True, repo="o/r") == []
+    assert calls == [("issue", "o/r")]

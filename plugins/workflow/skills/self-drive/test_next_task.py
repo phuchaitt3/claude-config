@@ -140,3 +140,22 @@ def test_priority_first_beats_resume_work_and_still_skips_blocked_or_claimed() -
     ranked, _ = next_task.rank(issues, ranks={})
     assert numbers(ranked) == [2, 1, 5]
     assert next_task.render(ranked, 5)[0].split("	")[1] == "first"
+
+
+def test_stale_claim_on_top_ranked_issue_warns_and_names_the_sweep() -> None:
+    issues = [issue(1, ["claimed", "resume:1"]), issue(2, ["priority:next"])]
+    ranked, _, held = next_task.rank_with_claimed(issues, {})
+    assert numbers(ranked) == [2] and numbers(held) == [1]
+    lines = next_task.stale_warning(ranked, held, ["release #1 session 544bc8ec is gone"])
+    assert len(lines) == 1 and lines[0].startswith("STALE CLAIM? #1: session 544bc8ec is gone")
+    assert "claim_sweep.py sweep" in lines[0]
+
+
+def test_live_claim_or_lower_ranked_claim_gives_no_warning() -> None:
+    issues = [issue(1, ["claimed", "resume:1"]), issue(2, ["priority:next"])]
+    ranked, _, held = next_task.rank_with_claimed(issues, {})
+    assert next_task.stale_warning(ranked, held, ["keep #1 session 544bc8ec is running"]) == []
+    low = [issue(1, ["claimed", "priority:later"]), issue(2, ["resume:1"])]
+    ranked, _, held = next_task.rank_with_claimed(low, {})
+    assert next_task.stale_warning(ranked, held, ["release #1 gone"]) == []
+    assert next_task.stale_warning([], [], []) == []

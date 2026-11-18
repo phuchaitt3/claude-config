@@ -23,6 +23,9 @@ Issues that are blocked by an open issue, or labelled `claimed` or `needs-you`, 
 It also prints two kinds of fix-up for the chat to make: a bottleneck not labelled
 `priority:now`, and a "Blocked by #n" line in an issue body with no matching dependency link
 (text is invisible to GitHub's `is:blocking` search and to this script).
+With `--status` it also prints `STALE CLAIM? #n: <reason>` above the ranked list when the best
+claimed issue would outrank every startable one and the claim sweep's test (`hooks/claim_sweep.py`,
+dry run) says its claim is stale; the round then runs `claim_sweep.py sweep` at once (2026-11-18).
 (standard: findings/bottleneck-tasks, checked 2026-11-01)
 """
 
@@ -147,13 +150,21 @@ def depths(issues: list[dict]) -> dict[int, dict[int, int]]:
 
 def rank(issues: list[dict], ranks: dict[str, int] | None = None) -> tuple[list[dict], list[str]]:
     """The startable issues, best first, and the fix-ups to make."""
+    ranked, fixups, _ = rank_with_claimed(issues, ranks)
+    return ranked, fixups
+
+
+def rank_with_claimed(
+    issues: list[dict], ranks: dict[str, int] | None = None
+) -> tuple[list[dict], list[str], list[dict]]:
+    """`rank`, plus the unblocked `claimed` issues (not `needs-you`) ranked the same way, best first."""
     ranks = gap_ranks() if ranks is None else ranks
     blocks = downstream(issues)
     chain = depths(issues)
     numbers = {i["number"] for i in issues}
     labels_of = {i["number"]: {lab["name"] for lab in i["labels"]["nodes"]} for i in issues}
     own = {n: resume_key(labs, ranks) for n, labs in labels_of.items()}
-    ranked, fixups = [], []
+    ranked, fixups, held = [], [], []
     for issue in issues:
         n = issue["number"]
         labels = labels_of[n]
@@ -165,16 +176,48 @@ def rank(issues: list[dict], ranks: dict[str, int] | None = None) -> tuple[list[
         if fan >= BOTTLENECK_MIN and "priority:now" not in labels:
             fixups.append(f"#{n}: blocks {fan} open issues; label it priority:now")
         if _open_numbers(issue["blockedBy"]) or labels & SKIP_LABELS:
+            if "claimed" in labels and "needs-you" not in labels and not _open_numbers(issue["blockedBy"]):
+                held.append(entry(issue, labels, fan, own, chain))
             continue
-        tier = 0 if fan >= BOTTLENECK_MIN else min((TIERS[x] for x in labels if x in TIERS), default=3)
-        # resume: own label (chain 0) or the best resume issue it unblocks (chain = its distance)
-        options = [(*own[n], 0)] if own[n] else []
-        options += [(*own[m], d) for m, d in chain[n].items() if own.get(m)]
-        resume = min(options) if options else None
-        ranked.append({"number": n, "title": issue["title"], "tier": tier, "blocks": fan,
-                       "resume": resume, "first": FIRST in labels, "createdAt": issue["createdAt"]})
+        ranked.append(entry(issue, labels, fan, own, chain))
     ranked.sort(key=sort_key)
-    return ranked, fixups
+    held.sort(key=sort_key)
+    return ranked, fixups, held
+
+
+def entry(issue: dict, labels: set[str], fan: int, own: dict, chain: dict) -> dict:
+    n = issue["number"]
+    tier = 0 if fan >= BOTTLENECK_MIN else min((TIERS[x] for x in labels if x in TIERS), default=3)
+    # resume: own label (chain 0) or the best resume issue it unblocks (chain = its distance)
+    options = [(*own[n], 0)] if own[n] else []
+    options += [(*own[m], d) for m, d in chain[n].items() if own.get(m)]
+    resume = min(options) if options else None
+    return {"number": n, "title": issue["title"], "tier": tier, "blocks": fan,
+            "resume": resume, "first": FIRST in labels, "createdAt": issue["createdAt"]}
+
+
+def stale_warning(ranked: list[dict], held: list[dict], decisions: list[str]) -> list[str]:
+    """`STALE CLAIM?` line when the best claimed issue outranks every startable one and its claim is
+    stale by `claim_sweep.decide` (`decisions` = the lines of a dry-run sweep, "release #n reason")."""
+    if not held or (ranked and sort_key(ranked[0]) < sort_key(held[0])):
+        return []
+    n = held[0]["number"]
+    for line in decisions:
+        if line.startswith(f"release #{n} "):
+            return [f"STALE CLAIM? #{n}: {line.split(' ', 2)[2]}; run "
+                    "`python <plugin>/hooks/claim_sweep.py sweep <main checkout>` now"]
+    return []
+
+
+def stale_decisions(repo: str) -> list[str]:
+    """Dry-run decisions of the claim sweep for `repo` (same test the hourly sweep applies)."""
+    hooks = str(Path(__file__).resolve().parents[2] / "hooks")
+    sys.path.insert(0, hooks)
+    try:
+        import claim_sweep  # noqa: PLC0415
+    finally:
+        sys.path.remove(hooks)
+    return claim_sweep.sweep(Path.cwd(), dry_run=True, repo=repo)
 
 
 def sort_key(r: dict) -> tuple:
@@ -220,7 +263,8 @@ def run(cmd: list[str]) -> str:
     return out if result.returncode == 0 else f"FAILED ({result.returncode}): {out[:300]}"
 
 
-def status(repo: str, issues: list[dict], handoff: str | None) -> list[str]:
+def status(repo: str, issues: list[dict], handoff: str | None,
+           ranked: list[dict] | None = None, held: list[dict] | None = None) -> list[str]:
     """The sync sections that come before the ranked issues in --status output."""
     lines: list[str] = []
     if handoff:
@@ -235,6 +279,11 @@ def status(repo: str, issues: list[dict], handoff: str | None) -> list[str]:
     cl = claimed(issues)
     lines += [f"== claimed issues ({len(cl)})", *cl]
     lines += ["== worktrees", run(["git", "worktree", "list"])]
+    if held:
+        try:
+            lines += stale_warning(ranked or [], held, stale_decisions(repo))
+        except Exception as exc:  # the warning is advice; never break the round sync  # noqa: BLE001
+            lines.append(f"(stale-claim check failed: {str(exc)[:120]})")
     lines.append("== startable issues")
     return lines
 
@@ -250,9 +299,9 @@ def main() -> int:
     try:
         repo = args.repo or gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).strip()
         issues = fetch(repo)
-        ranked, fixups = rank(issues)
+        ranked, fixups, held = rank_with_claimed(issues)
         if args.status:
-            for line in status(repo, issues, args.handoff):
+            for line in status(repo, issues, args.handoff, ranked, held):
                 print(line)
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
         print(f"next_task: cannot read GitHub: {exc}", file=sys.stderr)
