@@ -63,6 +63,9 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import guard_logs  # noqa: E402  (monthly log rotation, issue #17)
+
 NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 ENV_DIR = "GPU_GUARD_DIR"
 BASELINE_RUNS = 3  # runs before the room check starts; their median outvotes one odd night
@@ -88,19 +91,7 @@ def append(name: str, record: dict) -> None:
 
 
 def read_lines(name: str, since: datetime) -> list[dict]:
-    rows: list[dict] = []
-    try:
-        lines = (guard_dir() / name).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return rows
-    for line in lines:
-        try:
-            row = json.loads(line)
-            if datetime.fromisoformat(row["ts"]) >= since:
-                rows.append(row)
-        except (ValueError, KeyError):
-            continue
-    return rows
+    return guard_logs.read_rows(guard_dir(), name, since)
 
 
 # ------------------------------------------------------------------------------ derived figures
@@ -467,6 +458,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         elif r.get("event") == "sample" and datetime.fromisoformat(r["ts"]) >= since:
             samples.append({**r, "_s": interval})
     print(f"Laptop health since {since.isoformat(timespec='minutes')}")
+    print("Log files:")
+    print("\n".join(guard_logs.size_report(guard_dir())) or "  (none)")
     if samples:
         hours = sum(r["_s"] for r in samples) / 3600
         hot = [max(r[k] for k in ("gpu_temp_c", "cpu_temp_c") if r.get(k) is not None)

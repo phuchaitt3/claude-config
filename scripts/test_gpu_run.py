@@ -432,3 +432,22 @@ def test_clock_cap_is_not_flagged_while_a_lock_is_held(tmp_path, monkeypatch):
     (tmp_path / "clock-cap").write_text("on")
     monkeypatch.setattr(gpu_run.Lock, "is_held", lambda self: True)
     assert gpu_run.clock_cap_left_on() is None
+
+
+def test_rotate_months_moves_old_lines_and_readers_see_both(tmp_path):
+    from datetime import datetime, timedelta
+    sys.path.insert(0, str(HERE))
+    import guard_logs
+    now = datetime.now().astimezone()
+    old = (now.replace(day=1) - timedelta(days=3)).replace(microsecond=0)
+    rows = [{"ts": old.isoformat(), "event": "sample", "n": 1}, {"ts": now.isoformat(), "event": "sample", "n": 2}]
+    (tmp_path / "thermal.jsonl").write_text("".join(json.dumps(x) + "\n" for x in rows))
+    assert guard_logs.rotate_months(tmp_path) == 1
+    assert guard_logs.rotate_months(tmp_path) == 0  # nothing left to move
+    archive = tmp_path / f"thermal-{old.strftime('%Y-%m')}.jsonl"
+    assert json.loads(archive.read_text())["n"] == 1
+    assert [json.loads(x)["n"] for x in (tmp_path / "thermal.jsonl").read_text().splitlines()] == [2]
+    assert [r["n"] for r in guard_logs.read_rows(tmp_path, "thermal.jsonl", old - timedelta(days=1))] == [1, 2]
+    assert [r["n"] for r in guard_logs.read_rows(tmp_path, "thermal.jsonl", now - timedelta(minutes=1))] == [2]
+    (tmp_path / "big.jsonl").write_bytes(b"x" * (guard_logs.WARN_BYTES + 1))
+    assert any("WARNING" in line and "big.jsonl" in line for line in guard_logs.size_report(tmp_path))

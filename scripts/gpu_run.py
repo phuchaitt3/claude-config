@@ -99,6 +99,9 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import guard_logs  # noqa: E402  (monthly log rotation, issue #17)
+
 INFO_OFFSET = 64  # the lock is on byte 0; the holder's description starts here
 POLL_SECONDS = 5
 SAMPLE_SECONDS = 5
@@ -966,8 +969,12 @@ def cmd_thermal(args: argparse.Namespace) -> int:
           f"card limits {limits or 'unknown'}", flush=True)
     deadline = time.time() + args.minutes * 60 if args.minutes else None
     n = 0
+    month = ""
     try:
         while deadline is None or time.time() < deadline:
+            if month != datetime.now().strftime("%Y-%m"):  # at start and each new month (issue #17)
+                month = datetime.now().strftime("%Y-%m")
+                guard_logs.rotate_months(guard_dir())
             r = thermal_reading() or {}
             r.update({"cpu_temp_c": None, **cpu_reading(), "mem_free_gb": mem_free_gb()})
             log_thermal({"event": "sample", **r})
@@ -983,19 +990,7 @@ def cmd_thermal(args: argparse.Namespace) -> int:
 
 
 def read_thermal(since: datetime) -> list[dict]:
-    rows: list[dict] = []
-    try:
-        lines = (guard_dir() / "thermal.jsonl").read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return rows
-    for line in lines:
-        try:
-            row = json.loads(line)
-            if datetime.fromisoformat(row["ts"]) >= since:
-                rows.append(row)
-        except (ValueError, KeyError):
-            continue
-    return rows
+    return guard_logs.read_rows(guard_dir(), "thermal.jsonl", since)
 
 
 def report_thermal(args: argparse.Namespace) -> int:
