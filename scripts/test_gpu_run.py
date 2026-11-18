@@ -405,3 +405,30 @@ def test_thermal_report_uses_the_interval_of_a_logger_started_before_since(tmp_p
     out = run(tmp_path, "report", "--thermal", "--since", since).stdout
     assert "samples: 8 (0.0 h logged)" in out
     assert "at or above target (87.0 C): 2 min" in out
+
+
+def test_check_flags_a_clock_cap_left_on_with_no_lock(tmp_path, monkeypatch, capsys):
+    sys.path.insert(0, str(HERE))
+    import gpu_run
+
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(gpu_run, "gpu_reading", lambda: None)
+    monkeypatch.setattr(gpu_run, "boot_time", lambda: 0.0)
+    assert gpu_run.clock_cap_left_on() is None  # no marker: no cap
+    (tmp_path / "clock-cap").write_text("on")
+    assert gpu_run.cmd_check(None) == 0
+    assert "CLOCK CAP left on" in capsys.readouterr().out
+    assert any(e["event"] == "clock_cap_left_on" for e in events(tmp_path))
+    monkeypatch.setattr(gpu_run, "boot_time", lambda: 9e12)  # marker older than the boot: stale
+    assert gpu_run.clock_cap_left_on() is None
+
+
+def test_clock_cap_is_not_flagged_while_a_lock_is_held(tmp_path, monkeypatch):
+    sys.path.insert(0, str(HERE))
+    import gpu_run
+
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(gpu_run, "boot_time", lambda: 0.0)
+    (tmp_path / "clock-cap").write_text("on")
+    monkeypatch.setattr(gpu_run.Lock, "is_held", lambda self: True)
+    assert gpu_run.clock_cap_left_on() is None

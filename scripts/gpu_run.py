@@ -11,7 +11,7 @@ report instead of in a mysterious slowdown. Standard library only; no per-reposi
                                                      a service or Compose stack: hold the lock(s) until its containers stop
                                                      (with --max-minutes: `docker stop` them at the deadline)
     python gpu_run.py status [--resource ram]                           who holds the GPU (or the RAM lock) now
-    python gpu_run.py check                                             GPU busy with no holder?
+    python gpu_run.py check                                             GPU busy with no holder? clock cap left on?
     python gpu_run.py report [--days N] [--resource ram]                usage, waits, refusals, unguarded use
     python gpu_run.py thermal [--interval S] [--minutes M] [--purpose TEXT]
                                                      log temperatures every S seconds (no lock taken)
@@ -879,7 +879,46 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_check(_: argparse.Namespace) -> int:
+def boot_time() -> float | None:
+    """Unix time of the last boot (Windows only), or None: a GPU clock cap clears on reboot."""
+    if sys.platform != "win32":
+        return None
+    try:
+        return time.time() - ctypes.windll.kernel32.GetTickCount64() / 1000  # type: ignore[attr-defined]
+    except (AttributeError, OSError):
+        return None
+
+
+def clock_cap_left_on() -> str | None:
+    """A sentence when the overnight GPU clock cap (task ``gpu-clock-cap-on``, which writes the
+    ``clock-cap`` marker; ``gpu-clock-cap-off`` removes it) is on, set since the last boot, and the GPU
+    lock is free. ``nvidia-smi -q -d CLOCK`` cannot tell: this driver reports application clocks as
+    deprecated and shows no locked-clock line (read 2026-11-18). Locked clocks clear on reboot, so a
+    marker older than the boot is stale."""
+    marker = guard_dir() / "clock-cap"
+    try:
+        set_at = marker.stat().st_mtime
+    except OSError:
+        return None
+    boot = boot_time()
+    if boot is not None and set_at < boot:
+        return None
+    if Lock().is_held():
+        return None
+    return (f"GPU CLOCK CAP left on (set {datetime.fromtimestamp(set_at):%Y-%m-%d %H:%M}) with no GPU lock "
+            f"held: a timing run now is capped; lift it with `schtasks /run /tn gpu-clock-cap-off`")
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    code = _check_gpu(args)
+    note = clock_cap_left_on()
+    if note:
+        log_event("clock_cap_left_on")
+        print(note)
+    return code
+
+
+def _check_gpu(_: argparse.Namespace) -> int:
     """Exit 1 and log ``unguarded`` when the GPU is busy but nobody holds the lock."""
     r = gpu_reading()
     locked = r is not None and Lock().is_held()
