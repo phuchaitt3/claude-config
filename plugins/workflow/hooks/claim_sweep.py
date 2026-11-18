@@ -9,7 +9,10 @@ A claim comment reads `claimed by <session ID> (uuid <first 8 characters of the 
 released (label removed, one comment) only when every check passes:
 
 - uuid claim: it names this machine, is over 2 hours old, no file in `~/.claude/sessions` has a
-  sessionId starting with the prefix and a running process, and no open PR names the issue;
+  sessionId starting with the prefix and a running process that wrote to its transcript in the last
+  6 hours, and no open PR names the issue unless that PR is a draft with a commit in the last 6 hours
+  (user's decision, 2026-11-18, after a finished session's draft PR and ghost process kept a claim
+  on the top-ranked issue for a day);
 - older claim with no uuid: it is over 24 hours old and no open PR names the issue;
 - a claim that names another machine is never released here (its Last seen row covers it).
 
@@ -90,9 +93,36 @@ def names_issue(number: int, pr: dict) -> bool:
     return bool(re.search(rf"(^|[/-]){number}([-/]|$)", pr.get("headRefName", "")))
 
 
+IDLE_AFTER = timedelta(hours=6)  # a draft PR or a running session quiet this long no longer holds a claim
+PROJECTS = Path.home() / ".claude" / "projects"
+
+
+def stale_draft(pr: dict, now: datetime) -> bool:
+    """A draft PR whose newest commit is over 6 hours old (no commit data: not stale)."""
+    if not pr.get("isDraft"):
+        return False
+    dates = [c.get("committedDate") for c in pr.get("commits", []) if c.get("committedDate")]
+    return bool(dates) and now - max(parse_time(d) for d in dates) > IDLE_AFTER
+
+
+def idle_prefixes(live: set[str], now: datetime, projects: Path = PROJECTS) -> set[str]:
+    """Live-session prefixes whose transcript has not been written for over 6 hours."""
+    idle: set[str] = set()
+    for prefix in live:
+        times = []
+        for f in projects.glob(f"*/{prefix}*.jsonl"):
+            try:
+                times.append(datetime.fromtimestamp(f.stat().st_mtime, timezone.utc))
+            except OSError:
+                continue
+        if times and now - max(times) > IDLE_AFTER:
+            idle.add(prefix)
+    return idle
+
+
 def decide(
     number: int, comments: list[dict], open_prs: list[dict], live: set[str], host: str,
-    now: datetime,
+    now: datetime, idle: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> tuple[bool, str, str | None]:
     """(release?, reason, prefix of the claimant's session UUID if the claim names one)."""
     claim = latest_claim(comments)
@@ -101,7 +131,7 @@ def decide(
     age = now - parse_time(claim["createdAt"])
     match = UUID_PART.search(claim["body"])
     prefix = match.group(1).lower() if match else None
-    if any(names_issue(number, pr) for pr in open_prs):
+    if any(names_issue(number, pr) and not stale_draft(pr, now) for pr in open_prs):
         return False, "an open PR names it", prefix
     if match is None:
         if age < MIN_AGE_NO_UUID:
@@ -111,9 +141,9 @@ def decide(
         return False, f"claim is from machine {match.group(2)}", prefix
     if age < MIN_AGE:
         return False, "claim is under 2 hours old", prefix
-    if prefix in live:
+    if prefix in live and prefix not in idle:
         return False, f"session {prefix} is running", prefix
-    return True, f"session {prefix} is gone and no open PR names it", prefix
+    return True, f"session {prefix} is gone or idle over 6 hours and no active PR names it", prefix
 
 
 def gh_json(main: Path, *args: str) -> list[dict]:
@@ -133,12 +163,13 @@ def sweep(main: Path, dry_run: bool, now: datetime | None = None) -> list[str]:
     if not issues:
         return []
     open_prs = gh_json(main, "pr", "list", "--state", "open", "--limit", "100", "--json",
-                       "number,title,body,headRefName")
+                       "number,title,body,headRefName,isDraft,commits")
     live = live_prefixes()
+    idle = idle_prefixes(live, now)
     lines: list[str] = []
     for issue in issues:
         number = issue["number"]
-        release, reason, prefix = decide(number, issue["comments"], open_prs, live, host, now)
+        release, reason, prefix = decide(number, issue["comments"], open_prs, live, host, now, idle)
         if release and not dry_run:
             who = f"session {prefix}" if prefix else "the chat that claimed it"
             try:

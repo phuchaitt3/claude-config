@@ -25,8 +25,8 @@ def claim(hours_ago: float, body: str = "claimed by 7999fa (uuid 544bc8ec, BOX).
     return {"createdAt": at(hours_ago), "body": body}
 
 
-def decide(comments, prs=(), live=frozenset(), number=7):
-    return claim_sweep.decide(number, comments, list(prs), set(live), HOST, NOW)
+def decide(comments, prs=(), live=frozenset(), number=7, idle=frozenset()):
+    return claim_sweep.decide(number, comments, list(prs), set(live), HOST, NOW, set(idle))
 
 
 def test_gone_session_is_released() -> None:
@@ -75,3 +75,32 @@ def test_live_prefixes_reads_session_files(tmp_path: Path) -> None:
     (tmp_path / "2.json").write_text(json.dumps(dead))
     (tmp_path / "3.json").write_text("not json")
     assert claim_sweep.live_prefixes(tmp_path) == {"abcdef12"}
+
+
+def _draft(hours_since_commit: float, draft: bool = True) -> dict:
+    return {"title": "x", "body": "Closes #7", "headRefName": "a", "isDraft": draft,
+            "commits": [{"committedDate": at(hours_since_commit)}]}
+
+
+def test_draft_pr_quiet_over_six_hours_no_longer_holds_the_claim() -> None:
+    assert decide([claim(30)], prs=[_draft(7)])[0]
+    assert not decide([claim(30)], prs=[_draft(5)])[0]
+    assert not decide([claim(30)], prs=[_draft(30, draft=False)])[0]  # a ready PR keeps it
+    assert not decide([claim(30)], prs=[{"title": "x", "body": "#7", "headRefName": "a", "isDraft": True}])[0]
+
+
+def test_running_session_idle_over_six_hours_no_longer_holds_the_claim() -> None:
+    assert decide([claim(30)], live={"544bc8ec"}, idle={"544bc8ec"})[0]
+    assert not decide([claim(30)], live={"544bc8ec"})[0]
+
+
+def test_idle_prefixes_reads_transcript_age(tmp_path: Path) -> None:
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    old, fresh = proj / "aaaaaaaa-1.jsonl", proj / "bbbbbbbb-2.jsonl"
+    for f, hours in ((old, 8), (fresh, 1)):
+        f.write_text("{}")
+        t = (NOW - timedelta(hours=hours)).timestamp()
+        os.utime(f, (t, t))
+    got = claim_sweep.idle_prefixes({"aaaaaaaa", "bbbbbbbb", "cccccccc"}, NOW, tmp_path)
+    assert got == {"aaaaaaaa"}
