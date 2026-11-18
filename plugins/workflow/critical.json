@@ -1,5 +1,5 @@
 {
-  "version": "0.62.7",
-  "since": "2026-11-18T18:30:00+07:00",
-  "why": "A chat, loop or worker that stops must release its claims and post a progress comment; the claim sweep now also frees claims held only by a draft PR or a session quiet for 6 hours"
+  "version": "0.62.17",
+  "since": "2026-11-19T00:40:00+07:00",
+  "why": "Overnight, the GPU clock cap stays on for the whole run, project timing benchmarks included; a chat must not lift it for its own jobs (only the user's own thermal tests do)"
 }

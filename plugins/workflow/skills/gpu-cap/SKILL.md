@@ -16,7 +16,8 @@ Added 2026-11-18 (user's request, claude-config issue #22). Locks the laptop GPU
 **When to use which**
 
 - The user says "cool it down", "quiet mode", "cap the GPU": `cap on`. "Full speed", "lift the cap", "I am going to game": `cap off`. "Is the cap on?": `cap status`.
-- Before any job that times this laptop's speed (a benchmark, a speed claim), run `gpu_run.py check`; if it says the cap is left on, `cap off` and run `check` again. A capped run is about 15% slower and nothing in its output shows it.
+- **Overnight the cap stays on for the whole run, 1350 MHz, project timing benchmarks included** (user's decision, 2026-11-19: a slightly slower timing is better than a hot laptop; "cap off before timing" was meant for the user's own thermal tests). A chat never lifts it for its own jobs. It goes off only for a test of the laptop itself (the cooling reference in `laptop_health.py`, `gpu_cap_bench.py`) run by the user or at the user's request, and goes back on after. A project benchmark report says "GPU capped at 1350 MHz" (about 14% slower than uncapped: 71.6 against 82.9 tokens/s, `health.jsonl`, 2026-11-18); a run made uncapped is not compared with a capped one.
+- In the daytime a job that times this laptop's speed for a claim: run `gpu_run.py check`; the user says whether it runs capped. A capped run is about 15% slower and nothing in its output shows it, so name the cap in the result.
 - Daytime capping is the user's choice; never turn it on for them unasked. An overnight self-drive chat follows its own rule.
 - If a command says the task could not start, the tasks are not registered: the user runs `scripts/setup-machine.ps1` once from an administrator PowerShell. Never change the power plan or edit settings instead.
 - The cap clears on reboot. Another chat's cap benchmark (`gpu_cap_bench.py`) may switch it: do not toggle the cap while `gpu_run.py status` shows a GPU holder named for it.
