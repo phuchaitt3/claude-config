@@ -11,9 +11,9 @@ Standard library only; Windows for the snapshot sources, any OS for the report m
     python laptop_health.py reference [--minutes M] [--gpu]
                                                         the fixed cooling test (see below)
     python laptop_health.py due [--days N]              exit 1 when no reference run in N days (default 7)
-    python laptop_health.py due --kind cap-bench [--days N]
-                                                        exit 1 when no cap benchmark in N days (default 30) or the
-                                                        GPU driver changed; exit 2 on battery power (see gpu_cap_bench.py)
+    python laptop_health.py due --kind cap-bench       exit 1 when no cap benchmark exists yet, the GPU driver changed, or
+                                                        a thermal warn/stop event came after the last one; exit 2 on
+                                                        battery power (see gpu_cap_bench.py). No calendar interval.
 
 Files sit in ``$GPU_GUARD_DIR`` (default ``~/.gpu-guard``): ``health.jsonl`` (snapshots and reference
 results), read together with ``thermal.jsonl`` that ``gpu_run.py thermal`` writes.
@@ -452,28 +452,33 @@ def last_cooling() -> str | None:
     return rows[-1].get("cooling") if rows else None
 
 
-def cap_bench_due(rows: list[dict], days: int, driver: str | None) -> str | None:
-    """A reason the cap benchmark is due, or None. ``rows`` are the cap_bench rows of the last ``days`` days."""
+def cap_bench_due(rows: list[dict], driver: str | None, thermal_events: list[dict] | None = None) -> str | None:
+    """A reason the cap benchmark is due, or None: none yet, the driver changed, or the thermal watchdog
+    fired after the last one (user's decision, 2026-11-18: choose a cap, keep it, re-measure on a signal,
+    not on a calendar). ``rows`` are all cap_bench rows."""
     if not rows:
-        return f"no cap benchmark in the last {days} days"
+        return "no cap benchmark yet"
     known = [r.get("driver") for r in rows if r.get("driver")]
     if driver and known and known[-1] != driver:
         return f"the GPU driver changed ({known[-1]} -> {driver})"
+    last = rows[-1]["ts"]
+    hot = [e for e in (thermal_events or []) if e.get("event") in ("thermal_warn", "thermal_stop") and e.get("ts", "") > last]
+    if hot:
+        return f"the thermal watchdog fired {len(hot)} time(s) since the last cap benchmark ({hot[-1]['ts'][:10]})"
     return None
 
 
 def cmd_due(args: argparse.Namespace) -> int:
     if args.kind == "cap-bench":
-        days = args.days or 30
         if on_ac() is False:
             print("cap benchmark refused: the laptop is on battery power")
             return 2
-        since = datetime.now().astimezone() - timedelta(days=days)
-        reason = cap_bench_due(bench_rows(since), days, driver_version())
+        forever = datetime.now().astimezone() - timedelta(days=3650)
+        reason = cap_bench_due(bench_rows(forever), driver_version(), guard_logs.read_rows(guard_dir(), "events.jsonl", forever))
         if reason:
             print(f"{reason}: run `python gpu_run.py run --wait -- python gpu_cap_bench.py` (see the gpu_cap_bench.py docstring)")
             return 1
-        print(f"cap benchmark done in the last {days} days")
+        print("cap benchmark not due (a driver change or a thermal watchdog event makes it due)")
         return 0
     days = args.days or 7
     since = datetime.now().astimezone() - timedelta(days=days)
@@ -625,7 +630,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="skip when the room stand-in differs from the usual by more than this")
     ref.add_argument("--force", action="store_true", help="run even when the room looks different")
     d = sub.add_parser("due")
-    d.add_argument("--days", type=int, default=0, help="window (default 7 for the reference, 30 for cap-bench)")
+    d.add_argument("--days", type=int, default=0, help="window for the reference test (default 7)")
     d.add_argument("--kind", choices=["reference", "cap-bench"], default="reference")
     args = p.parse_args(argv)
     return {"snapshot": cmd_snapshot, "report": cmd_report, "reference": cmd_reference, "due": cmd_due}[args.cmd](args)

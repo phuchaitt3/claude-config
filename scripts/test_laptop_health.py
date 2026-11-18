@@ -125,18 +125,24 @@ def _write(tmp, rows):
     (tmp / "health.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
 
 
-def test_cap_bench_due_none_old_and_driver_change():
-    assert "no cap benchmark" in lh.cap_bench_due([], 30, "1")
-    assert lh.cap_bench_due([_bench_row(3)], 30, "1") is None
-    assert "driver changed" in lh.cap_bench_due([_bench_row(3)], 30, "2")
-    assert lh.cap_bench_due([_bench_row(3)], 30, None) is None  # driver unreadable: not a reason
+def test_cap_bench_due_first_driver_change_or_thermal_event_not_age():
+    assert "no cap benchmark" in lh.cap_bench_due([], "1")
+    assert lh.cap_bench_due([_bench_row(3)], "1") is None
+    assert lh.cap_bench_due([_bench_row(400)], "1") is None  # a year old, same driver, no heat signal: not due
+    assert "driver changed" in lh.cap_bench_due([_bench_row(3)], "2")
+    assert lh.cap_bench_due([_bench_row(3)], None) is None  # driver unreadable: not a reason
+    last = _bench_row(3)["ts"]
+    before = {"ts": "2000-01-01T00:00:00+07:00", "event": "thermal_warn"}
+    after = {"ts": "2999-01-01T00:00:00+07:00", "event": "thermal_stop"}
+    other = {"ts": "2999-01-01T00:00:00+07:00", "event": "start"}
+    assert lh.cap_bench_due([_bench_row(3)], "1", [before, other]) is None
+    assert "watchdog fired 1" in lh.cap_bench_due([_bench_row(3)], "1", [before, after])
 
 
 def test_due_cap_bench_exit_codes(tmp_path):
     assert run(tmp_path, "due", "--kind", "cap-bench").returncode in (1, 2)  # 2 only if this machine is on battery
-    _write(tmp_path, [_bench_row(40)])
-    assert run(tmp_path, "due", "--kind", "cap-bench").returncode in (1, 2)  # older than 30 days
-    assert run(tmp_path, "due", "--kind", "cap-bench", "--days", "60").returncode in (0, 1, 2)
+    _write(tmp_path, [_bench_row(40, driver=None)])
+    assert run(tmp_path, "due", "--kind", "cap-bench").returncode in (0, 2)  # old but same driver, no heat signal
 
 
 def test_stability_needs_time_requests_flat_temperature_and_steady_speed():

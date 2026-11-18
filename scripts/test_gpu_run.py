@@ -496,3 +496,29 @@ def test_cap_reports_failure_when_the_task_does_not_change_the_marker(tmp_path, 
     monkeypatch.setattr(gpu_run, "CAP_WAIT_SECONDS", 1)
     monkeypatch.setattr(gpu_run.subprocess, "run", lambda c, **k: subprocess.CompletedProcess(c, 0, stdout="", stderr=""))
     assert gpu_run.main(["cap", "on"]) == 1
+
+
+def test_thermal_watch_warns_after_sustained_heat_stops_near_slowdown_and_resets():
+    import gpu_run as g
+    w = g.ThermalWatch({"target_c": 87, "slowdown_c": 95}, warn_s=300, stop_s=120)
+    assert (w.warn_c, w.stop_c) == (80, 92)
+    assert w.update(0, 70) is None
+    assert w.update(10, 81) is None  # hot, the clock starts
+    assert w.update(200, 81) is None
+    assert w.update(250, 79) is None  # a cool reading resets the clock
+    assert w.update(260, 81) is None
+    assert w.update(500, 81) is None
+    assert w.update(570, 81) == "warn"  # 310 s since 260
+    assert w.update(600, 81) is None  # only once
+    assert w.update(700, 93) is None
+    assert w.update(830, 93) == "stop"  # 130 s at or above 92
+
+
+def test_thermal_watch_warns_when_the_slowdown_counter_rises_and_defaults_without_limits():
+    import gpu_run as g
+    w = g.ThermalWatch()
+    assert (w.warn_c, w.stop_c) == (80.0, 92.0)
+    assert w.update(0, 60, 1000) is None
+    assert w.update(15, 60, 1000) is None
+    assert w.update(30, 60, 2500) == "warn"
+    assert g.ThermalWatch().update(0, None) is None

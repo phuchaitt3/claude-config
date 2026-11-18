@@ -388,6 +388,57 @@ def gpu_limits() -> dict:
     return limits
 
 
+WATCH_SECONDS = 15  # how often a running GPU job's temperature is read by its wrapper
+WARN_BELOW_TARGET_C = 7  # warn at the card's Target Temperature minus this (87 -> 80 C)
+STOP_BELOW_SLOWDOWN_C = 3  # stop the job at the card's Slowdown Temp minus this (95 -> 92 C)
+WARN_S = 300.0  # time at or above the warn temperature before warning
+STOP_S = 120.0  # time at or above the stop temperature before the job is stopped
+
+
+class ThermalWatch:
+    """Watches a running GPU job's temperature against the card's own limits (user's decision,
+    2026-11-18; the numbers are derived from what ``nvidia-smi`` reports, with these defaults when it
+    reports nothing). ``update`` returns "warn" once when the GPU has stayed at or above the warn
+    temperature for WARN_S, or the thermal-slowdown counter has risen; "stop" when it has stayed at or
+    above the stop temperature for STOP_S. A reading below the threshold resets that timer."""
+
+    def __init__(self, limits: dict | None = None, warn_s: float = WARN_S, stop_s: float = STOP_S) -> None:
+        limits = limits or {}
+        self.warn_c = (limits["target_c"] - WARN_BELOW_TARGET_C) if limits.get("target_c") else 80.0
+        self.stop_c = (limits["slowdown_c"] - STOP_BELOW_SLOWDOWN_C) if limits.get("slowdown_c") else 92.0
+        self.warn_s, self.stop_s = warn_s, stop_s
+        self.hot_since: float | None = None
+        self.stop_since: float | None = None
+        self.last_slowdown: float | None = None
+        self.warned = False
+
+    def update(self, t: float, temp_c: float | None, slowdown_us: float | None = None) -> str | None:
+        rose = (slowdown_us is not None and self.last_slowdown is not None and slowdown_us > self.last_slowdown)
+        if slowdown_us is not None:
+            self.last_slowdown = slowdown_us
+        if temp_c is None:
+            return None
+        self.hot_since = (self.hot_since if self.hot_since is not None else t) if temp_c >= self.warn_c else None
+        self.stop_since = (self.stop_since if self.stop_since is not None else t) if temp_c >= self.stop_c else None
+        if self.stop_since is not None and t - self.stop_since >= self.stop_s:
+            return "stop"
+        if not self.warned and (rose or (self.hot_since is not None and t - self.hot_since >= self.warn_s)):
+            self.warned = True
+            return "warn"
+        return None
+
+
+def stop_job(proc: subprocess.Popen) -> None:
+    """End the job and its children (``taskkill /T`` on Windows)."""
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], check=False, capture_output=True, **NO_WINDOW)
+        else:
+            proc.terminate()
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 class _CoreTempShared(ctypes.Structure if sys.platform == "win32" else object):  # type: ignore[misc]
     """Core Temp's shared-memory block (CoreTempMappingObject), as its developer documents it."""
     if sys.platform == "win32":
@@ -773,13 +824,34 @@ def cmd_run(args: argparse.Namespace) -> int:
                 peak["temp_c"] = max(peak["temp_c"], r.get("temp_c") or 0.0)
                 peak["n"] += 1
 
+    stopped_hot: list[bool] = []
+
+    def watch(proc: subprocess.Popen) -> None:
+        w = ThermalWatch(gpu_limits())
+        while not stop.wait(WATCH_SECONDS):
+            r = thermal_reading() or {}
+            verdict = w.update(time.time(), r.get("gpu_temp_c"), r.get("slowdown_us"))
+            if verdict:
+                log_event("thermal_" + verdict, temp_c=r.get("gpu_temp_c"), warn_c=w.warn_c, stop_c=w.stop_c,
+                          thermal_slowdown=r.get("thermal_slowdown"), purpose=info["purpose"], cwd=info["cwd"])
+                print(f"gpu_run: THERMAL {verdict.upper()}: GPU {r.get('gpu_temp_c')} C (warn {w.warn_c:g}, stop {w.stop_c:g}, "
+                      f"slowdown now: {r.get('thermal_slowdown')})", file=sys.stderr, flush=True)
+            if verdict == "stop":
+                stopped_hot.append(True)
+                stop_job(proc)
+                return
+
     if res == "gpu":  # GPU readings only make sense for the GPU lock
         threading.Thread(target=sample, daemon=True).start()
     t0, code = time.time(), 1
     try:
         proc = subprocess.Popen(command, env=_child_env(locks))
         kill_with_me(proc)
+        if res == "gpu":
+            threading.Thread(target=watch, args=(proc,), daemon=True).start()
         code = proc.wait()
+        if stopped_hot:
+            code = 4  # stopped by the thermal watchdog
     except KeyboardInterrupt:
         code = 130
     except OSError as e:
