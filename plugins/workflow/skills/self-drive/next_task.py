@@ -41,6 +41,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
@@ -234,20 +235,23 @@ def sort_key(r: dict) -> tuple:
     return (1, 0, 0, 0, r["tier"], -r["blocks"], r["createdAt"])
 
 
+NAMES = ["now", "next", "later", "unlabelled"]
+
+
+def tag(r: dict) -> str:
+    """The label a ranked entry is shown with: first, a tier, or resume:<kind>, then [heavy]."""
+    if r.get("first"):
+        base = "first"
+    elif not r["resume"]:
+        base = NAMES[r["tier"]]
+    else:
+        kind, _, d = r["resume"]
+        base = f"resume:{kind}" + (f" (unblocks, chain {d})" if d else "")
+    return base + (" [heavy]" if r.get("heavy") else "")
+
+
 def render(ranked: list[dict], limit: int) -> list[str]:
     """One line per startable issue up to `limit`, then how many were cut, so none look absent."""
-    names = ["now", "next", "later", "unlabelled"]
-
-    def tag(r: dict) -> str:
-        if r.get("first"):
-            base = "first"
-        elif not r["resume"]:
-            base = names[r["tier"]]
-        else:
-            kind, _, d = r["resume"]
-            base = f"resume:{kind}" + (f" (unblocks, chain {d})" if d else "")
-        return base + (" [heavy]" if r.get("heavy") else "")
-
     lines = [f"#{r['number']}\t{tag(r)}\tblocks {r['blocks']}\t{r['title']}" for r in ranked[:limit]]
     if len(ranked) > limit:
         lines.append(f"... {len(ranked) - limit} more not shown (--limit)")
@@ -294,6 +298,24 @@ def hold_lines(ranked: list[dict], clear: bool, reason: str) -> list[str]:
     nums = ", ".join(f"#{r['number']}" for r in skipped)
     nxt = f"take #{take['number']}" if take else "no light issue to take"
     return [f"HEAVY HOLD: {reason}; skipped heavy {nums} (retry next round; put it in the summary); {nxt}"]
+
+
+PICKS_LOG = Path.home() / ".claude" / "overnight-picks.jsonl"
+
+
+def candidates_record(repo: str, ranked: list[dict], clear: bool, reason: str, now: str, top: int = 5) -> dict:
+    """The `candidates` log line (#27): the first `top` startable issues with the label each had when
+    ranked, the heavy ones skipped for a HEAVY HOLD, and the issue the hold rule would take."""
+    take, skipped = pick(ranked, clear)
+    return {"event": "candidates", "ts": now, "repo": repo, "machine": reason,
+            "candidates": [{"n": r["number"], "tag": tag(r), "blocks": r["blocks"]} for r in ranked[:top]],
+            "heavy_hold": [r["number"] for r in skipped], "default_pick": take["number"] if take else None}
+
+
+def append_log(rec: dict, path: Path = PICKS_LOG) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec) + "\n")
 
 
 def machine_status() -> str:
@@ -348,6 +370,8 @@ def main() -> int:
     parser.add_argument("--repo", help="owner/name; default: the repo of the current folder")
     parser.add_argument("--status", action="store_true",
                         help="print the whole round sync: open PRs, claims, worktrees, then issues")
+    parser.add_argument("--log-picks", action="store_true",
+                        help="append this ranking to ~/.claude/overnight-picks.jsonl (local, never committed)")
     parser.add_argument("--handoff", help="with --status: a handoff repo to pull first")
     args = parser.parse_args()
     try:
@@ -360,11 +384,19 @@ def main() -> int:
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
         print(f"next_task: cannot read GitHub: {exc}", file=sys.stderr)
         return 1
+    clear, reason = True, "no heavy issue ranked"
     if any(r.get("heavy") for r in ranked):
         try:
             clear, reason = machine_clear(machine_status())
         except (subprocess.TimeoutExpired, OSError):
             clear, reason = True, "machine status unreadable"
+    if args.log_picks:
+        try:
+            append_log(candidates_record(repo, ranked, clear, reason,
+                                         datetime.now(timezone.utc).isoformat(timespec="seconds")))
+        except OSError as exc:  # a side record; never break the round
+            print(f"(picks log failed: {exc})", file=sys.stderr)
+    if any(r.get("heavy") for r in ranked):
         for line in hold_lines(ranked, clear, reason):
             print(line)
     for line in render(ranked, args.limit):

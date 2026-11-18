@@ -190,3 +190,22 @@ def test_clear_machine_takes_the_top_issue_even_if_heavy_and_no_light_issue_is_n
     assert next_task.hold_lines(ranked, True, "machine clear") == []
     only_heavy, _ = next_task.rank([issue(1, ["heavy"])], {})
     assert "no light issue" in next_task.hold_lines(only_heavy, False, "low")[0]
+
+
+def test_candidates_record_keeps_top_five_with_tags_and_the_heavy_hold() -> None:
+    issues = [issue(n, ["priority:next"], created=f"2026-10-0{n}") for n in range(1, 8)]
+    issues[0]["labels"]["nodes"].append({"name": "heavy"})
+    ranked, _, _ = next_task.rank_with_claimed(issues)
+    rec = next_task.candidates_record("o/r", ranked, False, "free memory 2 GB is under the 4 GB gate", "2026-11-18T01:00:00+00:00")
+    assert [c["n"] for c in rec["candidates"]] == [1, 2, 3, 4, 5]
+    assert rec["candidates"][0]["tag"] == "next [heavy]"
+    assert rec["heavy_hold"] == [1] and rec["default_pick"] == 2
+    clear = next_task.candidates_record("o/r", ranked, True, "machine clear", "2026-11-18T01:00:00+00:00")
+    assert clear["heavy_hold"] == [] and clear["default_pick"] == 1
+
+
+def test_append_log_writes_one_json_line_per_call(tmp_path) -> None:
+    path = tmp_path / "sub" / "picks.jsonl"
+    next_task.append_log({"a": 1}, path)
+    next_task.append_log({"a": 2}, path)
+    assert path.read_text(encoding="utf-8").splitlines() == ['{"a": 1}', '{"a": 2}']
