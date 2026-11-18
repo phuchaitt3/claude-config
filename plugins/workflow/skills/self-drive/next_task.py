@@ -19,10 +19,12 @@ GraphQL call, then prints the issues a chat may start, best first (user's decisi
 within groups 2 and 3, the issue that blocks the most open issues, directly or through others, then
 the oldest. With no `resume:` labels in the repo, the order is groups 2 and 3 alone.
 
-Issues that are blocked by an open issue, or labelled `claimed` or `needs-you`, are left out.
-It also prints two kinds of fix-up for the chat to make: a bottleneck not labelled
-`priority:now`, and a "Blocked by #n" line in an issue body with no matching dependency link
-(text is invisible to GitHub's `is:blocking` search and to this script).
+Issues that are blocked by an open issue, or labelled `claimed`, `needs-you` or `parked`, are left out.
+It also prints three kinds of fix-up for the chat to make (advisory: none skips or blocks an issue;
+standard: findings/backlog-label-lint, checked 2026-11-18): a bottleneck not labelled
+`priority:now`, a "Blocked by #n" line in an issue body with no matching dependency link
+(text is invisible to GitHub's `is:blocking` search and to this script), and an `adr-review`
+issue without `needs-you` (an owner review; an overnight run cannot do it).
 With `--status` it also prints `STALE CLAIM? #n: <reason>` above the ranked list when the best
 claimed issue would outrank every startable one and the claim sweep's test (`hooks/claim_sweep.py`,
 dry run) says its claim is stale; the round then runs `claim_sweep.py sweep` at once (2026-11-18).
@@ -50,7 +52,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
-SKIP_LABELS = {"claimed", "needs-you"}
+SKIP_LABELS = {"claimed", "needs-you", "parked"}
+OWNER_REVIEW = "adr-review"  # an owner review: an overnight run cannot do it, so it needs `needs-you`
 WAIT_HEAVY_S = 600  # a lock wait this long is evidence the issue is heavy (#28; 10 min = the run-estimate bar)
 HEAVY = "heavy"  # finish needs a heavy local job (GPU, full test suite, large model, Compose stack)
 FIRST = "priority:first"  # the user's override: runs before resume work and everything else
@@ -186,6 +189,8 @@ def rank_with_claimed(
         for m in sorted({int(x) for x in TEXT_DEP.findall(issue["body"] or "")} - linked):
             if m in numbers:
                 fixups.append(f"#{n}: body says 'Blocked by #{m}' but has no dependency link; add it")
+        if OWNER_REVIEW in labels and "needs-you" not in labels:
+            fixups.append(f"#{n}: labelled {OWNER_REVIEW} (an owner review) without needs-you; add it")
         if fan >= BOTTLENECK_MIN and "priority:now" not in labels:
             fixups.append(f"#{n}: blocks {fan} open issues; label it priority:now")
         if _open_numbers(issue["blockedBy"]) or labels & SKIP_LABELS:

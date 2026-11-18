@@ -61,6 +61,18 @@ def test_claimed_and_needs_you_are_skipped() -> None:
     assert numbers(ranked) == [3]
 
 
+def test_parked_issue_is_skipped() -> None:
+    ranked, _ = next_task.rank([issue(1, ["parked", "resume:3"]), issue(2, ["priority:later"])])
+    assert numbers(ranked) == [2]
+
+
+def test_adr_review_without_needs_you_is_a_fixup_and_stays_ranked() -> None:
+    ranked, fixups = next_task.rank([issue(1, ["adr-review"]), issue(2, ["adr-review", "needs-you"])])
+    assert numbers(ranked) == [1]
+    assert any("#1:" in f and "needs-you" in f for f in fixups)
+    assert not any("#2:" in f for f in fixups)
+
+
 def test_text_dependency_without_link_is_a_fixup() -> None:
     issues = [issue(1, body="Blocked by #2 and blocked by #99"), issue(2)]
     _, fixups = next_task.rank(issues)

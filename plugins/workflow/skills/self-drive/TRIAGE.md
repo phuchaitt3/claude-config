@@ -37,6 +37,10 @@ An issue gets the lowest-numbered `resume:` label that is true for it. Pick a ki
 
 Add one comment: `Resume triage: resume:<k>, gap:<slug>. <one line why, naming the skill group, never a company, posting or resume text>.` signed with the session ID. The repository may be public, so no employer name, posting name, resume wording or personal detail goes into a label, a comment or a commit.
 
+## Review by the user (user's decision, 2026-11-18)
+
+The user does not review the labels by hand: a wrong label costs one night's pick and one command to undo, and the mechanical gaps (a missing dependency link, an owner review without `needs-you`) are printed as `fix:` lines by `next_task.py`. Before a night that matters, the user reads the top ten of its output and the `fix:` lines; the cadence of a full re-triage is in "Inputs" above (standard: findings/priority-review-cadence, checked 2026-11-18).
+
 ## Report (at most 10 lines)
 
 Counts per label, the issue numbers labelled `resume:1` to `resume:4`, and any group from the gap list that no open issue serves (the overnight run may file issues for those, "New issues").
