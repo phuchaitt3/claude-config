@@ -451,3 +451,34 @@ def test_rotate_months_moves_old_lines_and_readers_see_both(tmp_path):
     assert [r["n"] for r in guard_logs.read_rows(tmp_path, "thermal.jsonl", now - timedelta(minutes=1))] == [2]
     (tmp_path / "big.jsonl").write_bytes(b"x" * (guard_logs.WARN_BYTES + 1))
     assert any("WARNING" in line and "big.jsonl" in line for line in guard_logs.size_report(tmp_path))
+
+
+def test_cap_on_and_off_start_the_task_and_report_the_marker(tmp_path, monkeypatch, capsys):
+    sys.path.insert(0, str(HERE))
+    import gpu_run
+
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(gpu_run, "CAP_WAIT_SECONDS", 1)
+    started = []
+
+    def fake_run(cmd, **kw):  # the elevated task writes or removes the marker
+        started.append(cmd[-1])
+        m = tmp_path / "clock-cap"
+        m.write_text("on") if cmd[-1].endswith("-on") else m.unlink(missing_ok=True)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(gpu_run.subprocess, "run", fake_run)
+    assert gpu_run.main(["cap", "on"]) == 0 and "ON" in capsys.readouterr().out
+    assert gpu_run.main(["cap", "status"]) == 0 and "ON" in capsys.readouterr().out
+    assert gpu_run.main(["cap", "off"]) == 0 and "OFF" in capsys.readouterr().out
+    assert started == ["gpu-clock-cap-on", "gpu-clock-cap-off"]
+
+
+def test_cap_reports_failure_when_the_task_does_not_change_the_marker(tmp_path, monkeypatch, capsys):
+    sys.path.insert(0, str(HERE))
+    import gpu_run
+
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(gpu_run, "CAP_WAIT_SECONDS", 1)
+    monkeypatch.setattr(gpu_run.subprocess, "run", lambda c, **k: subprocess.CompletedProcess(c, 0, stdout="", stderr=""))
+    assert gpu_run.main(["cap", "on"]) == 1

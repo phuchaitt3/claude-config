@@ -12,6 +12,7 @@ report instead of in a mysterious slowdown. Standard library only; no per-reposi
                                                      (with --max-minutes: `docker stop` them at the deadline)
     python gpu_run.py status [--resource ram]                           who holds the GPU (or the RAM lock) now
     python gpu_run.py check                                             GPU busy with no holder? clock cap left on?
+    python gpu_run.py cap on|off|status                                 GPU clock cap (daytime: the user's choice)
     python gpu_run.py report [--days N] [--resource ram]                usage, waits, refusals, unguarded use
     python gpu_run.py thermal [--interval S] [--minutes M] [--purpose TEXT]
                                                      log temperatures every S seconds (no lock taken)
@@ -104,6 +105,7 @@ import guard_logs  # noqa: E402  (monthly log rotation, issue #17)
 
 INFO_OFFSET = 64  # the lock is on byte 0; the holder's description starts here
 POLL_SECONDS = 5
+CAP_WAIT_SECONDS = 15  # how long `cap on|off` waits for its task to change the marker
 SAMPLE_SECONDS = 5
 HOLD_POLL_SECONDS = 15  # how often `hold` checks that its containers still run
 IDLE_UTIL_PCT = 10  # above this, or ...
@@ -921,6 +923,28 @@ def cmd_check(args: argparse.Namespace) -> int:
     return code
 
 
+def cmd_cap(args: argparse.Namespace) -> int:
+    """``cap on|off|status``: start the elevated task, wait for the marker, say the result (exit 1 if it
+    did not take effect). ``on`` locks the GPU at 1000-1350 MHz (cooler, quieter, about 15% slower); ``off``
+    lifts it. Daytime use is the user's call; an overnight chat follows `workflow:self-drive`."""
+    marker = guard_dir() / "clock-cap"
+    if args.state != "status":
+        want = args.state == "on"
+        r = subprocess.run(["schtasks", "/run", "/tn", f"gpu-clock-cap-{args.state}"], capture_output=True,
+                           text=True, **NO_WINDOW)
+        if r.returncode != 0:
+            print(f"could not start task gpu-clock-cap-{args.state} (run setup-machine.ps1 as administrator): "
+                  f"{(r.stderr or r.stdout).strip()}")
+            return 1
+        for _ in range(int(CAP_WAIT_SECONDS / 0.5)):
+            if marker.exists() == want:
+                break
+            time.sleep(0.5)
+    on = marker.exists()
+    print(f"GPU clock cap is {'ON (1000-1350 MHz)' if on else 'OFF'}")
+    return 0 if args.state == "status" or on == (args.state == "on") else 1
+
+
 def _check_gpu(_: argparse.Namespace) -> int:
     """Exit 1 and log ``unguarded`` when the GPU is busy but nobody holds the lock."""
     r = gpu_reading()
@@ -1177,6 +1201,8 @@ def main(argv: list[str] | None = None) -> int:
     st = sub.add_parser("status")
     st.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
     sub.add_parser("check")
+    cap = sub.add_parser("cap", help="GPU clock cap: on (cooler, ~15%% slower), off, or status")
+    cap.add_argument("state", choices=["on", "off", "status"])
     rep = sub.add_parser("report")
     rep.add_argument("--days", type=int, default=7)
     rep.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
@@ -1191,7 +1217,7 @@ def main(argv: list[str] | None = None) -> int:
     th.add_argument("--minutes", type=float, help="stop after this long (default: run until stopped)")
     th.add_argument("--purpose", help="label for the log (default: thermal)")
     args = p.parse_args(argv)
-    return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check,
+    return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check, "cap": cmd_cap,
             "report": cmd_report, "thermal": cmd_thermal}[args.cmd](args)
 
 
