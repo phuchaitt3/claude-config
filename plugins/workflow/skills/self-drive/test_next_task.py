@@ -159,3 +159,34 @@ def test_live_claim_or_lower_ranked_claim_gives_no_warning() -> None:
     ranked, _, held = next_task.rank_with_claimed(low, {})
     assert next_task.stale_warning(ranked, held, ["release #1 gone"]) == []
     assert next_task.stale_warning([], [], []) == []
+
+
+LOW = "GPU lock is free\nmemory free (commit headroom): 2.1 GB; heavy jobs start at 4 GB or more\n"
+OK = "GPU lock is free\nmemory free (commit headroom): 14.2 GB; heavy jobs start at 4 GB or more\n"
+BUSY = "GPU held by thesis test (pid 1)\nmemory free (commit headroom): 14.2 GB; heavy jobs start at 4 GB or more\n"
+
+
+def test_machine_clear_reads_memory_gate_and_gpu_lock() -> None:
+    assert next_task.machine_clear(OK) == (True, "machine clear")
+    assert next_task.machine_clear(LOW)[0] is False and "2.1 GB" in next_task.machine_clear(LOW)[1]
+    assert next_task.machine_clear(BUSY)[0] is False
+
+
+def test_low_memory_skips_heavy_top_issue_takes_light_one_and_names_the_skip() -> None:
+    issues = [issue(1, ["resume:1", "heavy"]), issue(2, ["priority:next"]), issue(3, ["resume:2", "heavy"])]
+    ranked, _ = next_task.rank(issues, {})
+    assert numbers(ranked) == [1, 3, 2]
+    clear, reason = next_task.machine_clear(LOW)
+    take, skipped = next_task.pick(ranked, clear)
+    assert take["number"] == 2 and numbers(skipped) == [1, 3]
+    (line,) = next_task.hold_lines(ranked, clear, reason)
+    assert line.startswith("HEAVY HOLD:") and "#1, #3" in line and "take #2" in line
+    assert "[heavy]" in next_task.render(ranked, 5)[0]
+
+
+def test_clear_machine_takes_the_top_issue_even_if_heavy_and_no_light_issue_is_named() -> None:
+    ranked, _ = next_task.rank([issue(1, ["resume:1", "heavy"]), issue(2)], {})
+    assert next_task.pick(ranked, True)[0]["number"] == 1
+    assert next_task.hold_lines(ranked, True, "machine clear") == []
+    only_heavy, _ = next_task.rank([issue(1, ["heavy"])], {})
+    assert "no light issue" in next_task.hold_lines(only_heavy, False, "low")[0]

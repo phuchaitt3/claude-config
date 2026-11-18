@@ -27,6 +27,11 @@ With `--status` it also prints `STALE CLAIM? #n: <reason>` above the ranked list
 claimed issue would outrank every startable one and the claim sweep's test (`hooks/claim_sweep.py`,
 dry run) says its claim is stale; the round then runs `claim_sweep.py sweep` at once (2026-11-18).
 (standard: findings/bottleneck-tasks, checked 2026-11-01)
+
+An issue labelled `heavy` (its finish needs a GPU, a full test suite, a large model load or a Compose
+stack; set by triage or when filed) is held back while `gpu_run.py status` shows the GPU lock held or
+free memory under its 4 GB gate: a `HEAVY HOLD:` line names the skipped issue and the light one to
+take instead, and the next round checks again (#26, 2026-11-18).
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
 SKIP_LABELS = {"claimed", "needs-you"}
+HEAVY = "heavy"  # finish needs a heavy local job (GPU, full test suite, large model, Compose stack)
 FIRST = "priority:first"  # the user's override: runs before resume work and everything else
 TIERS = {"priority:now": 0, "priority:next": 1, "priority:later": 2}
 TEXT_DEP = re.compile(r"\bblocked by\s+#(\d+)", re.IGNORECASE)
@@ -193,7 +199,7 @@ def entry(issue: dict, labels: set[str], fan: int, own: dict, chain: dict) -> di
     options += [(*own[m], d) for m, d in chain[n].items() if own.get(m)]
     resume = min(options) if options else None
     return {"number": n, "title": issue["title"], "tier": tier, "blocks": fan,
-            "resume": resume, "first": FIRST in labels, "createdAt": issue["createdAt"]}
+            "resume": resume, "first": FIRST in labels, "heavy": HEAVY in labels, "createdAt": issue["createdAt"]}
 
 
 def stale_warning(ranked: list[dict], held: list[dict], decisions: list[str]) -> list[str]:
@@ -234,11 +240,13 @@ def render(ranked: list[dict], limit: int) -> list[str]:
 
     def tag(r: dict) -> str:
         if r.get("first"):
-            return "first"
-        if not r["resume"]:
-            return names[r["tier"]]
-        kind, _, d = r["resume"]
-        return f"resume:{kind}" + (f" (unblocks, chain {d})" if d else "")
+            base = "first"
+        elif not r["resume"]:
+            base = names[r["tier"]]
+        else:
+            kind, _, d = r["resume"]
+            base = f"resume:{kind}" + (f" (unblocks, chain {d})" if d else "")
+        return base + (" [heavy]" if r.get("heavy") else "")
 
     lines = [f"#{r['number']}\t{tag(r)}\tblocks {r['blocks']}\t{r['title']}" for r in ranked[:limit]]
     if len(ranked) > limit:
@@ -246,6 +254,52 @@ def render(ranked: list[dict], limit: int) -> list[str]:
     if not ranked:
         lines.append("no startable issue")
     return lines
+
+
+GPU_RUN = Path.home() / "claude-config" / "scripts" / "gpu_run.py"
+MEM_LINE = re.compile(r"memory free[^:]*:\s*([\d.]+) GB; heavy jobs start at ([\d.]+) GB")
+
+
+def machine_clear(status_text: str) -> tuple[bool, str]:
+    """(clear?, reason) from `gpu_run.py status` output: the GPU lock must be free and free memory
+    at or over the 4 GB gate that `gpu_run.py` applies to heavy jobs (#26, 2026-11-18)."""
+    for line in status_text.splitlines():
+        if line.startswith("GPU held by"):
+            return False, line.strip()
+        m = MEM_LINE.search(line)
+        if m and float(m.group(1)) < float(m.group(2)):
+            return False, f"free memory {m.group(1)} GB is under the {m.group(2)} GB gate"
+    return True, "machine clear"
+
+
+def pick(ranked: list[dict], clear: bool) -> tuple[dict | None, list[dict]]:
+    """The issue to take and the heavy issues skipped to reach it. With the machine clear, the top
+    one; otherwise the first that is not `heavy` (None when every startable issue is heavy)."""
+    if clear:
+        return (ranked[0] if ranked else None), []
+    skipped: list[dict] = []
+    for r in ranked:
+        if r.get("heavy"):
+            skipped.append(r)
+        else:
+            return r, skipped
+    return None, skipped
+
+
+def hold_lines(ranked: list[dict], clear: bool, reason: str) -> list[str]:
+    """`HEAVY HOLD` lines for the round when the machine is not clear and a heavy issue ranks first."""
+    take, skipped = pick(ranked, clear)
+    if not skipped:
+        return []
+    nums = ", ".join(f"#{r['number']}" for r in skipped)
+    nxt = f"take #{take['number']}" if take else "no light issue to take"
+    return [f"HEAVY HOLD: {reason}; skipped heavy {nums} (retry next round; put it in the summary); {nxt}"]
+
+
+def machine_status() -> str:
+    result = subprocess.run([sys.executable, str(GPU_RUN), "status"], capture_output=True,
+                            text=True, encoding="utf-8", timeout=30)
+    return result.stdout
 
 
 def claimed(issues: list[dict]) -> list[str]:
@@ -306,6 +360,13 @@ def main() -> int:
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
         print(f"next_task: cannot read GitHub: {exc}", file=sys.stderr)
         return 1
+    if any(r.get("heavy") for r in ranked):
+        try:
+            clear, reason = machine_clear(machine_status())
+        except (subprocess.TimeoutExpired, OSError):
+            clear, reason = True, "machine status unreadable"
+        for line in hold_lines(ranked, clear, reason):
+            print(line)
     for line in render(ranked, args.limit):
         print(line)
     for line in fixups:
