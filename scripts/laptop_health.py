@@ -535,7 +535,8 @@ def cap_bench_lines(rows: list[dict]) -> list[str]:
             best = min(ok, key=lambda r: r["temp_c"])
             out.append(f"    best setting (lowest temperature within 20% of uncapped speed): {best['setting']}; "
                        + ("1350 is still the best." if best.get("clock_mhz") == 1350 else "1350 is NOT the best any more: review the cap."))
-    same = [g for g in ids[:-1] if (groups[g][0].get("cooling"), groups[g][0].get("ac")) == cond]
+    same = [g for g in ids[:-1] if (groups[g][0].get("cooling"), groups[g][0].get("ac")) == cond
+            and all(r.get("stable") for r in groups[g])]  # an interrupted or unsettled run is no baseline
     if not same:
         out.append("    no earlier benchmark with the same cooling note and AC state: this is a new baseline, not a drift")
     else:

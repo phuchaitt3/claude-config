@@ -143,11 +143,13 @@ def test_stability_needs_time_requests_flat_temperature_and_steady_speed():
     flat = [(s, 60.0 + (0.3 if s % 2 else 0)) for s in range(0, 100, 2)]
     steady = [50.0, 50.2, 49.9, 50.1, 50.0]
     assert gcb.is_stable(100, flat, steady)
-    assert not gcb.is_stable(80, flat, steady)  # before 90 s
+    assert not gcb.is_stable(50, flat, steady)  # before 60 s
     assert not gcb.is_stable(100, flat, steady[:4])  # fewer than 5 requests
     assert not gcb.is_stable(100, flat, [50, 52, 48, 51, 49])  # CV above 2%
     rising = [(s, 55 + s * 0.05) for s in range(0, 100, 2)]
-    assert not gcb.is_stable(100, rising, steady)  # temperature moves more than 1 C in 60 s
+    assert not gcb.is_stable(100, rising, steady)  # the mean drifts 1.5 C between the two halves
+    fan = [(s, 58.0 if (s // 2) % 2 else 62.0) for s in range(0, 100, 2)]
+    assert gcb.is_stable(100, fan, steady)  # swinging 4 C but not drifting: stable
 
 
 def test_summarise_uses_the_last_window_and_tokens_per_joule():
@@ -155,10 +157,11 @@ def test_summarise_uses_the_last_window_and_tokens_per_joule():
     r = gcb.summarise(100, samples, [48, 50, 50, 50, 50, 50], True)
     assert r["temp_c"] == 60.0 and r["power_w"] == 40.0 and r["sm_mhz_max"] == 1350
     assert r["tokens_s"] == 50.0 and r["tokens_per_joule"] == 1.25 and r["stable"]
+    assert r["temp_range_c"] == 0.0 and r["tps_cv_pct"] is not None
 
 
 def test_cap_task_names():
-    assert gcb.task_for(1200) == "gpu-clock-cap-1200" and gcb.task_for(None) == "gpu-clock-cap-off"
+    assert gcb.task_for(1200) == "gpu-clock-cap-1200" and gcb.task_for(1350) == "gpu-clock-cap-on" and gcb.task_for(None) == "gpu-clock-cap-off"
 
 
 def test_report_table_best_setting_and_same_cooling_comparison(tmp_path):
@@ -169,3 +172,6 @@ def test_report_table_best_setting_and_same_cooling_comparison(tmp_path):
     lines = "\n".join(lh.cap_bench_lines(group(40, "a", "flat", 60) + group(1, "b", "flat", 62)))
     assert "against" in lines and "+2.0 C" in lines
     assert "1350 is still the best" in lines  # 1200 is cooler but 42 tok/s is under 80% of 54
+    unsettled = [dict(r, stable=False) for r in group(20, "u", "flat", 50)]
+    lines = "\n".join(lh.cap_bench_lines(unsettled + group(1, "b", "flat", 62)))
+    assert "new baseline" in lines  # an unsettled run is not compared against

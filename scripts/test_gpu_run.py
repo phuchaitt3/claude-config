@@ -12,9 +12,23 @@ def run(tmp, *args, **kw):
     return subprocess.run([sys.executable, SCRIPT, *args], env=env, capture_output=True, text=True, **kw)
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_inherited_lock_markers(monkeypatch):
+    """In-process tests read os.environ: drop the "lock held" markers a suite run under gpu_run.py inherits."""
+    import os
+    for k in [k for k in os.environ if "_HELD" in k]:
+        monkeypatch.delenv(k)
+
+
 def ENV(tmp):
     # admission off by default in tests: the machine's real free memory must not decide a test
-    return {**__import__("os").environ, "GPU_GUARD_DIR": str(tmp), "OLLAMA_HOST": "127.0.0.1:1",
+    # a suite started inside `gpu_run.py run` inherits its "lock held" markers, which would make the tests
+    # skip the locks they check: drop them, so the whole suite can run under the RAM lock
+    env = {k: v for k, v in __import__("os").environ.items() if "_HELD" not in k}
+    return {**env, "GPU_GUARD_DIR": str(tmp), "OLLAMA_HOST": "127.0.0.1:1",
             "GPU_RUN_MIN_FREE_GB": "0"}
 
 

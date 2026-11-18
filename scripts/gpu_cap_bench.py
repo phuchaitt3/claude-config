@@ -5,8 +5,8 @@
 For each setting (1200, 1350, 1500 MHz, then uncapped, in that order) it applies the cap through the
 elevated scheduled tasks ``gpu-clock-cap-<mhz>`` and ``gpu-clock-cap-off`` (registered once by
 ``setup-machine.ps1``; no prompt at run time), runs Ollama generation back to back and stops as soon as the
-run is stable: GPU temperature varies by at most 1 C over the last 60 s and tokens/s by at most 2%
-(coefficient of variation) over the last 5 requests, after at least 90 s and at most 8 minutes (then it
+run is stable: the mean GPU temperature of the last 30 s is within 1 C of the 30 s before (drift, not swing: the fan cycles it by a few degrees) and tokens/s by at most 2%
+(coefficient of variation) over the last 5 requests, after at least 60 s and at most 4 minutes (then it
 records "not stable"). The stable window is the measurement. One ``cap_bench`` row per setting goes to
 ``health.jsonl``: tokens/s, mean temperature, mean power, tokens per joule, AC state, room proxy, driver,
 cooling note. A run on battery power is refused. It ends with the 1350 cap on, as the overnight rule expects.
@@ -31,25 +31,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import laptop_health as lh  # noqa: E402
 
 SETTINGS = [1200, 1350, 1500, None]  # None = uncapped, in this order
-TEMP_BAND_C = 1.0
-TEMP_WINDOW_S = 60.0
+DRIFT_C = 1.0  # mean temperature of the last half-window vs the half before
+TEMP_WINDOW_S = 60.0  # two halves of 30 s; also the measurement window
 TPS_CV_PCT = 2.0
 TPS_REQUESTS = 5
-MIN_S = 90.0
-MAX_S = 480.0
+MIN_S = 60.0
+MAX_S = 240.0
 PROMPT = "Write a long, detailed essay about the history of the printing press."
 
 
 def task_for(mhz: int | None) -> str:
-    return "gpu-clock-cap-off" if mhz is None else f"gpu-clock-cap-{mhz}"
+    if mhz is None:
+        return "gpu-clock-cap-off"
+    return "gpu-clock-cap-on" if mhz == 1350 else f"gpu-clock-cap-{mhz}"  # -on is the overnight 1350 cap
 
 
 def is_stable(elapsed: float, temps: list[tuple[float, float]], tps: list[float]) -> bool:
     """temps: (seconds since start, deg C); tps: tokens/s per request, oldest first."""
     if elapsed < MIN_S or len(tps) < TPS_REQUESTS:
         return False
-    window = [t for s, t in temps if s >= elapsed - TEMP_WINDOW_S]
-    if len(window) < 2 or max(window) - min(window) > TEMP_BAND_C:
+    half = TEMP_WINDOW_S / 2
+    new = [t for s, t in temps if s >= elapsed - half]
+    old = [t for s, t in temps if elapsed - TEMP_WINDOW_S <= s < elapsed - half]
+    # drift, not swing: the fan cycles the temperature by a few degrees all the time (2026-11-18 runs)
+    if len(new) < 2 or len(old) < 2 or abs(statistics.fmean(new) - statistics.fmean(old)) > DRIFT_C:
         return False
     last = tps[-TPS_REQUESTS:]
     mean = statistics.fmean(last)
@@ -65,9 +70,13 @@ def summarise(elapsed: float, samples: list[dict], tps: list[float], stable: boo
         return round(statistics.fmean(v), 1) if v else None
 
     t_s = round(statistics.fmean(tps[-TPS_REQUESTS:]), 2) if tps else None
+    temps = [r["gpu_temp_c"] for r in win if r.get("gpu_temp_c") is not None]
+    last = tps[-TPS_REQUESTS:]  # why a run was or was not stable, for reviewing the thresholds
     power = mean("power_w")
     return {"stable": stable, "seconds": round(elapsed), "tokens_s": t_s, "temp_c": mean("gpu_temp_c"),
-            "power_w": power, "sm_mhz_mean": mean("sm_mhz"),
+            "power_w": power, "temp_range_c": round(max(temps) - min(temps), 1) if temps else None,
+            "tps_cv_pct": round(100 * statistics.pstdev(last) / statistics.fmean(last), 2) if len(last) > 1 else None,
+            "sm_mhz_mean": mean("sm_mhz"),
             "sm_mhz_max": max((r["sm_mhz"] for r in win if r.get("sm_mhz") is not None), default=None),
             "tokens_per_joule": round(t_s / power, 3) if t_s and power else None}
 
@@ -132,10 +141,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--cooling", default=None, help="cooling setup, e.g. 'flat desk, no pad' (default: the last run's)")
     p.add_argument("--model", default=None, help="Ollama model (default: the first installed)")
     p.add_argument("--host", default="http://localhost:11434")
+    p.add_argument("--smoke", action="store_true",
+                   help="quick end-to-end check before a real run: every setting for about 15 s, nothing logged")
     args = p.parse_args(argv)
     if on_battery():
         print("gpu_cap_bench: refused: the laptop is on battery power", file=sys.stderr)
         return 2
+    global MIN_S, MAX_S, TEMP_WINDOW_S
+    if args.smoke:
+        MIN_S, MAX_S, TEMP_WINDOW_S = 5.0, 15.0, 8.0
     cooling = args.cooling or lh.last_cooling()
     if not cooling:
         print("gpu_cap_bench: no cooling note and none from an earlier run: pass --cooling", file=sys.stderr)
@@ -157,7 +171,8 @@ def main(argv: list[str] | None = None) -> int:
                 print("gpu_cap_bench: stopped: the laptop went onto battery power", file=sys.stderr)
                 return 2
             row = {**base, "setting": "uncapped" if mhz is None else f"{mhz}", "clock_mhz": mhz, **measure(mhz, model, args.host)}
-            lh.append("health.jsonl", row)
+            if not args.smoke:
+                lh.append("health.jsonl", row)
             print(f"gpu_cap_bench: {row}")
     finally:  # the overnight rule expects the 1350 cap on
         subprocess.run(["schtasks", "/run", "/tn", "gpu-clock-cap-on"], check=False, capture_output=True, **lh.NO_WINDOW)
