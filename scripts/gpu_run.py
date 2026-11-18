@@ -802,6 +802,19 @@ def _child_env(locks: list[Lock]) -> dict:
     return {**os.environ, **{env_held(lock.resource): str(os.getpid()) for lock in locks}}
 
 
+def thermal_check(w: ThermalWatch, info: dict) -> str | None:
+    """One watchdog step for a job or service holding the GPU lock: read the card, feed ``w``, and on a
+    "warn" or "stop" log the event and print a line. Returns the verdict; the caller ends the job."""
+    r = thermal_reading() or {}
+    verdict = w.update(time.time(), r.get("gpu_temp_c"), r.get("slowdown_us"))
+    if verdict:
+        log_event("thermal_" + verdict, temp_c=r.get("gpu_temp_c"), warn_c=w.warn_c, stop_c=w.stop_c,
+                  thermal_slowdown=r.get("thermal_slowdown"), purpose=info["purpose"], cwd=info["cwd"])
+        print(f"gpu_run: THERMAL {verdict.upper()}: GPU {r.get('gpu_temp_c')} C (warn {w.warn_c:g}, stop {w.stop_c:g}, "
+              f"slowdown now: {r.get('thermal_slowdown')})", file=sys.stderr, flush=True)
+    return verdict
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     command = _command(args)
     if not command:
@@ -829,14 +842,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     def watch(proc: subprocess.Popen) -> None:
         w = ThermalWatch(gpu_limits())
         while not stop.wait(WATCH_SECONDS):
-            r = thermal_reading() or {}
-            verdict = w.update(time.time(), r.get("gpu_temp_c"), r.get("slowdown_us"))
-            if verdict:
-                log_event("thermal_" + verdict, temp_c=r.get("gpu_temp_c"), warn_c=w.warn_c, stop_c=w.stop_c,
-                          thermal_slowdown=r.get("thermal_slowdown"), purpose=info["purpose"], cwd=info["cwd"])
-                print(f"gpu_run: THERMAL {verdict.upper()}: GPU {r.get('gpu_temp_c')} C (warn {w.warn_c:g}, stop {w.stop_c:g}, "
-                      f"slowdown now: {r.get('thermal_slowdown')})", file=sys.stderr, flush=True)
-            if verdict == "stop":
+            if thermal_check(w, info) == "stop":
                 stopped_hot.append(True)
                 stop_job(proc)
                 return
@@ -914,6 +920,8 @@ def cmd_hold(args: argparse.Namespace) -> int:
         names = "RAM and GPU locks" if len(locks) > 1 else f"{RESOURCES[locks[0].resource]}"
         print(f"gpu_run hold: holding the {names} while {', '.join(held.values())} run; stop them "
               f"to release it{until}.", file=sys.stderr, flush=True)
+        watch = ThermalWatch(gpu_limits()) if any(lk.resource == "gpu" for lk in locks) else None
+        last_watch = 0.0
         while True:
             running = containers(gpu_only=False)
             alive = [cid for cid in held if running is None or cid in running]
@@ -930,6 +938,15 @@ def cmd_hold(args: argparse.Namespace) -> int:
                       file=sys.stderr)
                 code = 124  # what `timeout` returns
                 break
+            if watch and time.time() - last_watch >= WATCH_SECONDS:
+                last_watch = time.time()
+                if thermal_check(watch, info) == "stop":
+                    ok = stop_containers(list(held))
+                    log_event("thermal_stopped", pid=info["pid"], purpose=info["purpose"],
+                              containers=sorted(held.values()), stopped=ok)
+                    print(f"gpu_run hold: GPU too hot; stopped {', '.join(held.values())}.", file=sys.stderr)
+                    code = 4  # stopped by the thermal watchdog, as in `run`
+                    break
             time.sleep(HOLD_POLL_SECONDS)
         return code
     except KeyboardInterrupt:

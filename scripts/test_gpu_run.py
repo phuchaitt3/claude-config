@@ -522,3 +522,43 @@ def test_thermal_watch_warns_when_the_slowdown_counter_rises_and_defaults_withou
     assert w.update(15, 60, 1000) is None
     assert w.update(30, 60, 2500) == "warn"
     assert g.ThermalWatch().update(0, None) is None
+
+
+def test_hold_stops_a_gpu_service_that_stays_too_hot(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "HOLD_POLL_SECONDS", 0)
+    monkeypatch.setattr(g, "WATCH_SECONDS", 0)
+    monkeypatch.setattr(g, "ollama_models", lambda: [])
+    monkeypatch.setattr(g, "gpu_limits", lambda: {"target_c": 87, "slowdown_c": 95})
+    monkeypatch.setattr(g, "thermal_reading", lambda: {"gpu_temp_c": 93.0, "slowdown_us": None, "thermal_slowdown": False})
+    clock = iter(range(0, 10000, 70))  # each watch step is 70 s later: the second step reaches STOP_S
+    monkeypatch.setattr(g.time, "time", lambda: 1e9 + next(clock))
+    calls = iter([{}])
+    monkeypatch.setattr(g, "containers", lambda gpu_only=True: next(calls, {"new": "rr"}))
+    monkeypatch.setattr(g, "containers_mem_mb", lambda ids: 0.0)
+    stopped = []
+    monkeypatch.setattr(g, "stop_containers", lambda ids: stopped.append(ids) or True)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False, keep_ollama=False)
+    assert g.cmd_hold(args) == 4
+    assert stopped == [["new"]]
+    names = [e["event"] for e in events(tmp_path)]
+    assert "thermal_stop" in names and "thermal_stopped" in names
+    assert not g.Lock().is_held()
+
+
+def test_ram_hold_does_not_watch_the_gpu(tmp_path, monkeypatch):
+    import argparse
+    g = _module()
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.setattr(g, "HOLD_POLL_SECONDS", 0)
+    monkeypatch.setattr(g, "WATCH_SECONDS", 0)
+    monkeypatch.setattr(g, "ollama_models", lambda: [])
+    monkeypatch.setattr(g, "thermal_reading", lambda: pytest.fail("RAM hold read the GPU"))
+    calls = iter([{}, {"new": "rr"}, {}])
+    monkeypatch.setattr(g, "containers", lambda gpu_only=True: next(calls))
+    monkeypatch.setattr(g, "containers_mem_mb", lambda ids: 0.0)
+    args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="svc", wait=False,
+                              keep_ollama=False, resource="ram")
+    assert g.cmd_hold(args) == 0
