@@ -66,5 +66,6 @@ If `claude` is on PATH on this machine, use `claude` instead of `& $c`.
 ## In the morning
 
 - The summary is `overnight-<date>.md` in the project's handoff folder (or the session's final message if the project has none): PRs merged or waiting, decisions, what was skipped, quota pauses, the starting commit of `main`, and how to undo the night.
+- First step of the review: `python ~/claude-config/scripts/night_timeline.py` prints one merged timeline of the night (daemon spawns and retirements with their reasons such as `[low memory]`, lock start/end, `low_memory` rows and the lowest free memory with its biggest users, harness low-memory kills, each session's final state). Add `--since`/`--until` for another window. The daemon itself retires idle workers under low memory and exits when none remain, so a `stop` after that fails with "service may be restarting".
 - PRs labelled `resume-gap` are listed first; keep one by removing the label, or revert it.
 - To review the run, ask an agent: "check how well the overnight run went in <repo>"; it reads the summary, the PRs and the transcripts' token use.
