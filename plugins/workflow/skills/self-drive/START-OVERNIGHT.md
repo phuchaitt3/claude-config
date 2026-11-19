@@ -19,6 +19,7 @@ In PowerShell, the short way (added 2026-11-15): one command does steps 1 to 4 b
 & "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path>              # e.g. thesis
 & "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path> -ResumeFirst # resume-gap items before existing open issues
 & "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path> -ReadyOnly   # earlier in the evening: readiness pass only (READY.md)
+& "$HOME\claude-config\scripts\selfdrive.ps1" <repo name or path> -Issues 285,245 -Brief <file> # only these issues, in this order; -Brief appends a file to the prompt
 ```
 
 The `-ReadyOnly` run (optional, about 10 to 20 minutes) files each missing prerequisite an agent can supply as a blocking issue and turns each one only you can supply into a `needs-you` item, so you can clear those before bed. You do not need to order issues or prepare prerequisites by hand; the overnight run repeats the pass itself if you skip it.
