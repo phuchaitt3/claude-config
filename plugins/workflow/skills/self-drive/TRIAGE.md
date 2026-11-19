@@ -28,7 +28,7 @@ Create any label that is missing (`gh label create <name> --description <text> -
 | `resume:5` | Any other gap-list group: backs a bullet's existing claim with other tools or documentation, or fills a nice-to-have. |
 | `resume:6` | A new claim not yet on any resume, in a gap-list group. |
 | `resume:none` | Serves no gap-list group (so the next pass skips it). |
-| `heavy` | Optional hint, not part of this pass: triage or a human may set it when a finish plainly needs a GPU job, a full test suite, a large model or dataset load, or a Compose stack. Do not label every issue for it; the loop adds it from evidence (a low-memory kill or a long lock wait; SKILL.md, "Heavy-task hold"; standard: findings/heavy-task-tagging, checked 2026-11-18). |
+| `heavy` | Optional hint, not part of this pass: triage or a human may set it when a finish plainly needs the laptop (a full test suite, a local GPU job or large model or dataset load, or a Compose stack). Work that runs on Kaggle is not `heavy`. Do not label every issue for it; the loop adds it from evidence (a low-memory kill or a long lock wait; SKILL.md, "Heavy-task hold"; standard: findings/heavy-task-tagging, checked 2026-11-18). |
 | `gap:<slug>` | The gap-list group it serves (slug from `resume-gaps.md`); one per issue, the best-ranked when several fit. |
 
 An issue gets the lowest-numbered `resume:` label that is true for it. Pick a kind only when the issue's finish would actually let a bullet say something new; an issue that touches a group's topic but changes no claim is `resume:none`.

@@ -30,8 +30,9 @@ claimed issue would outrank every startable one and the claim sweep's test (`hoo
 dry run) says its claim is stale; the round then runs `claim_sweep.py sweep` at once (2026-11-18).
 (standard: findings/bottleneck-tasks, checked 2026-11-01)
 
-An issue labelled `heavy` (its finish needs a GPU, a full test suite, a large model load or a Compose
-stack; set by triage or when filed) is held back while `gpu_run.py status` shows the GPU lock held or
+An issue labelled `heavy` (its finish needs the laptop: a full test suite, a laptop benchmark, a local Compose
+stack, or a GPU job or model load that must run locally; a Kaggle-bound job is not heavy; set by
+triage or when filed) is held back while `gpu_run.py status` shows the GPU lock held or
 free memory under its 4 GB gate: a `HEAVY HOLD:` line names the skipped issue and the light one to
 take instead, and the next round checks again (#26, 2026-11-18).
 The label is learned from evidence, not set by an up-front pass (#28, 2026-11-18; standard:
@@ -55,7 +56,7 @@ BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority
 SKIP_LABELS = {"claimed", "needs-you", "parked"}
 OWNER_REVIEW = "adr-review"  # an owner review: an overnight run cannot do it, so it needs `needs-you`
 WAIT_HEAVY_S = 600  # a lock wait this long is evidence the issue is heavy (#28; 10 min = the run-estimate bar)
-HEAVY = "heavy"  # finish needs a heavy local job (GPU, full test suite, large model, Compose stack)
+HEAVY = "heavy"  # finish needs a heavy local job (full test suite, local GPU job or large model, Compose stack); not Kaggle-bound work
 FIRST = "priority:first"  # the user's override: runs before resume work and everything else
 TIERS = {"priority:now": 0, "priority:next": 1, "priority:later": 2}
 TEXT_DEP = re.compile(r"\bblocked by\s+#(\d+)", re.IGNORECASE)
