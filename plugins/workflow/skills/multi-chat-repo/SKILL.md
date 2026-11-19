@@ -49,6 +49,7 @@ The `focus_title` hook names each chat on its first prompt `<repo>-<folder>-<two
 - **Test your own worktree's code.** An editable install (`pip install -e`) points at the main checkout, so tests in a worktree silently run the main checkout's code. Put the worktree's source first on the path (for example `PYTHONPATH=<worktree>/src`), check with `python -c "import <pkg>; print(<pkg>.__file__)"`, and do not reinstall the package, which would switch it under the other chats.
 - **Git-ignored data is not in a worktree.** Read and write shared data under the main checkout with absolute paths.
 - **At most one chat per reserved resource** (a cloud kernel, a GPU, a deployment slot). Claim it in the reserved-resources line of `RULES.md` before using it; release it when done.
+- **Write advice down before giving it** (user's decision, 2026-11-19, after two chats gave the user conflicting advice about one session's permission mode): before giving the user advice that changes how something runs (a workaround, a setting, a command to type into another session), add one line to the project's handoff folder or the relevant issue. Before warning that another session is stalled or misconfigured, read that folder, the issue and the session's `state.json` first.
 - **Merging:** never merge locally. Each task lands on the default branch by pull request, reviewed as the `workflow:pr-review` skill says.
 
 ## Orchestration: chats and claims (default; no lead, user's decision, 2026-10-31)
@@ -78,7 +79,7 @@ The split follows common practice: a tracker holds the details (one issue per it
 
 ### Keeping the user's queue short
 
-A pull-only inbox with no limit piles up unseen. These practices keep it readable (standard: DORA "Streamlining change approval" and Kanban WIP limits, checked 2026-10-29). **The numbers are defaults under test, not standards**: no source gives the right limit, so a project measures its own queue (does it stay within the limit, how long do items wait) and changes them in its `RULES.md` with the user's yes.
+A pull-only inbox with no limit piles up unseen. These practices keep it readable (standard: DORA "Streamlining change approval" and Kanban WIP limits, checked 2026-10-29). **The numbers are defaults under test, not standards**: no source gives the right limit, so a project measures its own queue (does it stay within the limit, how long do items wait) and changes them in the project's `CLAUDE.md` (or `RULES.md` if the project has no tracked rule file) with the user's yes.
 
 - **Limit:** "Needs you" holds at most **3** items (default). When full, no chat adds a user item or starts work that will end in one; it finishes or unblocks existing items, or parks the new one as "Not blocking".
 - **Batch:** each PR waiting for the user's merge carries the `needs-you` label and a review request; no batch row is needed.

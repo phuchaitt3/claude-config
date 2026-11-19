@@ -18,7 +18,7 @@ An issue is ready when all of these hold:
 
 1. No open blocker (`next_task.py` only lists unblocked issues, so this holds for each issue it prints).
 2. Its finish is checkable: a test, a command, a file, a number. If not, write one into the issue body; that is an agent's job, not the user's.
-3. Everything its finish needs is on the machine or can be had by the run without the user: tools, packages, data files, models, Docker images, a Kaggle dataset or runner, a design brief. Overnight rules allow free downloads that fit on disk (`SKILL.md`, step 4).
+3. Everything its finish needs is on the machine or can be had by the run without the user: tools, packages, data files, models, Docker images, a Kaggle dataset or runner, a design brief. Overnight rules allow free downloads that fit on disk (`SKILL.md`, step 4). List the tools each issue needs and sort them (user's decision, 2026-11-19, after a winget install raised a Windows admin prompt at 00:55 that nobody was awake to answer): an install that needs admin or elevation (a machine-wide installer, writing under Program Files, any UAC prompt) is done with the user present, or the issue leaves that night's queue and becomes a `needs-you` item; a per-user or unattended install (pip or uv into the project env, `ollama pull`, an official Docker image, winget with a per-user scope) is fine overnight.
 4. No open decision that only the user can make.
 
 ## For each issue read
