@@ -32,7 +32,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from _gitcmd import (
-    CACHE_ROOT, default_branch, git, git_ok, main_checkout_of, opted_in, repo_key, spawn_detached,
+    CACHE_ROOT, default_branch, git, git_ok, log_session_start, main_checkout_of, opted_in, repo_key,
+    spawn_detached,
 )
 
 CACHE = CACHE_ROOT / "worktree_sweep"
@@ -254,6 +255,7 @@ def main() -> int:
     except ValueError:
         return 0
     if isinstance(payload, dict):
+        log_session_start("worktree_sweep", payload)
         note = on_session_start(payload, time.time())
         if note:
             json.dump({"hookSpecificOutput": {

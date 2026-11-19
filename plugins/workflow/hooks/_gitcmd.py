@@ -22,6 +22,7 @@ from pathlib import Path
 _SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|&\n()`]")
 _CD = ("cd", "pushd", "set-location", "sl")
 CACHE_ROOT = Path.home() / ".claude" / "hook-cache"
+SESSION_LOG_MAX = 200_000
 # Where the multi-chat skill puts the handoff folder; its presence opts a project in.
 HANDOFF_DIRS = (Path(".handoff"), Path("data") / "handoff")
 
@@ -133,3 +134,25 @@ def spawn_detached(args: Sequence[str]) -> None:
     else:
         kwargs["start_new_session"] = True
     subprocess.Popen([sys.executable, *args], **kwargs)
+
+
+def log_session_start(hook: str, payload: dict, log: Path | None = None) -> None:
+    """Append one line per SessionStart call (hook, source, cwd, session) to
+    `hook-cache/sessionstart.log`. Evidence for claude-config#5: after `/clear`, `main_checkout`
+    and `worktree_sweep` once left no trace; the source (`startup`, `clear`, `resume`) shows
+    whether those starts reach the hooks at all. Never raises; the log is cut when it grows."""
+    try:
+        if payload.get("hook_event_name") != "SessionStart":
+            return
+        log = log or CACHE_ROOT / "sessionstart.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        if log.exists() and log.stat().st_size > SESSION_LOG_MAX:
+            log.write_text("", encoding="utf-8")
+        from datetime import datetime, timezone
+        line = (f"{datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ} {hook} "
+                f"source={payload.get('source')} session={str(payload.get('session_id'))[:8]} "
+                f"cwd={payload.get('cwd')}\n")
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(line)
+    except Exception:
+        pass

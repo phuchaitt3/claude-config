@@ -33,7 +33,7 @@ from pathlib import Path
 
 from _gitcmd import (
     CACHE_ROOT, git, git_calls, git_ok, is_main_checkout, main_checkout_of, opted_in,
-    default_branch, repo_key, spawn_detached,
+    default_branch, log_session_start, repo_key, spawn_detached,
 )
 
 CACHE = CACHE_ROOT / "main_checkout"
@@ -296,6 +296,7 @@ def main() -> int:
                 "hookEventName": "PreToolUse", "additionalContext": warning,
             }}, sys.stdout)
     elif event in ("SessionStart", "UserPromptSubmit"):
+        log_session_start("main_checkout", payload)
         warning = on_prompt(payload, event, time.time())
         if warning:
             json.dump({"hookSpecificOutput": {

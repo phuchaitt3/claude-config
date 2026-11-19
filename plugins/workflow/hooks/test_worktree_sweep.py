@@ -173,3 +173,13 @@ def test_session_start_reports_removals_once(
     note = worktree_sweep.on_session_start({"cwd": str(main)}, 1e10)
     assert note and "removed 1" in note
     assert worktree_sweep.on_session_start({"cwd": str(main)}, 1e10) is None
+
+
+def test_log_session_start_records_source(tmp_path: Path) -> None:
+    import _gitcmd
+    log = tmp_path / "c" / "sessionstart.log"
+    _gitcmd.log_session_start("worktree_sweep", {"hook_event_name": "SessionStart", "source": "clear",
+                                                 "session_id": "abcdef123456", "cwd": "/x"}, log)
+    _gitcmd.log_session_start("worktree_sweep", {"hook_event_name": "UserPromptSubmit"}, log)
+    lines = log.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1 and "source=clear" in lines[0] and "session=abcdef12" in lines[0]
