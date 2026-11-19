@@ -48,7 +48,8 @@ on Windows (what Kubernetes reads there) and physical RAM available, MemAvailabl
 RAM was added 2026-11-19 after Claude Code killed two overnight jobs at commit headroom 3 and 7.5 GB. A lock is a mutex; chats, editors and
 Docker use memory no lock counts, so schedulers admit against a memory figure with a reserve kept for
 the system (standard: findings/memory-admission-one-machine, checked 2026-11-17). Each ``start`` event
-and each thermal sample logs ``mem_free_gb`` and ``mem_phys_free_gb``, so the threshold can be tuned from data.
+and each thermal sample logs ``mem_free_gb``, ``mem_phys_free_gb`` and ``top_mem_mb`` (the five biggest
+programs by working set; a ``low_memory`` row with the top ten is added when physical RAM free is under 3 GB), so the threshold can be tuned from data.
 
 ``hold --resource ram`` holds the RAM lock for a Compose stack or any container that keeps running
 after its start command returns (a database, an API); a GPU ``hold`` holds both locks. Either keeps
@@ -91,9 +92,11 @@ GB written and health trends (standard: findings/laptop-overnight-heavy-jobs, ch
 from __future__ import annotations
 
 import argparse
+import csv
 import ctypes
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -199,6 +202,29 @@ def min_free_gb(args: argparse.Namespace | None = None) -> float:
         except ValueError:
             value = MIN_FREE_GB
     return value
+
+
+LOW_PHYS_GB = 3.0  # below this much physical RAM free, a sample also logs a `low_memory` row with the top 10
+
+
+def top_memory(n: int = 5) -> dict[str, float] | None:
+    """Memory in MB by program name, largest first, from `tasklist` (working set, all processes of one
+    name added together: Chrome, Docker's vmmem and Claude each run several). Windows only; None when
+    it cannot be read. Added 2026-11-19 so a low-memory kill can be traced to what held the RAM."""
+    if sys.platform != "win32":
+        return None
+    try:
+        out = subprocess.run(["tasklist", "/fo", "csv", "/nh"], capture_output=True, text=True,
+                             timeout=20, **NO_WINDOW).stdout
+        totals: dict[str, float] = {}
+        for row in csv.reader(out.splitlines()):
+            if len(row) >= 5:
+                kb = int(re.sub(r"\D", "", row[4]) or 0)
+                totals[row[0]] = totals.get(row[0], 0.0) + kb / 1024
+        top = sorted(totals.items(), key=lambda kv: -kv[1])[:n]
+        return {k: round(v) for k, v in top}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
 
 
 def kill_with_me(proc: subprocess.Popen) -> object | None:
@@ -1116,7 +1142,12 @@ def cmd_thermal(args: argparse.Namespace) -> int:
             r = thermal_reading() or {}
             r.update({"cpu_temp_c": None, **cpu_reading(), "mem_free_gb": mem_free_gb(),
                               "mem_phys_free_gb": mem_phys_free_gb()})
+            r["top_mem_mb"] = top_memory(5)
             log_thermal({"event": "sample", **r})
+            phys = r.get("mem_phys_free_gb")
+            if phys is not None and phys < LOW_PHYS_GB:
+                log_thermal({"event": "low_memory", "mem_phys_free_gb": phys,
+                             "mem_free_gb": r.get("mem_free_gb"), "top_mem_mb": top_memory(10)})
             n += 1
             time.sleep(args.interval)
     except KeyboardInterrupt:

@@ -320,6 +320,20 @@ def test_admission_uses_the_lower_of_commit_and_physical(monkeypatch, tmp_path):
     assert g._admit(args, info) is True
 
 
+def test_top_memory_names_the_biggest_programs(monkeypatch):
+    g = _module()
+    fake = "\n".join(['"a.exe","1","Console","1","3,000 K"', '"b.exe","2","Console","1","9,000 K"',
+                      '"a.exe","3","Console","1","4,000 K"'])
+    monkeypatch.setattr(g.sys, "platform", "win32")
+    monkeypatch.setattr(g.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, fake, ""))
+    assert g.top_memory(2) == {"b.exe": 9, "a.exe": 7}
+
+
+def test_top_memory_live_reads_something():
+    top = _module().top_memory(3)
+    assert top is None or (len(top) == 3 and all(v >= 0 for v in top.values()))
+
+
 def test_mem_phys_free_reads_a_positive_figure():
     assert _module().mem_phys_free_gb() > 0
 
