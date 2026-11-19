@@ -14,6 +14,19 @@ The repository is public: an entry names no project and holds no private detail.
 - An entry past its Review by date, a source that has changed, or a new fact that contradicts it means check again and update the entry. A practice that no longer holds is set to `status: superseded` (replaced by a newer entry, named in its Finding) or `archived` (no longer relevant); the file stays so old `findings/<topic>` tags still resolve. Do not delete an entry.
 - `python scripts/build_findings_index.py --check` exits 1 when the index is stale; run it before committing a change under `findings/`.
 
+## Reddit and other sources the agent cannot read
+
+The search and fetch tools cannot reach reddit.com (the search API rejects the domain, WebFetch refuses it, and a plain request gets 403); Blind returns 402. Searches show only third-party blogs that paraphrase Reddit. Tested 2026-11-19; the cause is on the tool side, not the user's DNS. So community evidence is a hand-off to the user:
+
+1. Search the open web for the topic first (vendor docs, surveys, trade press) and read what is readable.
+2. Give the user 3-5 Google queries of the form `site:reddit.com/r/<sub> <topic words>`. Subreddits by voice: r/recruiting and r/humanresources (recruiters and HR staff: the evidence); r/resumes, r/jobsearchhacks, r/recruitinghell (mostly job seekers: weak).
+3. The user pastes the Google result list (titles and snippets). Pick 2-3 threads from the snippets: self-identified practitioners, on the exact question, not older than needed. Skip tool-product chat and translated copies.
+4. The user opens each thread and pastes the top comments (above about 10 upvotes) plus the thread URL and date. A paste in any layout is readable; do not ask the user to clean it.
+5. Record each thread in the entry as *anecdotal*: URL, subreddit, date or age, upvote counts, and a short paraphrase. No usernames (the register is public) and no long verbatim quotes. State the age of the comments and what the thread does not cover.
+6. Raw cleaned text goes in the asking project's own private folder if it has one, never in this repository.
+
+A single thread never overturns a sourced finding; it is an anecdote beside the surveys and vendor documentation. Worked example: `resume-keyword-stuffing`.
+
 ## Entry format
 
 One file per topic, `findings/<topic>.md`, starting with front matter (the index is generated from it):
