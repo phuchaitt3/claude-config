@@ -105,7 +105,7 @@ def test_disable_auto_is_not_a_merge() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    [".github/workflows/ci.yml", ".claude/settings.json", "infra/main.tf", "app/Dockerfile",
+    [".github/workflows/ci.yml", ".claude/settings.json", "LICENSE", "SECURITY.md",
      ".env", "conf/.env.prod", "certs/server.pem", "credentials.json"],
 )
 def test_user_merge_paths_are_refused(path: str) -> None:
@@ -116,7 +116,8 @@ def test_user_merge_paths_are_refused(path: str) -> None:
 @pytest.mark.parametrize(
     "path",
     ["CLAUDE.md", "README.md", ".github/CODEOWNERS", ".env.example", "src/permissions.py",
-     "uv.lock", "compose.yaml", "docker-compose.dev.yml"],
+     "uv.lock", "compose.yaml", "docker-compose.dev.yml", "infra/main.tf", "app/Dockerfile",
+     "docs/LICENSE"],
 )
 def test_ordinary_paths_merge(path: str) -> None:
     assert merge_gate.check("gh pr merge 4 --squash", FakeGh(files=[path])) is None

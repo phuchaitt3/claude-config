@@ -45,12 +45,13 @@ SECRET_PATTERNS: tuple[tuple[str, str], ...] = (
 )
 # Paths the user merges in a repository without CODEOWNERS (`workflow:pr-review`). `.claude/` is
 # drawn by risk there, which needs a reading of the diff, so the hook refuses all of it and the
-# user decides. A dev-stack compose file is not deploy config (pr-review), so it is not listed.
+# user decides. `infra/` and deploy config (Dockerfile) are ordinary files since 2026-11-19 (user's
+# decision, claude-config#16); CI workflows stay listed because a workflow can read repository
+# secrets (standard: findings/agent-config-protection, checked 2026-11-01).
 DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"^\.github/workflows/", "CI config (.github/workflows/)"),
     (r"^\.claude/", "agent settings and hooks (.claude/)"),
-    (r"^infra/", "infra/"),
-    (r"(^|/)Dockerfile[^/]*$", "deploy config (Dockerfile)"),
+    (r"^(LICENSE[^/]*|SECURITY\.md)$", "LICENSE or SECURITY.md"),
 )
 USER_MERGE_PATTERNS = DEFAULT_PATTERNS + SECRET_PATTERNS
 # Where GitHub looks for CODEOWNERS, in its order.
