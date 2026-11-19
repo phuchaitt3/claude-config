@@ -37,3 +37,21 @@ The disk file never shrinks by itself. Prune first (compacting before pruning re
 - Prune build cache after build-heavy sessions.
 - Docker's disk limit and disk location settings are documented for the Hyper-V backend only; on WSL 2 do not promise the user a cap there.
 - Do not turn on WSL sparse VHD: it was reported gated for data-corruption risk and breaks `Optimize-VHD`.
+
+## The WSL 2 memory cap (`~/.wslconfig`, `[wsl2] memory=`)
+
+(User's decision, 2026-11-19, claude-config#19.) Docker Desktop's VM takes up to 50% of Windows memory unless capped; on this 16 GB laptop it is capped at **3 GB**. Basis: the book-rag-app Compose stack (db, qdrant, s3, migrate, api, worker, web; fake LLM and embedder) peaked at 1011 MB (`gpu_run.py hold` `end` event, `peak_stack_mem_mb`), plus about 0.5 GB for the VM's kernel and page cache and about 1.5 GB for the TEI reranker container or an image build. The cap limits RAM, not heat; for heat see `workflow:gpu-cap` and the thermal watchdog.
+
+**Change it only with the user's yes**, in steps of 1 GB, and only when no Compose stack or GPU container runs (`docker ps`; `gpu_run.py check`): edit `memory=`, then `wsl --shutdown` (Docker Desktop restarts the VM on next use). The comment above the line in `~/.wslconfig` gets the date, the new value and the evidence.
+
+**Signals that the cap is wrong:**
+
+| Signal | Where | Meaning and step |
+|---|---|---|
+| A container exits with `OOMKilled=true` (`docker inspect <name> --format '{{.State.OOMKilled}}'`, `docker events --filter event=oom`) | Docker | cap too low: raise 1 GB |
+| A Compose build or install dies with "Killed" or exit 137 | build output | cap too low: raise 1 GB, or build with fewer parallel jobs |
+| `low_memory` rows (under 3 GB physical free) in `thermal.jsonl` while `docker stats` shows the stack near idle | `python ~/claude-config/scripts/night_timeline.py` | cap not the cause or too high: look at `top_mem_mb` first; lower 1 GB only if `vmmemWSL` is the top user |
+| Harness kills ("was stopped because the system is running low on memory") | `night_timeline.py` | more headroom needed overall: check `top_mem_mb` for the biggest user before touching the cap |
+| A new service in the stack (reranker, a bigger model server) or a much larger book | `gpu_run.py report --resource ram` (`peak_stack_mem_mb`) | re-measure with the new stack through `hold --resource ram`, then set the cap to the peak plus about 1.5 GB |
+
+To measure: start the stack through `python ~/claude-config/scripts/gpu_run.py hold --resource ram --wait --purpose "<task> wsl peak" -- docker compose -p <name> up -d`, run a normal workload for several minutes, `docker compose -p <name> down` (never `-v`), then read `peak_stack_mem_mb`. The figure is the `docker stats` sum, a lower bound; it leaves out the VM's kernel and page cache, so never set the cap to it directly (the issue's first formula, peak x 1.15, gave 1.2 GB and was not applied). The 4 GB admission check in `gpu_run.py` still holds heavy jobs back when physical RAM is low, whatever the cap.
