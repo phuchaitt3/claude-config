@@ -298,12 +298,30 @@ def test_low_memory_waits_with_wait_until_memory_frees(tmp_path, monkeypatch):
     monkeypatch.setattr(g, "POLL_SECONDS", 0)
     readings = iter([1.0, 2.0, 9.0])
     monkeypatch.setattr(g, "mem_free_gb", lambda: next(readings, 9.0))
+    monkeypatch.setattr(g, "mem_phys_free_gb", lambda: 9.0)
     args = argparse.Namespace(command=[sys.executable, "-c", "pass"], purpose="job", wait=True,
                               keep_ollama=True, resource="ram", min_free_gb=4.0)
     assert g.cmd_run(args) == 0
     ev = events(tmp_path)
     assert [e["event"] for e in ev] == ["waiting", "start", "end"]
     assert ev[0]["reason"] == "low_memory" and ev[1]["mem_free_gb"] == 9.0
+
+
+def test_admission_uses_the_lower_of_commit_and_physical(monkeypatch, tmp_path):
+    import argparse
+    g = _module()
+    monkeypatch.setattr(g, "mem_free_gb", lambda: 9.0)
+    monkeypatch.setattr(g, "mem_phys_free_gb", lambda: 1.5)
+    args = argparse.Namespace(wait=False, min_free_gb=4.0)
+    info = {"resource": "ram", "purpose": "p", "cmd": "c", "cwd": "d"}
+    assert g._admit(args, info) is False
+    assert info["mem_free_gb"] == 9.0 and info["mem_phys_free_gb"] == 1.5
+    monkeypatch.setattr(g, "mem_phys_free_gb", lambda: 8.0)
+    assert g._admit(args, info) is True
+
+
+def test_mem_phys_free_reads_a_positive_figure():
+    assert _module().mem_phys_free_gb() > 0
 
 
 def test_mem_free_reads_a_positive_figure():

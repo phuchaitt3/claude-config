@@ -43,11 +43,12 @@ for this process, so the older nested form still works): overnight 2026-11-16/17
 jobs under the GPU lock alone and filled the 16 GB between them (user's decision, 2026-11-17).
 
 Memory admission: whoever takes the RAM lock then waits (``--wait``) or is refused while free memory
-is under ``--min-free-gb`` (default 4, or ``$GPU_RUN_MIN_FREE_GB``). Free memory is commit headroom on
-Windows (what Kubernetes reads there), MemAvailable on Linux. A lock is a mutex; chats, editors and
+is under ``--min-free-gb`` (default 4, or ``$GPU_RUN_MIN_FREE_GB``). Free memory is the lower of commit headroom
+on Windows (what Kubernetes reads there) and physical RAM available, MemAvailable on Linux; physical
+RAM was added 2026-11-19 after Claude Code killed two overnight jobs at commit headroom 3 and 7.5 GB. A lock is a mutex; chats, editors and
 Docker use memory no lock counts, so schedulers admit against a memory figure with a reserve kept for
 the system (standard: findings/memory-admission-one-machine, checked 2026-11-17). Each ``start`` event
-and each thermal sample logs ``mem_free_gb``, so the threshold can be tuned from data.
+and each thermal sample logs ``mem_free_gb`` and ``mem_phys_free_gb``, so the threshold can be tuned from data.
 
 ``hold --resource ram`` holds the RAM lock for a Compose stack or any container that keeps running
 after its start command returns (a database, an API); a GPU ``hold`` holds both locks. Either keeps
@@ -142,25 +143,31 @@ def env_held(resource: str) -> str:
     return ENV_HELD if resource == "gpu" else f"GPU_GUARD_{resource.upper()}_HELD_BY"
 
 
+def _win_memstatus():
+    """Windows GlobalMemoryStatusEx result, or None when the call fails."""
+    from ctypes import wintypes
+
+    class _MemStatus(ctypes.Structure):
+        _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+    s = _MemStatus()
+    s.dwLength = ctypes.sizeof(_MemStatus)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(s)):
+        return None
+    return s
+
+
 def mem_free_gb() -> float | None:
     """Memory a new job can still commit, in GB: commit headroom (CommitLimit - CommitTotal) on
     Windows, which is what Kubernetes reads there, or MemAvailable on Linux. None when unknown."""
     try:
         if sys.platform == "win32":
-            from ctypes import wintypes
-
-            class _MemStatus(ctypes.Structure):
-                _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
-                            ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
-                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
-                            ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
-                            ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
-
-            s = _MemStatus()
-            s.dwLength = ctypes.sizeof(_MemStatus)
-            if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(s)):
-                return None
-            return round(s.ullAvailPageFile / 2**30, 2)
+            s = _win_memstatus()
+            return None if s is None else round(s.ullAvailPageFile / 2**30, 2)
         with open("/proc/meminfo", encoding="ascii") as f:
             for line in f:
                 if line.startswith("MemAvailable:"):
@@ -168,6 +175,20 @@ def mem_free_gb() -> float | None:
     except (OSError, ValueError, AttributeError):
         return None
     return None
+
+
+def mem_phys_free_gb() -> float | None:
+    """Physical RAM available now, in GB (Windows ullAvailPhys, Linux MemAvailable). Commit headroom
+    counts the pagefile, so it can read several GB while physical RAM is nearly gone: overnight
+    2026-11-18/19 Claude Code killed two background jobs for low memory at commit headroom 3.0 and
+    7.5 GB, which the admission check passed (user's decision, 2026-11-19)."""
+    try:
+        if sys.platform == "win32":
+            s = _win_memstatus()
+            return None if s is None else round(s.ullAvailPhys / 2**30, 2)
+    except (OSError, ValueError, AttributeError):
+        return None
+    return mem_free_gb()
 
 
 def min_free_gb(args: argparse.Namespace | None = None) -> float:
@@ -738,8 +759,11 @@ def _admit(args: argparse.Namespace, info: dict) -> bool:
     that no lock counts, so the lock alone is not enough (findings/memory-admission-one-machine)."""
     need, waited = min_free_gb(args), False
     while True:
-        free = mem_free_gb()
-        info["mem_free_gb"] = free
+        free, phys = mem_free_gb(), mem_phys_free_gb()
+        info["mem_free_gb"], info["mem_phys_free_gb"] = free, phys
+        # both figures must clear the threshold; the lower one is what the message names
+        known = [v for v in (free, phys) if v is not None]
+        free = min(known) if known else None
         if free is None or free >= need:
             return True
         if not args.wait:
@@ -782,7 +806,8 @@ def acquire(args: argparse.Namespace, command: list[str], kind: str) -> tuple[li
                 held.release()
             return None, info
         log_event("start", **{k: info[k] for k in ("resource", "pid", "kind", "purpose", "cmd", "cwd")},
-                  waited_s=info["waited_s"], mem_free_gb=info.get("mem_free_gb", mem_free_gb()))
+                  waited_s=info["waited_s"], mem_free_gb=info.get("mem_free_gb", mem_free_gb()),
+                  mem_phys_free_gb=info.get("mem_phys_free_gb", mem_phys_free_gb()))
         taken.append(lock)
     if res == "gpu":
         ollama_note(getattr(args, "keep_ollama", False))
@@ -969,7 +994,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"{name} lock is free")
     free = mem_free_gb()
     if free is not None:
-        print(f"memory free (commit headroom): {free:.1f} GB; heavy jobs start at {min_free_gb():g} GB or more")
+        print(f"memory free (commit headroom): {free:.1f} GB, physical: {mem_phys_free_gb() or 0:.1f} GB; heavy jobs start at {min_free_gb():g} GB or more")
     return 0
 
 
@@ -1089,7 +1114,8 @@ def cmd_thermal(args: argparse.Namespace) -> int:
                 month = datetime.now().strftime("%Y-%m")
                 guard_logs.rotate_months(guard_dir())
             r = thermal_reading() or {}
-            r.update({"cpu_temp_c": None, **cpu_reading(), "mem_free_gb": mem_free_gb()})
+            r.update({"cpu_temp_c": None, **cpu_reading(), "mem_free_gb": mem_free_gb(),
+                              "mem_phys_free_gb": mem_phys_free_gb()})
             log_thermal({"event": "sample", **r})
             n += 1
             time.sleep(args.interval)
