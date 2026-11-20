@@ -72,3 +72,79 @@ def test_worktree_beside_main_gets_the_repo_name(tmp_path: Path) -> None:
 def test_folder_outside_the_layout_keeps_its_name(tmp_path: Path) -> None:
     (tmp_path / "claude-config").mkdir()
     assert focus_title.folder_label(str(tmp_path / "claude-config")) == "claude-config"
+
+
+# --- task in the name (2026-11-20) ---
+
+
+def test_generated_title_is_added_after_the_repo_label() -> None:
+    assert focus_title.title_for("next", CWD, "myproj-4d", "4d4dec", "SQL study plan") == "myproj: SQL study plan"
+
+
+def test_no_generated_title_yet_keeps_the_repo_title() -> None:
+    assert focus_title.title_for("next", CWD, "myproj-4d", "4d4dec", "") is None
+
+
+@pytest.mark.parametrize("current", ["my-own-name", "focus-myproj", "myproj: SQL study plan"])
+def test_other_titles_are_never_combined(current: str) -> None:
+    assert focus_title.title_for("next", CWD, current, "4d4dec", "SQL study plan") is None
+
+
+def test_focus_trigger_still_wins_over_the_generated_title() -> None:
+    assert focus_title.title_for("/focus", CWD, "myproj-4d", "4d4dec", "SQL study plan") == "focus-myproj"
+
+
+def _transcript(tmp_path: Path, lines: list[str]) -> str:
+    path = tmp_path / "session.jsonl"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return str(path)
+
+
+def test_read_ai_title_takes_the_latest_and_tidies_it(tmp_path: Path) -> None:
+    path = _transcript(
+        tmp_path,
+        [
+            '{"type":"user","message":"hello"}',
+            '{"type":"ai-title","aiTitle":"Old title"}',
+            '{"type":"ai-title","aiTitle":"  SQL   study\\nplan "}',
+        ],
+    )
+    assert focus_title.read_ai_title(path) == "SQL study plan"
+
+
+def test_read_ai_title_ignores_a_title_inside_message_text(tmp_path: Path) -> None:
+    path = _transcript(tmp_path, ['{"type":"user","message":"the \\"ai-title\\" key"}'])
+    assert focus_title.read_ai_title(path) == ""
+
+
+def test_read_ai_title_missing_file_or_empty_path() -> None:
+    assert focus_title.read_ai_title("/no/such/file.jsonl") == ""
+    assert focus_title.read_ai_title("") == ""
+
+
+def test_read_ai_title_is_capped_at_sixty_characters(tmp_path: Path) -> None:
+    path = _transcript(tmp_path, ['{"type":"ai-title","aiTitle":"' + "x" * 100 + '"}'])
+    assert len(focus_title.read_ai_title(path)) == 60
+
+
+def test_read_ai_title_stops_after_the_byte_cap(tmp_path: Path) -> None:
+    path = _transcript(tmp_path, ['{"type":"user","message":"' + "y" * 300 + '"}', '{"type":"ai-title","aiTitle":"Late"}'])
+    assert focus_title.read_ai_title(path, max_bytes=100) == ""
+
+
+def test_main_end_to_end(tmp_path: Path, monkeypatch, capsys) -> None:
+    import io
+    import json
+
+    path = _transcript(tmp_path, ['{"type":"ai-title","aiTitle":"SQL study plan"}'])
+    payload = {
+        "prompt": "next",
+        "cwd": "/work/myproj",
+        "session_title": "myproj-4d",
+        "session_id": "4d4dec",
+        "transcript_path": path,
+    }
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    focus_title.main()
+    out = json.loads(capsys.readouterr().out)
+    assert out["hookSpecificOutput"]["sessionTitle"] == "myproj: SQL study plan"
