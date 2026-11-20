@@ -2,7 +2,7 @@
 topic: effective-study-techniques
 area: Career
 question: What study techniques does learning research support for remembering material for a test, and how should reviews be spaced?
-checked: 2026-11-18
+checked: 2026-11-20
 review_months: 24
 status: current
 ---
@@ -15,6 +15,8 @@ status: current
   - *Spacing schedule.* Cepeda and colleagues (2006 meta-analysis: 839 assessments, 317 experiments, 184 articles; 2008 follow-up in *Psychological Science*) found the best gap between reviews grows with the time until the test, and shrinks as a share of it: about 20 to 40% of the delay for a one-week test, about 5 to 10% for a one-year test. For a test a few days away, that points to reviews roughly 1 to 3 days apart; that conversion is the checker's own arithmetic, not a figure in the paper. A popular "10 to 20%" figure comes from secondary summaries that blur the 2006 and 2008 papers; not confirmed in the abstract.
   - *Worked examples, then practice.* For novices, studying a worked solution often teaches more than struggling with no help, but pure example reading under-engages learners; mixing worked examples with practice problems beat blocking them (single slide-deck citation of Trafton and Reiser 1993, not checked against the original). A programming dissertation found worked examples helped novices but students often did not engage with them, and incomplete examples with self-explanation prompts improved efficiency. The practical order this supports: try the problem, study a solution when stuck, then solve similar problems later in mixed order (a reading of the sources by the search summary).
   - *Illusion of competence.* Programming blogs argue that reading solutions builds recognition, not the ability to produce one, and that interviews test production. These are blog claims, not controlled studies.
+  - *Cramming (added 2026-11-20).* Summaries of the Dunlosky review say cramming beats not studying at all, and lab studies sometimes found a cramming advantage on tests given within about 10 minutes of studying; the advantage vanishes once a delay is introduced. A cited study (Kornell and Bjork 2008, via a university handout) found spaced practice gave better results while learners rated massed practice as the more effective one, so cramming feels better than it works. No source gives a schedule for a test only a few days away; the 1-to-3-day gaps above are the checker's conversion. Retrieval inside one cramming session was not tested in the sources read. Short-timeline reading (inference): with three days left, one retrieval round per day on a topic is a spaced schedule, not a cram.
+  - *Novices: study the example first, then practise (added 2026-11-20).* Worked-example research says that for learners with low prior knowledge, studying a worked example beats solving the equivalent problem cold, and that pairing examples with practice problems beats examples alone. The benefit fades as knowledge grows (expertise reversal); faded examples that move from studying to solving are the usual remedy, and for high prior knowledge one study suggests problems first with the example available. So a thin first read of an unfamiliar topic is a poor base for retrieval: for a novice, read until each step can be followed, then test. None of the sources tested retrieval practice directly, so how long to read before the first retrieval round is not settled by them.
   - *Not robust.* A meta-analysis on mathematics learning found a small to medium spacing effect (g = 0.28) but, for testing versus restudy, a confidence interval that crossed zero. Effects depend on feedback and on how retrieval is practised.
 - **Evidence strength:** *common practice* for retrieval plus spacing (a large review, a meta-analysis and later papers agree); *anecdotal* for the programming-specific advice (blogs and one dissertation).
 - **Sources:**
@@ -25,5 +27,9 @@ status: current
   - Scott Young, worked examples versus struggling (blog): https://www.scotthyoung.com/blog/2022/05/25/do-you-learn-more-by-struggling-on-hard-problems/
   - NCSU dissertation, worked examples in novice programming (thesis): https://repository.lib.ncsu.edu/server/api/core/bitstreams/8f0d5932-a8a4-41e5-9eea-a9f26dac9efa/content
   - AlgoCademy, why you can't learn from other people's solutions (vendor blog): https://algocademy.com/blog/why-you-cant-learn-from-other-peoples-solutions/
+  - UC San Diego, Ask the Scientist on cramming versus spaced repetition (university page): https://tdlc.ucsd.edu/tdlc2/news_scientist_Kang.php
+  - University of Iowa, spaced versus massed practice (university handout): https://learning.uiowa.edu/sites/learning.uiowa.edu/files/2026-03/Spaced-Practice-vs-Massed-Practice.pdf
+  - Worked-example effect and expertise reversal effect (encyclopedia, secondary): https://en.wikipedia.org/wiki/Worked-example_effect and https://en.wikipedia.org/wiki/Expertise_reversal_effect
+  - Springer, worked examples and problem solving (journal article, snippet only): https://link.springer.com/doi/10.1007/s11251-009-9102-0
 - **Limits:** Search snippets, not full papers, were read; the Dunlosky review and the Karpicke and Roediger papers were not read in the original. Most studies use students and classroom or lab material, not interview or coding-test preparation. The spacing proportions describe a fixed test delay and vary with material and learner. Sources about coding are blogs.
-- **Checked:** 2026-11-18
+- **Checked:** 2026-11-20 (first written 2026-11-18)
