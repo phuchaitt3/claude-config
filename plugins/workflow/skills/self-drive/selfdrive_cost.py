@@ -94,10 +94,17 @@ def quota_used(log, start, end):
     return out
 
 
-def weighted_between(t0, t1):
-    """Weighted tokens (same units as scan) of every chat on this machine between two epoch times."""
+KINDS = tuple(W)
+INTERVALS = os.path.join(os.path.expanduser("~"), ".claude", "quota-intervals.jsonl")
+
+
+def tokens_by_interval(spans):
+    """Token totals per model and kind for each (t0, t1] span, over every chat on this machine."""
+    from bisect import bisect_left
     from datetime import datetime
-    seen, total = set(), 0.0
+    starts = [a for a, _ in spans]
+    out = [{} for _ in spans]
+    seen = set()
     for f in glob.glob(os.path.join(os.path.expanduser("~"), ".claude", "projects", "**", "*.jsonl"), recursive=True):
         for line in open(f, encoding="utf-8", errors="ignore"):
             if '"usage"' not in line:
@@ -109,41 +116,56 @@ def weighted_between(t0, t1):
                 t = datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
             except (ValueError, KeyError, TypeError):
                 continue
-            if not t0 <= t <= t1 or m.get("id") in seen or m.get("model") == "<synthetic>":
+            i = bisect_left(starts, t) - 1
+            if i < 0 or t > spans[i][1] or m.get("id") in seen or m.get("model") == "<synthetic>":
                 continue
             seen.add(m.get("id"))
-            total += sum(u.get(k, 0) * x for k, x in W.items())
-    return total
+            d = out[i].setdefault(m.get("model") or "?", dict.fromkeys(KINDS, 0))
+            for k in KINDS:
+                d[k] += u.get(k, 0) or 0
+    return out
 
 
-def calibrate(log):
+def weigh(tokens):
+    return sum(v.get(k, 0) * W[k] for v in tokens.values() for k in KINDS)
+
+
+def calibrate(log, store=INTERVALS):
     """Weighted tokens per percentage point of the weekly quota, from the quota log.
 
-    For each weekly window, all chats' tokens between its first and last log sample divided by the
-    rise in percent; pooled over windows. Needs a rise of at least 5 points to say anything.
-    Tokens from other devices or claude.ai are not in the transcripts, so this overstates the cost
-    of a point (understates the cap) by that share; model mix is not separated.
+    Each pair of consecutive log samples in one weekly window is an interval: the weekly rise and the
+    tokens (per model and kind) all chats used in it. Intervals are saved to `store` once, so the
+    tokens survive Claude Code deleting old transcripts, and a later fit can weight models and kinds
+    separately. The result pools intervals: total weighted tokens over total rise; it says nothing
+    until the rise is at least 5 points. Tokens from other devices or claude.ai are not in the
+    transcripts, so this overstates the cost of a point (understates the cap) by that share.
     """
     try:
         rows = [json.loads(x) for x in open(log, encoding="utf-8") if x.strip()]
     except (OSError, ValueError):
         return None
-    groups = {}
-    for r in sorted((r for r in rows if "t" in r and "week" in r), key=lambda r: r["t"]):
-        groups.setdefault(r["week_resets"], []).append(r)
-    tok = rise = 0.0
-    spans = []
-    for g in groups.values():
-        d = g[-1]["week"] - g[0]["week"]
-        if d < 5:
-            continue
-        w = weighted_between(g[0]["t"], g[-1]["t"])
-        tok += w; rise += d
-        spans.append(dict(hours=round((g[-1]["t"] - g[0]["t"]) / 3600, 1), points=d, weighted_M=round(w / 1e6, 2)))
-    if not rise:
+    rows = sorted((r for r in rows if "t" in r and "week" in r), key=lambda r: r["t"])
+    pairs = [(a, b) for a, b in zip(rows, rows[1:]) if a["week_resets"] == b["week_resets"]]
+    try:
+        saved = {(r["t0"], r["t1"]): r for r in (json.loads(x) for x in open(store, encoding="utf-8") if x.strip())}
+    except (OSError, ValueError):
+        saved = {}
+    missing = [(a, b) for a, b in pairs if (a["t"], b["t"]) not in saved]
+    if missing:
+        toks = tokens_by_interval([(a["t"], b["t"]) for a, b in missing])
+        with open(store, "a", encoding="utf-8") as f:
+            for (a, b), tk in zip(missing, toks):
+                r = dict(t0=a["t"], t1=b["t"], week0=a["week"], week1=b["week"], week_resets=a["week_resets"], tokens=tk)
+                saved[(a["t"], b["t"])] = r
+                f.write(json.dumps(r) + "\n")
+    use = [saved[(a["t"], b["t"])] for a, b in pairs]
+    rise = sum(max(0.0, r["week1"] - r["week0"]) for r in use)
+    if rise < 5:
         return None
+    tok = sum(weigh(r["tokens"]) for r in use)
     per = tok / rise / 1e6
-    return dict(M_per_week_pct=round(per, 3), week_cap_M=round(per * 100), windows=spans)
+    return dict(M_per_week_pct=round(per, 3), week_cap_M=round(per * 100), intervals=len(use), rise_points=rise,
+                weighted_M=round(tok / 1e6, 2))
 
 
 def run_prs(repo, start, end):
