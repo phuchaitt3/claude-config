@@ -11,12 +11,18 @@ to FILE (one run per line) so runs can be compared over time.
 cache write x1.25, cache read x0.1, output x5 (API price ratios; how a subscription
 quota is metered is not published). Compare runs with each other, not with the quota.
 
+"week_pct" and "five_pct" are the percentage points of the weekly and 5-hour quota used in the run's
+window, summed from ~/.claude/quota-log.jsonl (written by the quota_watch hook); they count the whole
+account, so another chat running then is included, and the percentages are whole numbers, so a short
+run reads coarsely. Missing if the log has no sample in the window.
+
 Read-only, except --log. PRs are those the bot opened in --repo between the run's first
 and last model call (`gh pr list`, needs gh signed in); another chat in the same repo
 in that window would be counted too, so run one loop per repo.
 """
 import glob, json, os, subprocess, sys
 
+QUOTA_LOG = os.path.join(os.path.expanduser("~"), ".claude", "quota-log.jsonl")
 W = dict(input_tokens=1.0, cache_creation_input_tokens=1.25, cache_read_input_tokens=0.1, output_tokens=5.0)
 
 
@@ -47,6 +53,40 @@ def find(sid):
     if not f:
         sys.exit("transcript not found: " + sid)
     return f[0]
+
+
+def quota_used(log, start, end):
+    """Percentage points of the weekly and 5-hour quota used between two ISO times, from the quota log.
+
+    Sums the rises between consecutive samples inside the window (the last sample before the window
+    is the baseline); a drop or a new reset time is a window reset and adds nothing. This is the whole
+    account's use in that time, so another chat running then is counted too. Returns None if the log
+    is missing or has no sample in the window.
+    """
+    from datetime import datetime
+    t0 = datetime.fromisoformat(start.replace("Z", "+00:00")).timestamp()
+    t1 = datetime.fromisoformat(end.replace("Z", "+00:00")).timestamp()
+    try:
+        rows = [json.loads(x) for x in open(log, encoding="utf-8") if x.strip()]
+    except (OSError, ValueError):
+        return None
+    rows = sorted((r for r in rows if "t" in r), key=lambda r: r["t"])
+    before = [r for r in rows if r["t"] < t0]
+    inside = [r for r in rows if t0 <= r["t"] <= t1]
+    if not inside:
+        return None
+    seq = before[-1:] + inside
+    out = {}
+    for key in ("week", "five"):
+        pts = [r for r in seq if key in r]
+        used = 0.0
+        for a, b in zip(pts, pts[1:]):
+            if b[key + "_resets"] == a[key + "_resets"] and b[key] > a[key]:
+                used += b[key] - a[key]
+        out[key + "_pct"] = round(used, 1)
+        out[key + "_end"] = pts[-1][key] if pts else None
+    out["quota_samples"] = len(inside)
+    return out
 
 
 def run_prs(repo, start, end):
@@ -98,6 +138,10 @@ def main(argv):
         prs_opened=len(states), prs_merged=merged, prs=states,
         weighted_M_per_merged_pr=round(total / 1e6 / merged, 2) if merged else None,
     )
+    q = quota_used(QUOTA_LOG, ts[0], ts[-1]) if ts else None
+    if q:
+        out.update(q)
+        out["week_pct_per_merged_pr"] = round(q["week_pct"] / merged, 2) if merged else None
     line = json.dumps(out)
     print(line)
     if log:

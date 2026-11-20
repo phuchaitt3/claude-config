@@ -59,3 +59,40 @@ def test_registered_in_hooks_json() -> None:
     hooks = json.loads(Path(__file__).with_name("hooks.json").read_text(encoding="utf-8"))
     commands = [h["command"] for group in hooks["hooks"]["UserPromptSubmit"] for h in group["hooks"]]
     assert any("quota_watch.py" in c for c in commands)
+
+
+def _full(tmp_path: Path, five: float, week: float, written: float = NOW) -> Path:
+    path = tmp_path / "quota.json"
+    limits = {
+        "five_hour": {"used_percentage": five, "resets_at": NOW + 600},
+        "seven_day": {"used_percentage": week, "resets_at": NOW + 86400},
+    }
+    path.write_text(json.dumps({"written_at": written, "rate_limits": limits}), encoding="utf-8")
+    return path
+
+
+def test_log_sample_writes_weekly_and_five_hour(tmp_path: Path) -> None:
+    log = tmp_path / "log.jsonl"
+    assert quota_watch.log_sample("s1", _full(tmp_path, 10, 75), log, now=NOW)
+    row = json.loads(log.read_text())
+    assert (row["session"], row["five"], row["week"], row["week_resets"]) == ("s1", 10, 75, NOW + 86400)
+
+
+def test_log_sample_skips_unchanged_until_the_interval(tmp_path: Path) -> None:
+    log = tmp_path / "log.jsonl"
+    quota = _full(tmp_path, 10, 75)
+    assert quota_watch.log_sample("s", quota, log, now=NOW)
+    assert not quota_watch.log_sample("s", quota, log, now=NOW + 60)
+    assert quota_watch.log_sample("s", quota, log, now=NOW + quota_watch.LOG_EVERY + 1) is False  # stale file
+    quota = _full(tmp_path, 10, 75, written=NOW + quota_watch.LOG_EVERY)
+    assert quota_watch.log_sample("s", quota, log, now=NOW + quota_watch.LOG_EVERY + 1)
+    quota = _full(tmp_path, 10, 76, written=NOW + 70)
+    assert quota_watch.log_sample("s", quota, log, now=NOW + 80)
+    assert len(log.read_text().splitlines()) == 3
+
+
+def test_log_sample_never_raises(tmp_path: Path) -> None:
+    assert not quota_watch.log_sample("s", tmp_path / "none.json", tmp_path / "log.jsonl", now=NOW)
+    bad = tmp_path / "bad.json"
+    bad.write_text("{")
+    assert not quota_watch.log_sample("s", bad, tmp_path / "log.jsonl", now=NOW)
