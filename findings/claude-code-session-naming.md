@@ -1,6 +1,6 @@
 ---
 topic: claude-code-session-naming
-area: Tooling
+area: Agent setup
 question: How does Claude Code name sessions (auto title, /rename, the sessionTitle hook field), is there a per-session task description other sessions can read, and what naming does the documentation advise when several sessions run at once?
 checked: 2026-11-20
 review_months: 6
