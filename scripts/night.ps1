@@ -7,7 +7,21 @@
   Source of the settings: personal-notes machine/laptop-legion-y540.md.
 #>
 $ErrorActionPreference = 'Stop'
+
+# Lenovo power mode through Lenovo Legion Toolkit (starts it if it is not running).
+function Set-LenovoMode([string]$Mode) {
+    $dir = Join-Path $env:LOCALAPPDATA 'Programs\LenovoLegionToolkit'
+    $llt = Join-Path $dir 'llt.exe'
+    if (-not (Test-Path $llt)) { Write-Warning 'Lenovo Legion Toolkit not found; set the Lenovo mode by hand.'; return }
+    if (-not (Get-Process -Name 'Lenovo Legion Toolkit' -ErrorAction SilentlyContinue)) {
+        Start-Process (Join-Path $dir 'Lenovo Legion Toolkit.exe') -ArgumentList '--minimized'
+        Start-Sleep 6
+    }
+    & $llt feature set power-mode $Mode
+    Write-Host "Lenovo mode now: $(& $llt feature get power-mode)"
+}
 powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 99
 powercfg /setactive SCHEME_CURRENT
 python (Join-Path $PSScriptRoot 'gpu_run.py') cap on
-Write-Host 'NIGHT mode: CPU turbo OFF (99%), GPU cap ON (1350 MHz). Set Lenovo mode back to Quiet by hand if you changed it.'
+Set-LenovoMode 'quiet'
+Write-Host 'NIGHT mode: CPU turbo OFF (99%), GPU cap ON (1350 MHz). Lenovo mode set to Quiet.'
