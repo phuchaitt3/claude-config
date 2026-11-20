@@ -39,3 +39,16 @@ def test_a_reset_adds_nothing(tmp_path):
 def test_none_without_log_or_samples(tmp_path):
     assert cost.quota_used(tmp_path / "none", _iso(T0), _iso(T0 + 1)) is None
     assert cost.quota_used(_log(tmp_path, [_row(T0 - 9, 1)]), _iso(T0), _iso(T0 + 1)) is None
+
+
+def test_calibrate_divides_tokens_by_weekly_rise(tmp_path, monkeypatch):
+    monkeypatch.setattr(cost, "weighted_between", lambda a, b: 10e6)
+    p = _log(tmp_path, [_row(T0, 50), _row(T0 + 99, 60)])
+    c = cost.calibrate(p)
+    assert c["M_per_week_pct"] == 1.0 and c["week_cap_M"] == 100
+
+
+def test_calibrate_needs_a_real_rise(tmp_path, monkeypatch):
+    monkeypatch.setattr(cost, "weighted_between", lambda a, b: 10e6)
+    assert cost.calibrate(_log(tmp_path, [_row(T0, 50), _row(T0 + 9, 53)])) is None
+    assert cost.calibrate(tmp_path / "none") is None

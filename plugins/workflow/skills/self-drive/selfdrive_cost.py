@@ -16,6 +16,11 @@ window, summed from ~/.claude/quota-log.jsonl (written by the quota_watch hook);
 account, so another chat running then is included, and the percentages are whole numbers, so a short
 run reads coarsely. Missing if the log has no sample in the window.
 
+"week_pct_est" is the run's weighted tokens divided by a calibration (weighted tokens per weekly
+percentage point, `--calibrate`, from the quota log); it counts only this run, so it is the figure
+to compare between runs, and it is as good as the calibration (see calibrate()).
+`python selfdrive_cost.py --calibrate [LOG]` prints the calibration alone.
+
 Read-only, except --log. PRs are those the bot opened in --repo between the run's first
 and last model call (`gh pr list`, needs gh signed in); another chat in the same repo
 in that window would be counted too, so run one loop per repo.
@@ -89,6 +94,58 @@ def quota_used(log, start, end):
     return out
 
 
+def weighted_between(t0, t1):
+    """Weighted tokens (same units as scan) of every chat on this machine between two epoch times."""
+    from datetime import datetime
+    seen, total = set(), 0.0
+    for f in glob.glob(os.path.join(os.path.expanduser("~"), ".claude", "projects", "**", "*.jsonl"), recursive=True):
+        for line in open(f, encoding="utf-8", errors="ignore"):
+            if '"usage"' not in line:
+                continue
+            try:
+                o = json.loads(line)
+                m = o["message"]
+                u, ts = m["usage"], o["timestamp"]
+                t = datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+            except (ValueError, KeyError, TypeError):
+                continue
+            if not t0 <= t <= t1 or m.get("id") in seen or m.get("model") == "<synthetic>":
+                continue
+            seen.add(m.get("id"))
+            total += sum(u.get(k, 0) * x for k, x in W.items())
+    return total
+
+
+def calibrate(log):
+    """Weighted tokens per percentage point of the weekly quota, from the quota log.
+
+    For each weekly window, all chats' tokens between its first and last log sample divided by the
+    rise in percent; pooled over windows. Needs a rise of at least 5 points to say anything.
+    Tokens from other devices or claude.ai are not in the transcripts, so this overstates the cost
+    of a point (understates the cap) by that share; model mix is not separated.
+    """
+    try:
+        rows = [json.loads(x) for x in open(log, encoding="utf-8") if x.strip()]
+    except (OSError, ValueError):
+        return None
+    groups = {}
+    for r in sorted((r for r in rows if "t" in r and "week" in r), key=lambda r: r["t"]):
+        groups.setdefault(r["week_resets"], []).append(r)
+    tok = rise = 0.0
+    spans = []
+    for g in groups.values():
+        d = g[-1]["week"] - g[0]["week"]
+        if d < 5:
+            continue
+        w = weighted_between(g[0]["t"], g[-1]["t"])
+        tok += w; rise += d
+        spans.append(dict(hours=round((g[-1]["t"] - g[0]["t"]) / 3600, 1), points=d, weighted_M=round(w / 1e6, 2)))
+    if not rise:
+        return None
+    per = tok / rise / 1e6
+    return dict(M_per_week_pct=round(per, 3), week_cap_M=round(per * 100), windows=spans)
+
+
 def run_prs(repo, start, end):
     q = f"author:phuchai-bot created:{start[:19]}..{end[:19]}"
     out = subprocess.run(["gh", "pr", "list", "-R", repo, "--state", "all", "--limit", "200", "--search", q,
@@ -100,6 +157,9 @@ def run_prs(repo, start, end):
 
 def main(argv):
     log = label = repo = None
+    if argv[:1] == ["--calibrate"]:
+        print(json.dumps(calibrate(argv[1] if len(argv) > 1 else QUOTA_LOG)))
+        return
     ids = []
     it = iter(argv)
     for a in it:
@@ -138,6 +198,10 @@ def main(argv):
         prs_opened=len(states), prs_merged=merged, prs=states,
         weighted_M_per_merged_pr=round(total / 1e6 / merged, 2) if merged else None,
     )
+    cal = calibrate(QUOTA_LOG)
+    if cal:
+        out["week_pct_est"] = round(total / 1e6 / cal["M_per_week_pct"], 1)
+        out["week_cap_M_used"] = cal["week_cap_M"]
     q = quota_used(QUOTA_LOG, ts[0], ts[-1]) if ts else None
     if q:
         out.update(q)
