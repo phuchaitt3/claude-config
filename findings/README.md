@@ -18,14 +18,26 @@ The repository is public: an entry names no project and holds no private detail.
 
 The search and fetch tools cannot reach reddit.com (the search API rejects the domain, WebFetch refuses it, and a plain request gets 403); Blind returns 402. Searches show only third-party blogs that paraphrase Reddit. Tested 2026-11-19; the cause is on the tool side, not the user's DNS. What Reddit changed in 2026 and which routes remain: `reddit-access-for-agents`.
 
-**webx (user's decision, 2026-11-21):** the user's own tool `webx` (private repo `phuchaitt3/webx`, local folder `D:\1.git_projs\web-extract\main`) reads a page as Markdown: `uv run webx <url>` from that folder (`--json`, `--out`). A Reddit thread URL goes through the official API with keys in that folder's `.env`; never read that file, and run `webx` itself rather than a script of your own that loads the keys (a script that did so was refused by the permission classifier, 2026-11-21). `webx --search "<words>" --sub <sub> --sort relevance --limit 15` searches posts through the official API with the keys inside webx (committed 2026-11-21 in the webx repo, not yet pushed; run live: real scores and comment counts, no 8-second limit; `--sort top` favours popular posts, so use `relevance` with specific words). Before that existed, `webx` had no search, and search-engine pages (DuckDuckGo, Bing) gave no Reddit links to a plain request. Thread URLs come from the PullPush archive instead (tested 2026-11-21, no key: `https://api.pullpush.io/reddit/search/submission/?q=<words>&subreddit=<sub>&sort_type=num_comments&size=25`; at most one call per 8 seconds, HTTP 429 otherwise; details in `reddit-access-for-agents`), then `webx` reads each thread (tested the same day on five threads); the hand-off below is the fallback. It also serves other pages the fetch tool refuses. Not yet tested here on a live Reddit thread; if it fails, fall back to the hand-off. Community evidence is therefore a hand-off of URLs:
+**webx (user's decision, 2026-11-21):** the user's own tool `webx` (private repo `phuchaitt3/webx`, local folder `D:\1.git_projs\web-extract\main`) reads a page as Markdown: `uv run webx <url>` from that folder (`--json`, `--out`). A Reddit thread URL goes through the official API with keys in that folder's `.env`; never read that file, and run `webx` itself rather than a script of your own that loads the keys (a script that did so was refused by the permission classifier, 2026-11-21). **Default for Reddit (user's decision, 2026-11-21; tested the same day):** two `webx` commands, run from that folder or with `uv run --project D:\1.git_projs\web-extract\main`:
+
+- `uv run --extra reddit webx --reddit-search "<words>" --sub <sub> --sort relevance --limit 15` lists posts (score, comments, date, subreddit, URL, title) through the official API, using the keys inside webx. It is Reddit-only, not a general search. Use `relevance` with specific words (`top` returns the popular posts of the subreddit, off-topic). In the test it found on-topic threads that the archive missed.
+- `uv run webx <thread-url>` (the `/r/<sub>/comments/<id>/` form) reads the post and its comment tree as Markdown; comment scores are not included.
+
+Never read `.env`, and never run a script of your own that loads the keys (the permission classifier refused one, 2026-11-21). The command was committed in the webx repo on 2026-11-21; if it is missing there (not pushed or not pulled), use the fallbacks.
+
+**Fallbacks, in order:** (1) the PullPush archive, no key (`https://api.pullpush.io/reddit/search/submission/?q=<words>&subreddit=<sub>&sort_type=num_comments&size=25`; one call per 8 seconds or HTTP 429; its scores are stale snapshots; details in `reddit-access-for-agents`), then `webx <url>` on each hit; (2) the hand-off to the user:
 
 1. Search the open web for the topic first (vendor docs, surveys, trade press) and read what is readable.
 2. Give the user 3-5 Google queries of the form `site:reddit.com/r/<sub> <topic words>`. Subreddits by voice: r/recruiting and r/humanresources (recruiters and HR staff: the evidence); r/resumes, r/jobsearchhacks, r/recruitinghell (mostly job seekers: weak).
 3. The user pastes the Google result list (titles and snippets). Pick 2-3 threads from the snippets: self-identified practitioners, on the exact question, not older than needed. Skip tool-product chat and translated copies.
-4. Run `webx` on each chosen thread URL and read the top comments (above about 10 upvotes). If `webx` fails, the user opens each thread and pastes the top comments plus the thread URL and date; a paste in any layout is readable.
-5. Record each thread in the entry as *anecdotal*: URL, subreddit, date or age, upvote counts, and a short paraphrase. No usernames (the register is public) and no long verbatim quotes. State the age of the comments and what the thread does not cover.
+4. The user opens each thread and pastes the top comments (above about 10 upvotes) plus the thread URL and date; a paste in any layout is readable.
+
+Then, whichever route found the threads:
+
+5. Record each thread in the entry as *anecdotal*: URL, subreddit, date or age, the post's score and comment count where known, and a short paraphrase. No usernames (the register is public) and no long verbatim quotes. State the age of the comments and what the thread does not cover.
 6. Raw cleaned text goes in the asking project's own private folder if it has one, never in this repository.
+
+**Other sites:** `webx <url>` reads any page (static fetch, then a headless browser), so it is the next try for a page the fetch tool refuses. It does not get past sites that answer 403 to automated requests (two news sites did on 2026-11-21), and it has no search for any site but Reddit; find other pages with the web search tool.
 
 A single thread never overturns a sourced finding; it is an anecdote beside the surveys and vendor documentation. Worked example: `resume-keyword-stuffing`.
 
