@@ -16,12 +16,14 @@ The repository is public: an entry names no project and holds no private detail.
 
 ## Reddit and other sources the agent cannot read
 
-The search and fetch tools cannot reach reddit.com (the search API rejects the domain, WebFetch refuses it, and a plain request gets 403); Blind returns 402. Searches show only third-party blogs that paraphrase Reddit. Tested 2026-11-19; the cause is on the tool side, not the user's DNS. So community evidence is a hand-off to the user:
+The search and fetch tools cannot reach reddit.com (the search API rejects the domain, WebFetch refuses it, and a plain request gets 403); Blind returns 402. Searches show only third-party blogs that paraphrase Reddit. Tested 2026-11-19; the cause is on the tool side, not the user's DNS.
+
+**webx (user's decision, 2026-11-21):** the user's own tool `webx` (private repo `phuchaitt3/webx`, local folder `D:\1.git_projs\web-extract\main`) reads a page as Markdown: `uv run webx <url>` from that folder (`--json`, `--out`). A Reddit thread URL goes through the official API with keys in that folder's `.env`; never read that file, and run `webx` itself rather than a script of your own that loads the keys (a script that did so was refused by the permission classifier, 2026-11-21). `webx` has no search, and search-engine pages (DuckDuckGo, Bing) gave no Reddit links to a plain request, so thread URLs still come from the user (steps 2-3 below), but step 4 shrinks to "run `webx` on each URL". It also serves other pages the fetch tool refuses. Not yet tested here on a live Reddit thread; if it fails, fall back to the hand-off. Community evidence is therefore a hand-off of URLs:
 
 1. Search the open web for the topic first (vendor docs, surveys, trade press) and read what is readable.
 2. Give the user 3-5 Google queries of the form `site:reddit.com/r/<sub> <topic words>`. Subreddits by voice: r/recruiting and r/humanresources (recruiters and HR staff: the evidence); r/resumes, r/jobsearchhacks, r/recruitinghell (mostly job seekers: weak).
 3. The user pastes the Google result list (titles and snippets). Pick 2-3 threads from the snippets: self-identified practitioners, on the exact question, not older than needed. Skip tool-product chat and translated copies.
-4. The user opens each thread and pastes the top comments (above about 10 upvotes) plus the thread URL and date. A paste in any layout is readable; do not ask the user to clean it.
+4. Run `webx` on each chosen thread URL and read the top comments (above about 10 upvotes). If `webx` fails, the user opens each thread and pastes the top comments plus the thread URL and date; a paste in any layout is readable.
 5. Record each thread in the entry as *anecdotal*: URL, subreddit, date or age, upvote counts, and a short paraphrase. No usernames (the register is public) and no long verbatim quotes. State the age of the comments and what the thread does not cover.
 6. Raw cleaned text goes in the asking project's own private folder if it has one, never in this repository.
 
