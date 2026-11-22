@@ -25,6 +25,8 @@ The search and fetch tools cannot reach reddit.com (the search API rejects the d
 
 Never read `.env`, and never run a script of your own that loads the keys (the permission classifier refused one, 2026-11-21). The command was committed in the webx repo on 2026-11-21; if it is missing there (not pushed or not pulled), use the fallbacks.
 
+To debug or improve these commands, read `docs/web-access.md` in the webx repository (design, test results, refusals, shell pitfalls, gaps).
+
 **Fallbacks, in order:** (1) the PullPush archive, no key (`https://api.pullpush.io/reddit/search/submission/?q=<words>&subreddit=<sub>&sort_type=num_comments&size=25`; one call per 8 seconds or HTTP 429; its scores are stale snapshots; details in `reddit-access-for-agents`), then `webx <url>` on each hit; (2) the hand-off to the user:
 
 1. Search the open web for the topic first (vendor docs, surveys, trade press) and read what is readable.
