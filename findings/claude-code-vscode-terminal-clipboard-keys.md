@@ -1,7 +1,7 @@
 ---
 topic: claude-code-vscode-terminal-clipboard-keys
 area: Agent setup
-question: In Claude Code running in the VS Code integrated terminal on Windows, what do Ctrl+A, Ctrl+X, Ctrl+C and Ctrl+V do, and how are prompt text and output selected, cut, copied and pasted?
+question: In Claude Code running in the VS Code integrated terminal on Windows, what do Ctrl+A, Ctrl+X, Ctrl+C and Ctrl+V do, how are prompt text and output selected, cut, copied and pasted, and can these keys be remapped to the usual editor behaviour?
 checked: 2026-11-22
 review_months: 6
 status: current
@@ -30,6 +30,13 @@ How to do the four actions instead:
 
 Customising: `/keybindings` edits `~/.claude/keybindings.json` (reloads without restart); contexts include `Chat`, `Global`, `Scroll`, `Select`. Reserved, not rebindable: Ctrl+C, Ctrl+D, Ctrl+M, Ctrl+[, Ctrl+I, Ctrl+H.
 
+**Remapping to editor-style keys (checked 2026-11-22):**
+
+- **Inside Claude Code: not possible for these four.** `~/.claude/keybindings.json` maps a key to an *action* only (format `{"bindings": [{"context": "Chat", "bindings": {"ctrl+e": "chat:externalEditor", "ctrl+s": null}}]}`, `null` unbinds, hot-reloaded); it cannot make one key send another. The Chat context has no select-all, cut or copy action, the line-editing keys (Ctrl+A/E/K/U/W/Y) have no actions so cannot be moved, and Ctrl+C is reserved. Ctrl+L (`chat:clearInput`) only redraws the screen despite its name. Rebindable actions that help: `chat:externalEditor` (Ctrl+G, Ctrl+X Ctrl+E), `chat:undo` (Ctrl+_), `chat:imagePaste`. Source: Claude Code docs, keybindings.
+- **In VS Code's `keybindings.json` (catches keys before the terminal):** Ctrl+A → `workbench.action.terminal.selectAll` with `"when": "terminalFocus && !isMac"` (VS Code docs) selects the terminal screen, not the prompt. Ctrl+C → `workbench.action.terminal.copySelection` with `"when": "terminalFocus && terminalProcessSupported && terminalTextSelected"` copies when text is selected and leaves Ctrl+C as interrupt otherwise (community: Stack Overflow answer, Cursor forum, a blog; not in VS Code's docs). A rule is disabled by repeating it with a leading `-` on the command. Neither gives a cut or select-all inside the prompt line.
+- **Use the graphical panel instead of the terminal:** the Claude Code VS Code extension's panel is a normal prompt box where pasted text and images go in directly; `claudeCode.useTerminal` (default `false`) chooses terminal mode. The docs list what the panel lacks against the CLI: a subset of commands and skills, no `!` Bash shortcut, no Tab completion. That the panel's box takes the standard Ctrl+A/X/C/V is not stated in the page read: Open, though it is a VS Code text input (inference: findings/claude-code-vscode-terminal-clipboard-keys).
+- **External editor for long prompts:** Ctrl+G opens "your default text editor"; the docs read do not name the variable for the prompt editor (they name `$VISUAL`/`$EDITOR` for the transcript viewer). Setting `EDITOR` to `code --wait` so it opens a VS Code tab is not in the docs: Open.
+
 **Community fixes (anecdotal):** one blog (May 2026) unbinds VS Code's Ctrl+V terminal paste so the keypress reaches the CLI, moving text paste to Ctrl+Shift+V (`"-workbench.action.terminal.paste"` on `ctrl+v`, `when: terminalFocus && terminalProcessSupported`). A dev.to post (Claude Code v2.1.71) says image paste in the Windows terminal is Alt+V, which the official docs now confirm, so the Alt+V route is the one to use. A GitHub issue where Ctrl+C and Esc did not reach Claude Code in the VS Code terminal on Windows (#38766, Mar 2026) was fixed in v2.1.85.
 
 **Evidence strength:** official standard for the key table, the cut/paste alternatives and the VS Code settings (Claude Code and VS Code docs); anecdotal for the community fixes.
@@ -40,6 +47,9 @@ Customising: `/keybindings` edits `~/.claude/keybindings.json` (reloads without 
 - Claude Code docs, keybindings: https://code.claude.com/docs/en/keybindings (official docs)
 - Claude Code docs, terminal config: https://code.claude.com/docs/en/terminal-config (official docs)
 - VS Code docs, Terminal Basics (copy and paste, right-click behavior, select all): https://code.visualstudio.com/docs/terminal/basics (official docs)
+- Claude Code docs, VS Code extension: https://code.claude.com/docs/en/vs-code (official docs)
+- VS Code docs, keyboard shortcuts (keybindings.json, `-` removal, live reload): https://code.visualstudio.com/docs/configure/keybindings (official docs)
+- Ctrl+C copy-when-selected binding: https://forum.cursor.com/t/ctrl-c-will-not-copy/70657 and https://www.codegenes.net/blog/make-ctrl-c-copy-and-ctrl-shift-c-interrupt-in-vscode-terminal/ (community forum, blog)
 - Enable image paste in the VS Code terminal, 2026-05-11: https://www.vincentschmalbach.com/enable-image-paste-claude-code-codex-cli-vscode-terminal/ (personal blog)
 - Claude Code Ctrl+V not working on Windows: https://dev.to/akari_iku/claude-code-ctrlv-not-working-on-windows-fixes-for-common-gotchas-3mc9 (community post)
 - anthropics/claude-code issue #38766: https://github.com/anthropics/claude-code/issues/38766 (issue tracker)
