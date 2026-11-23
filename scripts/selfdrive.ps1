@@ -90,3 +90,5 @@ $env:CLAUDE_CODE_LOOP_KEEPALIVE = '1'
 Push-Location $dir
 try { & $c --bg -n $Name --model sonnet --permission-mode auto $prompt } finally { Pop-Location }
 Write-Host "Started $Name in $dir. Check: claude logs $Name"
+# A background session does not tell the chat that started it when it ends.
+Write-Host "A chat that started a short session for the user (the -ReadyOnly pass) must now start a background poll on 'claude agents --json' until $Name ends, so it is re-invoked and reports; the overnight loop itself needs none (START-OVERNIGHT.md, 'Check that it is running')."

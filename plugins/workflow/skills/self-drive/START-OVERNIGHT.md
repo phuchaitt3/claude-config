@@ -49,6 +49,8 @@ If `claude` is on PATH on this machine, use `claude` instead of `& $c`.
 
 ## Check that it is running (1 minute)
 
+- **A chat that started a short session for you** (the `-ReadyOnly` pass, a worker) starts a background Bash poll on `claude agents --json` until that session ends, in the same turn, so the harness re-invokes it and it reports; starting a session does not notify the starter (2026-11-23: a readiness pass ended after 2 minutes and the user heard 20 minutes later). The overnight loop runs all night and needs no poll.
+
 - `& $c agents` lists sessions; the `selfdrive-...` one should be there and working.
 - `& $c attach selfdrive-<repo>-<date>` opens it, so you can read its first message. It names anything you must do (for example, no keep-awake hold seen). Detach and leave it running.
 - `Get-Content $HOME\.claude\hook-cache\quota.json` should show a recent `written_at` and the 5-hour percentage. If the file is missing or stale, the quota pause cannot work: say so to an agent.
