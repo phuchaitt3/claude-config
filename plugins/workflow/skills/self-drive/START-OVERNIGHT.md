@@ -40,7 +40,7 @@ cd <path to the repository's main checkout>
 $env:CLAUDE_CODE_LOOP_KEEPALIVE = "1"
 
 # 4. Start the loop in the background. Use today's date in the name.
-& $c --bg -n selfdrive-<repo>-<yyyy-mm-dd> --permission-mode auto "Self-drive overnight in <repo> (main checkout, branch main). Load workflow:self-drive and follow Overnight mode."
+& $c --bg -n selfdrive-<repo>-<yyyy-mm-dd> --model sonnet --permission-mode auto "Self-drive overnight in <repo> (main checkout, branch main). Load workflow:self-drive and follow Overnight mode."
 ```
 
 Repeat steps 2 to 4 in a second terminal for a second repository (step 3 is per terminal).

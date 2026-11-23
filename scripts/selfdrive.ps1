@@ -88,5 +88,5 @@ if ($existing -match [regex]::Escape($Name)) { throw "A session named $Name alre
 # 4. Safety-net wakeup, then start the background session (always --permission-mode auto).
 $env:CLAUDE_CODE_LOOP_KEEPALIVE = '1'
 Push-Location $dir
-try { & $c --bg -n $Name --permission-mode auto $prompt } finally { Pop-Location }
+try { & $c --bg -n $Name --model sonnet --permission-mode auto $prompt } finally { Pop-Location }
 Write-Host "Started $Name in $dir. Check: claude logs $Name"
