@@ -5,6 +5,7 @@ Run it under the machine's own lock, one job per call (each job takes the lock i
     python gpu_run.py run --resource ram --wait -- python bench_machine.py tests
     python gpu_run.py run --resource ram --wait -- python bench_machine.py load
     python gpu_run.py run --wait -- python bench_machine.py gpu
+    python gpu_run.py run --wait -- python bench_machine.py model   (needs torchvision)
 
 Add ``--smoke`` for a seconds-long form of the same steps (nothing to compare). Needs numpy,
 psutil, pytest; ``gpu`` also needs torch. Prints one JSON line: wall seconds, peak RAM of the job
@@ -24,6 +25,23 @@ from pathlib import Path
 import psutil
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def gpu_sample() -> tuple[int | None, int | None, bool | None]:
+    """(temperature C, SM clock MHz, thermal slowdown active) from one nvidia-smi call; None where unreadable."""
+    for fields in ("temperature.gpu,clocks.sm,clocks_event_reasons.sw_thermal_slowdown,clocks_event_reasons.hw_thermal_slowdown",
+                   "temperature.gpu,clocks.sm,clocks_throttle_reasons.sw_thermal_slowdown,clocks_throttle_reasons.hw_thermal_slowdown",
+                   "temperature.gpu,clocks.sm"):
+        try:
+            r = subprocess.run(["nvidia-smi", f"--query-gpu={fields}", "--format=csv,noheader,nounits"],
+                               capture_output=True, text=True, timeout=10)
+            if r.returncode:
+                continue
+            c = [x.strip() for x in r.stdout.splitlines()[0].split(",")]
+            return int(c[0]), int(c[1]), (any(x == "Active" for x in c[2:]) if len(c) > 2 else None)
+        except Exception:
+            continue
+    return None, None, None
 
 
 def gpu_temp() -> int | None:
@@ -98,7 +116,40 @@ def job_gpu(smoke: bool) -> None:
     print("gpu_tflops", round(steps * 2 * n**3 / dt / 1e12, 3), "device", torch.cuda.get_device_name(0))
 
 
-JOBS = {"tests": job_tests, "load": job_load, "gpu": job_gpu}
+def job_model(smoke: bool) -> None:
+    """ResNet-50 training steps (batch 32, 224 px, fp32, random weights and synthetic images; a real
+    architecture and memory pattern, not real data): 90 s measured after warm-up (6 s smoke)."""
+    import torch
+    import torchvision
+    assert torch.cuda.is_available(), "no CUDA"
+    torch.manual_seed(0)
+    model = torchvision.models.resnet50().cuda().train()
+    opt = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    x = torch.randn(32, 3, 224, 224, device="cuda")
+    y = torch.randint(0, 1000, (32,), device="cuda")
+    loss_fn = torch.nn.CrossEntropyLoss()
+
+    def step():
+        opt.zero_grad(set_to_none=True)
+        loss_fn(model(x), y).backward()
+        opt.step()
+
+    for _ in range(3 if smoke else 10):
+        step()
+    torch.cuda.synchronize()
+    seconds, steps, t0 = (6 if smoke else 90), 0, time.perf_counter()
+    while time.perf_counter() - t0 < seconds:
+        step()
+        steps += 1
+        if steps % 5 == 0:
+            torch.cuda.synchronize()
+    torch.cuda.synchronize()
+    dt = time.perf_counter() - t0
+    print("resnet50_train_img_per_s", round(steps * 32 / dt, 1), "peak_gpu_mem_gb",
+          round(torch.cuda.max_memory_allocated() / 2**30, 2), "device", torch.cuda.get_device_name(0))
+
+
+JOBS = {"tests": job_tests, "load": job_load, "gpu": job_gpu, "model": job_model}
 
 
 def main() -> int:
@@ -111,11 +162,17 @@ def main() -> int:
     peak_temp = [t_before]
     stop = threading.Event()
 
+    clocks: list[int] = []
+    slowdown = [False]
+
     def watch():
         while not stop.wait(2):
-            t = gpu_temp()
+            t, clk, slow = gpu_sample()
             if t is not None:
                 peak_temp[0] = max(peak_temp[0] or 0, t)
+            if clk is not None:
+                clocks.append(clk)
+            slowdown[0] = slowdown[0] or bool(slow)
 
     threading.Thread(target=watch, daemon=True).start()
     with PeakRam() as ram:
@@ -125,6 +182,8 @@ def main() -> int:
     print(json.dumps({"bench": args.job, "smoke": args.smoke, "host": platform.node(), "wall_s": round(wall, 1),
                       "peak_ram_gb": round(ram.peak / 2**30, 2), "gpu_temp_before_c": t_before,
                       "gpu_temp_peak_c": peak_temp[0], "gpu_temp_after_c": gpu_temp(),
+                      "sm_clock_median_mhz": sorted(clocks)[len(clocks) // 2] if clocks else None,
+                      "sm_clock_min_mhz": min(clocks) if clocks else None, "thermal_slowdown_seen": slowdown[0],
                       "python": platform.python_version()}))
     return 0
 
