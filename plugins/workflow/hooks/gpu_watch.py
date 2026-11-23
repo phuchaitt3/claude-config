@@ -45,7 +45,7 @@ def decide(
     else:
         text = (
             f"GPU is {reading['util_pct']:.0f}% busy ({reading['mem_mb']:.0f} MB) but no job holds the "
-            "machine-wide lock: something is using the laptop GPU outside `gpu_run.py` (a GPU container "
+            "machine-wide lock: something is using this machine's GPU outside `gpu_run.py` (a GPU container "
             "started without `gpu_run.py hold`?). Do not start a GPU job until it ends or you know what "
             "it is; the user sees it in `gpu_run.py report`."
         )

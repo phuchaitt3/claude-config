@@ -1,7 +1,7 @@
 """PreToolUse hook: refuse a GPU container start outside the machine-wide GPU lock.
 
 A GPU container (`docker run --gpus ...`, `docker compose up` of a file with a GPU service) keeps the
-laptop GPU after its start command returns. Started bare, it holds GPU memory that no lock records:
+GPU after its start command returns. Started bare, it holds GPU memory that no lock records:
 on 2026-11-13 an unnamed `docker run --rm --gpus all` reranker sat idle beside a second copy and an
 Ollama model, filling 5.5 of 6 GB. The rule (working-rules, "Laptop GPU") says a GPU service starts
 through `gpu_run.py hold`, which keeps the lock until its containers stop, and that a `docker run`

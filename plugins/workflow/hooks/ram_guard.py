@@ -2,7 +2,7 @@
 
 The working rules ("Heavy RAM/CPU jobs") say a full test suite, a build, or a load of a large model
 or dataset into system RAM goes through `gpu_run.py run --resource ram`, so two chats never run one
-at once on the 16 GB laptop. That was text only, and on 2026-11-15 an agent ran a 537-test suite
+at once on one 16 GB machine. That was text only, and on 2026-11-15 an agent ran a 537-test suite
 bare (user's decision, 2026-11-15: refuse unguarded, as `gpu_guard` does for GPU containers).
 
 Refused unless the command goes through `gpu_run.py run` or `hold` (a GPU `run`/`hold` takes the RAM
@@ -38,7 +38,7 @@ _PKG = {"npm", "pnpm", "yarn"}
 
 _REFUSED = (
     "Refused: `{cmd}` is a {kind} outside the machine-wide RAM lock, so another chat's heavy job "
-    "could run beside it on the 16 GB laptop. Run it as "
+    "could run beside it on one 16 GB machine. Run it as "
     "`python ~/claude-config/scripts/gpu_run.py run --resource ram --wait -- {cmd}` (the lock is "
     "immediate when free; a GPU job goes inside it). A single test file needs no lock. "
     "(Rule: working-rules, \"Heavy RAM/CPU jobs\".)"

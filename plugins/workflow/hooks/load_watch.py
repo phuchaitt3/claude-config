@@ -1,6 +1,6 @@
 """UserPromptSubmit and PreToolUse (Bash, PowerShell) hook: tell the chat when the machine is short of memory, CPU or disk space.
 
-`gpu_watch.py` covers the GPU. This covers the rest of a shared laptop: a chat that starts a heavy
+`gpu_watch.py` covers the GPU. This covers the rest of a shared machine: a chat that starts a heavy
 local job (a big test run, a data build, a model load into system RAM) while memory is nearly gone
 or the CPU is saturated slows every other chat and can crash the machine (standard:
 findings/agent-process-and-resource-control, checked 2026-11-12). The hook samples at most once
@@ -55,7 +55,7 @@ def decide(state: dict, now: float, free_mb: float, total_mb: float, cpu_pct: fl
     text = (
         "machine load is high (" + "; ".join(problems) + "). Do not start a heavy local job "
         "(inference, a full test run, a data build, a large model load) now: it would slow every "
-        "other chat and can crash the laptop. Say so to the user, run it later or on Kaggle, and "
+        "other chat and can crash this machine. Say so to the user, run it later or on Kaggle, and "
         "ask other chats what they are running if the cause is unknown."
     )
     return state, text

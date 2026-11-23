@@ -3,7 +3,9 @@ name: gpu-cap
 description: Load when the user asks to cap, throttle or cool the laptop GPU, wants a quieter or cooler laptop for a heavy job, asks to lift or remove the GPU clock cap, or asks whether the cap is on; also before a job that times this laptop's speed. How to switch the GPU clock cap on, off or read its state with one command.
 ---
 
-# GPU clock cap (laptop)
+# GPU clock cap (laptop only)
+
+Laptop only: the PC has no cap tasks (`setup-machine.ps1 -ClockCap auto` skips them on a desktop), so `cap` does nothing there.
 
 Added 2026-11-18 (user's request, claude-config issue #22). Locks the laptop GPU at 1000-1350 MHz: about 10 °C cooler, 45% less power and about 15% slower than uncapped (20-minute test, 2026-11-17). The tasks behind it are registered by `setup-machine.ps1`; the overnight rule is in `workflow:self-drive` ("GPU clock cap").
 
