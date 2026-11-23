@@ -97,6 +97,9 @@ def test_classify_names_ollama_only_when_it_accounts_for_the_memory():
     assert g.classify(busy, False, 2900) == "ollama"
     assert g.classify(busy, False, 1000) == "unguarded"
     assert g.classify(busy, False, 0) == "unguarded"
+    # the desktop alone (display, browser, overlay) is not a job: 1.5 GB at 4% busy is idle (2026-11-23)
+    assert g.classify({"util_pct": 4.0, "mem_mb": 1553.0}, False, 0) == "idle"
+    assert g.classify({"util_pct": 4.0, "mem_mb": 2500.0}, False, 0) == "unguarded"
 
 
 def test_hold_keeps_lock_until_its_containers_stop(tmp_path, monkeypatch):

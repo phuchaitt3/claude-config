@@ -113,7 +113,10 @@ CAP_WAIT_SECONDS = 15  # how long `cap on|off` waits for its task to change the 
 SAMPLE_SECONDS = 5
 HOLD_POLL_SECONDS = 15  # how often `hold` checks that its containers still run
 IDLE_UTIL_PCT = 10  # above this, or ...
-IDLE_MEM_MB = 300  # ... this much memory, with no holder, is "unguarded use"
+# ... this much memory, with no holder, is "unguarded use". The desktop (display, browser, overlay) holds
+# 1.0 to 1.5 GB on the PC's GTX 1060 with no job running (seen 2026-11-23, 17 false flags in a day), so the
+# default is 2000; set GPU_IDLE_MEM_MB for a machine with another baseline. Utilisation still catches real work.
+IDLE_MEM_MB = float(os.environ.get("GPU_IDLE_MEM_MB", "2000"))
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
 ENV_MIN_FREE = "GPU_RUN_MIN_FREE_GB"
