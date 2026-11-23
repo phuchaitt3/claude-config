@@ -42,6 +42,8 @@ The disk file never shrinks by itself. Prune first (compacting before pruning re
 
 (User's decision, 2026-11-19, claude-config#19.) Docker Desktop's VM takes up to 50% of Windows memory unless capped; on this 16 GB laptop it is capped at **3 GB**. Basis: the book-rag-app Compose stack (db, qdrant, s3, migrate, api, worker, web; fake LLM and embedder) peaked at 1011 MB (`gpu_run.py hold` `end` event, `peak_stack_mem_mb`), plus about 0.5 GB for the VM's kernel and page cache and about 1.5 GB for the TEI reranker container or an image build. The cap limits RAM, not heat; for heat see `workflow:gpu-cap` and the thermal watchdog.
 
+**PC (user's decision, 2026-11-23): no cap, default 50% of 15.9 GB (about 8 GB).** Measured on the PC with the book-rag-app stack (6 containers idle 0.79 GiB; WSL memory 3.97 GB; building the three images alone reached 6.05 GB; the database allows a 3 GB shared-memory area and a 2 GB index build). A 6 GB cap would have been tight for builds. The laptop's 3 GB cap stays; it is a laptop-sharing choice, not a rule for the PC. Measure again before capping the PC.
+
 **Change it only with the user's yes**, in steps of 1 GB, and only when no Compose stack or GPU container runs (`docker ps`; `gpu_run.py check`): edit `memory=`, then `wsl --shutdown` (Docker Desktop restarts the VM on next use). The comment above the line in `~/.wslconfig` gets the date, the new value and the evidence.
 
 **Signals that the cap is wrong:**
