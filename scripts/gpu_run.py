@@ -113,10 +113,27 @@ CAP_WAIT_SECONDS = 15  # how long `cap on|off` waits for its task to change the 
 SAMPLE_SECONDS = 5
 HOLD_POLL_SECONDS = 15  # how often `hold` checks that its containers still run
 IDLE_UTIL_PCT = 10  # above this, or ...
-# ... this much memory, with no holder, is "unguarded use". The desktop (display, browser, overlay) holds
-# 1.0 to 1.5 GB on the PC's GTX 1060 with no job running (seen 2026-11-23, 17 false flags in a day), so the
-# default is 2000; set GPU_IDLE_MEM_MB for a machine with another baseline. Utilisation still catches real work.
-IDLE_MEM_MB = float(os.environ.get("GPU_IDLE_MEM_MB", "2000"))
+# ... this much memory, with no holder, is "unguarded use". 300 MB suits a laptop whose display runs on the
+# integrated GPU; a desktop whose display runs on the card holds more with no job (1.0 to 1.5 GB on the PC's
+# GTX 1060, 17 false flags in a day, 2026-11-23). `gpu_run.py calibrate` measures this machine's idle
+# baseline once and saves baseline + 500 MB in ``baseline.json``; GPU_IDLE_MEM_MB overrides both.
+# Utilisation still catches real work.
+BASELINE_MARGIN_MB = 500
+DEFAULT_IDLE_MEM_MB = 300.0
+ENV_IDLE_MEM = "GPU_IDLE_MEM_MB"
+
+
+def _idle_mem_mb() -> float:
+    try:
+        return float(os.environ[ENV_IDLE_MEM])
+    except (KeyError, ValueError):
+        pass
+    try:
+        return float(json.loads((guard_dir() / "baseline.json").read_text(encoding="utf-8"))["threshold_mb"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return DEFAULT_IDLE_MEM_MB
+
+
 ENV_DIR = "GPU_GUARD_DIR"
 ENV_HELD = "GPU_GUARD_HELD_BY"
 ENV_MIN_FREE = "GPU_RUN_MIN_FREE_GB"
@@ -138,6 +155,9 @@ NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
 
 def guard_dir() -> Path:
     return Path(os.environ.get(ENV_DIR) or Path.home() / ".gpu-guard")
+
+
+IDLE_MEM_MB = _idle_mem_mb()  # read once at import; after guard_dir so the saved baseline is found
 
 
 def now() -> str:
@@ -1057,6 +1077,32 @@ def clock_cap_left_on() -> str | None:
             f"held: a timing run now is capped; lift it with `schtasks /run /tn gpu-clock-cap-off`")
 
 
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    """Measure the GPU's idle memory (display, browser, overlay) and save threshold = highest sample + margin."""
+    if Lock().is_held():
+        print("calibrate: the GPU lock is held; run it when no job is on the GPU")
+        return 1
+    mems = []
+    for i in range(args.samples):
+        r = gpu_reading()
+        if r is None:
+            print("calibrate: no NVIDIA GPU readings available")
+            return 1
+        if r["util_pct"] >= IDLE_UTIL_PCT:
+            print(f"calibrate: GPU {r['util_pct']:.0f}% busy; run it when the GPU is idle")
+            return 1
+        mems.append(r["mem_mb"])
+        if i + 1 < args.samples:
+            time.sleep(args.interval)
+    threshold = max(mems) + BASELINE_MARGIN_MB
+    path = guard_dir() / "baseline.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"mem_mb": max(mems), "threshold_mb": threshold, "samples": mems,
+                                "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}), encoding="utf-8")
+    print(f"idle baseline {max(mems):.0f} MB; unguarded-use threshold now {threshold:.0f} MB ({path})")
+    return 0
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     code = _check_gpu(args)
     note = clock_cap_left_on()
@@ -1350,6 +1396,9 @@ def main(argv: list[str] | None = None) -> int:
     st = sub.add_parser("status")
     st.add_argument("--resource", choices=sorted(RESOURCES), default="gpu")
     sub.add_parser("check")
+    cal = sub.add_parser("calibrate", help="measure this GPU's idle memory and set the unguarded-use threshold")
+    cal.add_argument("--samples", type=int, default=6)
+    cal.add_argument("--interval", type=float, default=2.0)
     cap = sub.add_parser("cap", help="GPU clock cap: on (cooler, ~15%% slower), off, or status")
     cap.add_argument("state", choices=["on", "off", "status"])
     rep = sub.add_parser("report")
@@ -1366,7 +1415,7 @@ def main(argv: list[str] | None = None) -> int:
     th.add_argument("--minutes", type=float, help="stop after this long (default: run until stopped)")
     th.add_argument("--purpose", help="label for the log (default: thermal)")
     args = p.parse_args(argv)
-    return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check, "cap": cmd_cap,
+    return {"run": cmd_run, "hold": cmd_hold, "status": cmd_status, "check": cmd_check, "calibrate": cmd_calibrate, "cap": cmd_cap,
             "report": cmd_report, "thermal": cmd_thermal}[args.cmd](args)
 
 

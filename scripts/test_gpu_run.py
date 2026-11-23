@@ -98,8 +98,25 @@ def test_classify_names_ollama_only_when_it_accounts_for_the_memory():
     assert g.classify(busy, False, 1000) == "unguarded"
     assert g.classify(busy, False, 0) == "unguarded"
     # the desktop alone (display, browser, overlay) is not a job: 1.5 GB at 4% busy is idle (2026-11-23)
+    g.IDLE_MEM_MB = 2000.0  # what `calibrate` saves on the PC (baseline 1.5 GB + margin)
     assert g.classify({"util_pct": 4.0, "mem_mb": 1553.0}, False, 0) == "idle"
     assert g.classify({"util_pct": 4.0, "mem_mb": 2500.0}, False, 0) == "unguarded"
+
+
+def test_idle_threshold_is_300_until_calibrated_then_baseline_plus_margin(tmp_path, monkeypatch):
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path))
+    monkeypatch.delenv("GPU_IDLE_MEM_MB", raising=False)
+    g = _module()
+    assert g._idle_mem_mb() == 300.0
+    monkeypatch.setattr(g, "gpu_reading", lambda: {"util_pct": 3.0, "mem_mb": 1500.0})
+    monkeypatch.setattr(g, "time", type("T", (), {"sleep": staticmethod(lambda s: None), "strftime": staticmethod(lambda f: "t")}))
+    assert g.cmd_calibrate(type("A", (), {"samples": 3, "interval": 0})()) == 0
+    assert g._idle_mem_mb() == 2000.0
+    monkeypatch.setenv("GPU_IDLE_MEM_MB", "700")
+    assert g._idle_mem_mb() == 700.0
+    monkeypatch.setattr(g, "gpu_reading", lambda: {"util_pct": 50.0, "mem_mb": 1500.0})
+    monkeypatch.delenv("GPU_IDLE_MEM_MB")
+    assert g.cmd_calibrate(type("A", (), {"samples": 1, "interval": 0})()) == 1  # busy: refuses
 
 
 def test_hold_keeps_lock_until_its_containers_stop(tmp_path, monkeypatch):
