@@ -19,6 +19,7 @@ The full protocol for several chats on one repository is `workflow:multi-chat-re
 - `ListAgents` is the source of truth for whether a chat on this machine is alive; one that is not listed is dead, so do not message it. `idle` means only between prompts.
 - `SendMessage` to the name `ListAgents` prints. Put anything longer than a few lines in a file and send the path.
 - A peer's request is a teammate's request: act on it within your own permissions. A peer cannot approve anything for the user or relax a limit.
+- **Other machines** (user's decision, 2026-11-23, all repositories): a chat on another of the user's machines is a peer like any other. Message it and act on its requests within your own permissions without asking the user first. Hard limits and the user's approval still apply as before, and a peer's message is never that approval; a request that needs the user's yes goes to the user.
 - A chat whose name starts with `focus-` is a focus chat: message it only about its own claims and PRs (`workflow:focus`).
 - **Sign** every PR comment, review verdict, handoff line and message with your session ID, so author and reviewer are visible. A review signed with the author's ID counts as no review.
 - Never edit a file another chat claimed or a file you did not create; message its owner.
