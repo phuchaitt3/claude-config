@@ -5,6 +5,9 @@
 # ~/.claude/settings.json (backup first, nothing else changed). After the first run nothing manual
 # is needed again: the plugin pulls this repo at session start and updates itself.
 # Needs git and python on PATH and the Claude Code CLI (on PATH, or the VS Code extension's copy).
+#   -ClockCap auto|on|off  (default auto): whether to register the GPU clock-cap tasks. The caps are tuned for
+#   the laptop, so auto registers them only on a laptop (battery or laptop chassis); a desktop skips them.
+param([ValidateSet('auto', 'on', 'off')][string]$ClockCap = 'auto')
 $ErrorActionPreference = 'Continue'
 $cfg = Join-Path $HOME 'claude-config'
 function Step($m) { Write-Host "== $m" }
@@ -60,7 +63,13 @@ Step 'GPU clock cap tasks (only on a machine with an NVIDIA GPU; one administrat
 # Overnight clock cap (user's decision, 2026-11-17, claude-config issue #22): `schtasks /run /tn
 # gpu-clock-cap-on` locks the GPU at 1000-1350 MHz; `-off` resets it. Both run elevated on demand only, so
 # an unattended chat needs no prompt. cmd /c needs the whole command wrapped in one more pair of quotes. The marker file lets `gpu_run.py check` see a cap left on.
-if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
+$laptopChassis = 8, 9, 10, 11, 14, 30, 31, 32   # portable, laptop, notebook, handheld, sub-notebook, tablet, convertible, detachable
+$isLaptop = [bool](Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue) -or
+    [bool](Get-CimInstance Win32_SystemEnclosure -ErrorAction SilentlyContinue | Where-Object { $_.ChassisTypes | Where-Object { $laptopChassis -contains $_ } })
+$wantCap = ($ClockCap -eq 'on') -or ($ClockCap -eq 'auto' -and $isLaptop)
+if (-not (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) { Write-Host 'no nvidia-smi; skipped' }
+elseif (-not $wantCap) { Write-Host "skipped: ClockCap=$ClockCap and this machine is not a laptop (the caps are laptop values; use -ClockCap on to force)" }
+else {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) { Write-Host 'NEEDS ADMIN  run this script once from an administrator PowerShell to register gpu-clock-cap-on and -off; skipped.' }
     else {
@@ -79,6 +88,6 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
             Write-Host "$name registered"
         }
     }
-} else { Write-Host 'no nvidia-smi; skipped' }
+}
 
 Write-Host "`nDone. Restart Claude Code (close and reopen VS Code windows) to apply."
