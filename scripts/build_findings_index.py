@@ -44,7 +44,7 @@ def review_by(d):
 
 
 def row(d):
-    q = d["question"].replace("|", "\|")
+    q = d["question"].replace("|", "\\|")
     return f"| [{d['topic']}]({d['topic']}.md) | {q} | {d['checked']} | {review_by(d)} |"
 
 
