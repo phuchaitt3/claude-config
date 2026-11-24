@@ -9,6 +9,7 @@ status: current
 # Comparing two LLMs on one generation task: same brief, blind pairs, a judge checked against a person
 
 - **Question:** To decide which of two models to use for producing a document (for example a study page), is it standard to give both the same brief in fresh sessions, then have a third model judge the outputs, and how is such a comparison kept fair?
+- **Why separate:** findings/llm-judge-vs-em-f1 covers scoring QA answers and findings/llm-testset-cross-family-review covers building test sets; this entry is about choosing between two generator models.
 - **Finding:**
   - **A judge model for pairwise comparison is standard.** Zheng et al. (NeurIPS 2023) is the base reference; it reports strong judges agreeing with humans about as often as humans agree with each other, and lists position, verbosity and self-enhancement bias (see findings/llm-judge-vs-em-f1 for the numbers). Pairwise judging (A against B) is a common design alongside direct scoring.
   - **Swap the order and call a tie when the two verdicts disagree.** Studies check position bias by running the judge twice with the candidates swapped; the MT-Bench study (400 items) treats disagreement between swaps as a tie. The effect depends on the judge: swapping significantly helped one model (+4.7 points) and not others, and on adversarial items it hurt all models tested. An explicit tie option is recommended so the judge does not invent a winner.
