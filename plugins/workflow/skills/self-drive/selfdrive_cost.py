@@ -60,6 +60,25 @@ def find(sid):
     return f[0]
 
 
+def clean(rows):
+    """Drop stale quota readings from a log (rows with "t" and week/five and their "_resets").
+
+    A chat that was idle sends the quota as of its last reply, so the log holds readings from before a
+    reset (their reset time is already past) and readings lower than an earlier one in the same window
+    (used never falls inside a window). Both are dropped; see scripts/statusline.py is_stale, which now
+    stops them at the source, and this still cleans the log written before that.
+    """
+    best, out = {}, []
+    for r in sorted((r for r in rows if "t" in r), key=lambda r: r["t"]):
+        keys = [(k, r[k + "_resets"]) for k in ("week", "five") if k in r and (k + "_resets") in r]
+        if any(rs <= r["t"] for _, rs in keys) or any(r[k] < best.get((k, rs), -1) for k, rs in keys):
+            continue
+        for k, rs in keys:
+            best[(k, rs)] = max(best.get((k, rs), -1), r[k])
+        out.append(r)
+    return out
+
+
 def quota_used(log, start, end):
     """Percentage points of the weekly and 5-hour quota used between two ISO times, from the quota log.
 
@@ -75,7 +94,7 @@ def quota_used(log, start, end):
         rows = [json.loads(x) for x in open(log, encoding="utf-8") if x.strip()]
     except (OSError, ValueError):
         return None
-    rows = sorted((r for r in rows if "t" in r), key=lambda r: r["t"])
+    rows = clean(rows)
     before = [r for r in rows if r["t"] < t0]
     inside = [r for r in rows if t0 <= r["t"] <= t1]
     if not inside:
@@ -144,7 +163,7 @@ def calibrate(log, store=INTERVALS):
         rows = [json.loads(x) for x in open(log, encoding="utf-8") if x.strip()]
     except (OSError, ValueError):
         return None
-    rows = sorted((r for r in rows if "t" in r and "week" in r), key=lambda r: r["t"])
+    rows = [r for r in clean(rows) if "week" in r]
     pairs = [(a, b) for a, b in zip(rows, rows[1:]) if a["week_resets"] == b["week_resets"]]
     try:
         saved = {(r["t0"], r["t1"]): r for r in (json.loads(x) for x in open(store, encoding="utf-8") if x.strip())}

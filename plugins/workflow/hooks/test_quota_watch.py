@@ -64,7 +64,7 @@ def test_registered_in_hooks_json() -> None:
 def _full(tmp_path: Path, five: float, week: float, written: float = NOW) -> Path:
     path = tmp_path / "quota.json"
     limits = {
-        "five_hour": {"used_percentage": five, "resets_at": NOW + 600},
+        "five_hour": {"used_percentage": five, "resets_at": NOW + 3600},
         "seven_day": {"used_percentage": week, "resets_at": NOW + 86400},
     }
     path.write_text(json.dumps({"written_at": written, "rate_limits": limits}), encoding="utf-8")
@@ -96,3 +96,8 @@ def test_log_sample_never_raises(tmp_path: Path) -> None:
     bad = tmp_path / "bad.json"
     bad.write_text("{")
     assert not quota_watch.log_sample("s", bad, tmp_path / "log.jsonl", now=NOW)
+
+
+def test_log_sample_skips_a_snapshot_from_before_the_reset(tmp_path: Path) -> None:
+    path = _write(tmp_path, 15, NOW - 60)
+    assert not quota_watch.log_sample("s1", path, tmp_path / "log.jsonl", now=NOW)

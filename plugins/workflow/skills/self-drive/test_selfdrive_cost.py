@@ -20,7 +20,7 @@ def _log(tmp_path, rows):
     return p
 
 
-def _row(t, week, five=0, wr=9, fr=5):
+def _row(t, week, five=0, wr=9e9, fr=9e9):
     return {"t": t, "week": week, "week_resets": wr, "five": five, "five_resets": fr}
 
 
@@ -31,7 +31,7 @@ def test_sums_rises_from_the_sample_before_the_window(tmp_path):
 
 
 def test_a_reset_adds_nothing(tmp_path):
-    p = _log(tmp_path, [_row(T0 - 5, 90, 80), _row(T0 + 10, 2, 1, wr=10, fr=6), _row(T0 + 20, 4, 3, wr=10, fr=6)])
+    p = _log(tmp_path, [_row(T0 - 5, 90, 80), _row(T0 + 10, 2, 1, wr=9e9 + 1, fr=9e9 + 1), _row(T0 + 20, 4, 3, wr=9e9 + 1, fr=9e9 + 1)])
     q = cost.quota_used(p, _iso(T0), _iso(T0 + 50))
     assert q["week_pct"] == 2 and q["five_pct"] == 2
 
@@ -82,3 +82,15 @@ def test_tokens_by_interval_splits_by_model_and_ignores_duplicates(tmp_path, mon
     monkeypatch.setattr(cost.os.path, "expanduser", lambda p: str(tmp_path))
     out = cost.tokens_by_interval([(T0, T0 + 10)])[0]
     assert out["sonnet"]["input_tokens"] == 10 and out["sonnet"]["output_tokens"] == 1 and out["opus"]["output_tokens"] == 7
+
+
+def test_clean_drops_stale_quota_readings():
+    rows = [
+        dict(t=100, week=20.0, week_resets=9e9, five=10.0, five_resets=5000),
+        dict(t=200, week=24.0, week_resets=9e9, five=30.0, five_resets=5000),
+        dict(t=300, week=19.0, week_resets=9e9, five=15.0, five_resets=5000),   # idle chat: lower, same window
+        dict(t=400, week=19.0, week_resets=9e9),                                  # lower weekly, no 5-hour block
+        dict(t=6000, week=24.0, week_resets=9e9, five=2.0, five_resets=23000),     # new window starts low: kept
+        dict(t=6100, week=22.0, week_resets=9e9, five=40.0, five_resets=5000),     # old window already over
+    ]
+    assert [r["t"] for r in cost.clean(rows)] == [100, 200, 6000]

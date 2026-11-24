@@ -52,4 +52,4 @@ def test_foreign_tokens_exclude_the_run_and_net_rise_ignores_noise(tmp_path):
     rows = [dict(t=t0 - 60, week=10.0, week_resets=9e9), dict(t=t0 + 60, week=14.0, week_resets=9e9),
             dict(t=t0 + 120, week=9.0, week_resets=9e9), dict(t=t0 + 180, week=13.0, week_resets=9e9)]
     log.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
-    assert run.net_rise(str(log), "2026-11-20T00:00:00Z", "2026-11-20T02:00:00Z") == 3.0
+    assert run.net_rise(str(log), "2026-11-20T00:00:00Z", "2026-11-20T02:00:00Z") == 4.0   # the 9 and the 13 are lower than the 14 in one window: stale, dropped

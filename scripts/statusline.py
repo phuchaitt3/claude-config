@@ -42,10 +42,48 @@ def render(data: dict) -> str:
     return " | ".join(parts)
 
 
+def read_saved(path: Path) -> dict:
+    try:
+        return (json.loads(path.read_text(encoding="utf-8")).get("rate_limits") or {})
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def is_stale(limits: dict, saved: dict, now: float) -> bool:
+    """True for a snapshot an idle chat is still sending from before the last quota reset.
+
+    Each chat's status line passes the quota as of its own last reply, so a chat that has been idle
+    sends old numbers, and they were written over the shared file and logged (2026-11-24: weekly 19%
+    shown while 24% was true). A block whose reset time has passed belongs to an old window; and within
+    one window the used percentage never falls, so a lower number than the saved one for the same reset
+    time is older than the saved one. A new reset time is accepted: a fresh window starts low.
+    """
+    for key in ("five_hour", "seven_day"):
+        block = limits.get(key)
+        if not isinstance(block, dict):
+            continue
+        try:
+            resets, used = float(block["resets_at"]), float(block["used_percentage"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if resets <= now:
+            return True
+        old = saved.get(key) if isinstance(saved.get(key), dict) else None
+        try:
+            if old and float(old["resets_at"]) == resets and float(old["used_percentage"]) > used:
+                return True
+        except (KeyError, TypeError, ValueError):
+            pass
+    return False
+
+
 def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None) -> bool:
     """Write the rate_limits block with a timestamp; True if written. Never raises."""
     limits = data.get("rate_limits")
     if not isinstance(limits, dict) or not limits:
+        return False
+    now_s = time.time() if now is None else now
+    if is_stale(limits, read_saved(path), now_s):
         return False
     try:
         path.parent.mkdir(parents=True, exist_ok=True)

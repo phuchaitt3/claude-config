@@ -144,14 +144,14 @@ def foreign_weighted(t0, t1, own_ids, projects=PROJECTS):
 def net_rise(log, start, end, key="week"):
     """Last reading minus the reading just before the window, in one quota window (a reset gives None).
 
-    Each chat reads the quota from its own status line, so readings from different chats can disagree
-    by a few points (24, 23, 24, 19 within a quarter of an hour). Summing every rise counts that noise;
-    the net rise between two readings does not, so it is the figure to trust.
+    Stale readings are dropped first (selfdrive_cost.clean): an idle chat sends the quota as of its last
+    reply, so the log has 24, 23, 24, 19 within a quarter of an hour. The net rise between two clean
+    readings is the figure to trust; summing every rise counts what is left of the noise.
     """
     t0, t1 = _epoch(start), _epoch(end)
     try:
-        rows = sorted((r for r in (json.loads(x) for x in open(log, encoding="utf-8") if x.strip())
-                       if key in r and "t" in r), key=lambda r: r["t"])
+        rows = [r for r in cost.clean(json.loads(x) for x in open(log, encoding="utf-8") if x.strip())
+                if key in r]
     except (OSError, ValueError):
         return None
     before = [r for r in rows if r["t"] < t0]

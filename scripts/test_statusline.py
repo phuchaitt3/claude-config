@@ -58,3 +58,20 @@ def test_save_quota_writes_rate_limits_with_a_timestamp(tmp_path: Path) -> None:
     assert json.loads(path.read_text()) == {"written_at": 5.0, "rate_limits": limits}
     assert not statusline.save_quota({}, tmp_path / "other.json")
     assert not (tmp_path / "other.json").exists()
+
+
+def test_stale_snapshots_do_not_overwrite_the_saved_quota(tmp_path: Path) -> None:
+    path = tmp_path / "quota.json"
+    now = 1_800_000_000.0
+    good = {"five_hour": {"used_percentage": 30, "resets_at": now + 3600},
+            "seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
+    assert statusline.save_quota({"rate_limits": good}, path, now=now)
+    older = {"five_hour": {"used_percentage": 15, "resets_at": now + 3600},
+             "seven_day": {"used_percentage": 19, "resets_at": now + 86400}}
+    assert not statusline.save_quota({"rate_limits": older}, path, now=now + 5)      # lower, same window
+    expired = {"five_hour": {"used_percentage": 40, "resets_at": now - 10}}
+    assert not statusline.save_quota({"rate_limits": expired}, path, now=now + 5)    # window already over
+    fresh = {"five_hour": {"used_percentage": 2, "resets_at": now + 18000},
+             "seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
+    assert statusline.save_quota({"rate_limits": fresh}, path, now=now + 3700)       # new window starts low
+    assert json.loads(path.read_text())["rate_limits"] == fresh

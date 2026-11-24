@@ -70,6 +70,8 @@ def log_sample(
                 row[name + "_resets"] = float(limits[key]["resets_at"])
         if "week" not in row and "five" not in row:
             return False
+        if any(row.get(k + "_resets", now + 1) <= now for k in ("five", "week")):
+            return False  # a snapshot from before the last reset (statusline.is_stale)
         last = None
         if log.exists():
             with log.open("rb") as handle:
