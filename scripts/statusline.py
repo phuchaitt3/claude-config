@@ -49,7 +49,32 @@ def read_saved(path: Path) -> dict:
         return {}
 
 
-def is_stale(limits: dict, saved: dict, now: float) -> bool:
+MAX_AGE = 600  # seconds since the chat's last model reply; older snapshots are not trusted
+
+
+def reply_age(transcript: str | None, now: float) -> float | None:
+    """Seconds since the last model reply in the chat's transcript, or None when it cannot be told.
+
+    The quota a chat's status line gets is as of that reply, so this is the most the snapshot can lag.
+    A snapshot a chat sends after sitting idle for an hour is an hour old, and if nobody else wrote a
+    higher number in between it cannot be told from a fresh one by its value alone.
+    """
+    from datetime import datetime
+    try:
+        with open(transcript, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 262144))
+            tail = f.read().decode("utf-8", errors="ignore").splitlines()
+        for line in reversed(tail):
+            if '"usage"' in line:
+                ts = json.loads(line)["timestamp"]
+                return now - datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+    except (OSError, TypeError, ValueError, KeyError):
+        pass
+    return None
+
+
+def is_stale(limits: dict, saved: dict, now: float, age: float | None = None) -> bool:
     """True for a snapshot an idle chat is still sending from before the last quota reset.
 
     Each chat's status line passes the quota as of its own last reply, so a chat that has been idle
@@ -57,7 +82,11 @@ def is_stale(limits: dict, saved: dict, now: float) -> bool:
     shown while 24% was true). A block whose reset time has passed belongs to an old window; and within
     one window the used percentage never falls, so a lower number than the saved one for the same reset
     time is older than the saved one. A new reset time is accepted: a fresh window starts low.
+    A snapshot older than MAX_AGE (`age`, from `reply_age`) is stale whatever its value, which catches
+    the one a value check cannot: an idle chat's old number that is not lower than the saved one.
     """
+    if age is not None and age > MAX_AGE:
+        return True
     for key in ("five_hour", "seven_day"):
         block = limits.get(key)
         if not isinstance(block, dict):
@@ -77,13 +106,13 @@ def is_stale(limits: dict, saved: dict, now: float) -> bool:
     return False
 
 
-def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None) -> bool:
+def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None, age: float | None = None) -> bool:
     """Write the rate_limits block with a timestamp; True if written. Never raises."""
     limits = data.get("rate_limits")
     if not isinstance(limits, dict) or not limits:
         return False
     now_s = time.time() if now is None else now
-    if is_stale(limits, read_saved(path), now_s):
+    if is_stale(limits, read_saved(path), now_s, age):
         return False
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -102,7 +131,7 @@ def main() -> int:
         if not isinstance(data, dict):
             return 0
         line = render(data)
-        save_quota(data)
+        save_quota(data, age=reply_age(data.get("transcript_path"), time.time()))
     except (ValueError, OSError):
         return 0
     if line:

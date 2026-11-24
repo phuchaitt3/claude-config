@@ -21,7 +21,7 @@ A run of another repository never matches, because the project folder name carri
 Cost: "own_M" is the run's weighted tokens (units as in selfdrive_cost.py); "foreign_M" is what every
 other chat on this machine used in the same window. "week_net_pct" is the whole account's weekly-quota
 change in the window (last reading minus the one before it; "week_pct" sums every rise and counts
-noise between chats' readings, so do not trust it); "week_pct_attrib" scales the net change by the run's share of the weighted tokens, which
+noise between chats' readings, so do not trust it); "week_pct_attrib" scales the net change (the 5-hour figure is logged for the quota pause but left out of costs: it is noisier, and the weekly limit is the one that binds) by the run's share of the weighted tokens, which
 leaves out your own chats but treats a token as costing the same whichever chat spent it. "week_pct_est"
 is own tokens over the calibration (selfdrive_cost.py --calibrate). Tokens from other devices are
 not in the transcripts, so every figure is a lower bound on the run's share.
@@ -182,7 +182,7 @@ def summarise(repo, run, quota_log=cost.QUOTA_LOG, projects=PROJECTS, prs=True):
         out["week_pct_est"] = round(own / 1e6 / cal["M_per_week_pct"], 1)
     q = cost.quota_used(quota_log, run["start"], run["end"])
     if q:
-        out.update(q)
+        out["week_pct"], out["week_end"], out["quota_samples"] = q["week_pct"], q["week_end"], q["quota_samples"]
         out["week_net_pct"] = net_rise(quota_log, run["start"], run["end"])
         if out["own_share"] is not None and out["week_net_pct"] is not None:
             out["week_pct_attrib"] = round(out["week_net_pct"] * out["own_share"], 1)

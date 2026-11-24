@@ -75,3 +75,19 @@ def test_stale_snapshots_do_not_overwrite_the_saved_quota(tmp_path: Path) -> Non
              "seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
     assert statusline.save_quota({"rate_limits": fresh}, path, now=now + 3700)       # new window starts low
     assert json.loads(path.read_text())["rate_limits"] == fresh
+
+
+def test_reply_age_and_an_old_snapshot_is_stale_whatever_its_value(tmp_path: Path) -> None:
+    now = 1_800_000_000.0
+    iso = lambda t: __import__("datetime").datetime.fromtimestamp(t, __import__("datetime").timezone.utc).isoformat()
+    tr = tmp_path / "t.jsonl"
+    tr.write_text("\n".join([
+        json.dumps({"timestamp": iso(now - 7200), "message": {"usage": {"output_tokens": 1}}}),
+        json.dumps({"timestamp": iso(now - 3), "message": {"role": "user", "content": "hi"}}),  # a prompt, not a reply
+    ]), encoding="utf-8")
+    assert round(statusline.reply_age(str(tr), now)) == 7200
+    assert statusline.reply_age(None, now) is None and statusline.reply_age(str(tmp_path / "no"), now) is None
+    limits = {"seven_day": {"used_percentage": 30, "resets_at": now + 86400}}      # higher than saved: value check passes
+    assert not statusline.is_stale(limits, {}, now, age=60)
+    assert statusline.is_stale(limits, {}, now, age=7200)
+    assert not statusline.is_stale(limits, {}, now, age=None)                       # unknown age is trusted
