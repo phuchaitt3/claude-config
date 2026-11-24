@@ -2,7 +2,7 @@
 topic: disk-cleanup-windows
 area: Software process
 question: How do people quickly find and clean old, unused data on a full Windows drive, and should an agent scan the disk itself?
-checked: 2026-11-15
+checked: 2026-11-24
 review_months: 12
 status: current
 ---
@@ -15,10 +15,13 @@ status: current
   - **Windows' own cleanup first, from Settings:** Settings > System > Storage > Cleanup recommendations (temporary files, large or unused files, unused apps, Recycle Bin), and Storage Sense to do it on a schedule. Disk Cleanup is the older fallback.
   - **The Windows component store (WinSxS):** `Dism /Online /Cleanup-Image /AnalyzeComponentStore` says whether cleanup is recommended; `Dism /Online /Cleanup-Image /StartComponentCleanup` removes superseded components and keeps the system supported. `/ResetBase` frees more but makes installed updates impossible to uninstall. Microsoft says not to disable component cleanup.
   - **Developer caches are re-downloadable** and each tool has its own command, which beats deleting folders: `pip cache purge`, `uv cache prune` or `uv cache clean`, `pnpm store prune`, `npm cache verify` (then `npm cache clean --force` only to reclaim space), and for Hugging Face, delete single model folders under the hub cache rather than all of it. For uv, prune only when space is short, not on a schedule, and keep the cache on the environments' drive (see `uv-cache-management`). Print the cache path first (`pip cache dir`, `pnpm store path`, `npm config get cache`). Never prune a store while an install is running.
+  - **Added 2026-11-24: repeated cache clearing versus removing what is not used.** Microsoft's own guidance lists "Unused apps" and "Large or unused files" as Cleanup-recommendation categories next to temporary files, and Storage Sense (system drive only, off by default, cadence: low space only, daily, weekly or monthly) removes only temporary files, Recycle Bin and cloud-synced local copies; it does not uninstall anything (standard: findings/disk-cleanup-windows, checked 2026-11-24). A cache is by design rebuilt by use, so clearing it gives space back only until the same tools run again; uninstalling an app or deleting a file nothing uses gives the space back until the thing is installed again. (inference: findings/disk-cleanup-windows) the order of effort is therefore: (1) remove unused apps, old project environments, models and installers (lasting); (2) put growing caches that a tool lets you redirect on the drive with the projects (see `cache-location-windows`), because that stops the growth on C: instead of reclaiming it; (3) clear a cache only when space is short, and expect it to refill if the work that fills it continues (see `cache-location-windows`, section on uv). *Observed on one machine, not a source:* a package cache cleared one day was back to several GB the next day while overnight jobs ran, so a daily clear repeats the re-download cost for little lasting gain. No source was found that compares the two approaches or gives a regrowth rate; the sources below describe the tools, not this comparison.
   - Docker's WSL 2 disk file is its own case: see `docker-disk`.
   - *Checker's inference for agents:* an agent should not walk a whole drive with a script. Ask the person to run WizTree (or run its CSV export while they are present to approve UAC), then propose deletions from the top items with sizes; deleting stays a human-approved step (see `disk-space-alerting`).
 - **Evidence strength:** *vendor docs* for WizTree's command line, Storage Sense and DISM; *common practice* (reviews, forums, tool docs) for the speed comparison and cache commands.
 - **Sources:**
+  - [Microsoft Learn, Storage Sense](https://learn.microsoft.com/windows/configuration/storage/storage-sense) (vendor docs; what it removes, system drive only, cadence options, added 2026-11-24)
+  - [Microsoft Support, manage drive space with Storage Sense](https://support.microsoft.com/en-us/help/5000679) (vendor; off by default, needs sign-in and 10 minutes online)
   - [WizTree user guide, command line](https://diskanalyzer.com/guide) (vendor docs; CSV export syntax, admin needed for fast MFT scan)
   - [Tecnobits, WizTree vs WinDirStat](https://tecnobits.com/en/wiztree-vs-windirstat) (review; MFT vs folder walk)
   - [FolderSizes, WizTree comparison](https://www.foldersizes.com/features/wiztree) (competitor's page; MFT speed only on local NTFS with admin)
@@ -26,4 +29,4 @@ status: current
   - [Microsoft Learn, clean up the WinSxS folder](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/clean-up-the-winsxs-folder) (vendor docs; DISM, ResetBase)
   - [DEV Community, clearing Hugging Face, npm, conda and Docker caches](https://dev.to/riponcm/how-to-free-up-disk-space-as-a-developer-clear-hugging-face-npm-conda-and-docker-caches-3h21) (community post; cache commands)
 - **Limits:** Four standard searches and one page fetch, mostly read through search summaries; the WinSxS page was not read in full. No benchmark of scan speed. Cache commands vary by tool version (pnpm especially): check `--help` before running. WizTree's licence terms for personal use were not read.
-- **Checked:** 2026-11-15
+- **Checked:** 2026-11-24 (first check 2026-11-15; cache-versus-uninstall point added 2026-11-24 from two standard searches read through summaries: thin, vendor docs only)
