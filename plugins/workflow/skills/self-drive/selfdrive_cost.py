@@ -12,7 +12,7 @@ cache write x1.25, cache read x0.1, output x5 (API price ratios; how a subscript
 quota is metered is not published). Compare runs with each other, not with the quota.
 
 "week_pct" and "five_pct" are the percentage points of the weekly and 5-hour quota used in the run's
-window, summed from ~/.claude/quota-log.jsonl (written by the quota_watch hook); they count the whole
+window, summed from ~/.claude/quota-log.jsonl (written by the status line, scripts/statusline.py); they count the whole
 account, so another chat running then is included, and the percentages are whole numbers, so a short
 run reads coarsely. Missing if the log has no sample in the window.
 
@@ -65,13 +65,14 @@ def clean(rows):
 
     A chat that was idle sends the quota as of its last reply, so the log holds readings from before a
     reset (their reset time is already past) and readings lower than an earlier one in the same window
-    (used never falls inside a window). Both are dropped; see scripts/statusline.py is_stale, which now
+    (used never falls inside a window), and (rows since 2026-11-24) readings whose chat had not replied for
+    over 10 minutes (`age`). Both are dropped; see scripts/statusline.py is_stale, which now
     stops them at the source, and this still cleans the log written before that.
     """
     best, out = {}, []
     for r in sorted((r for r in rows if "t" in r), key=lambda r: r["t"]):
         keys = [(k, r[k + "_resets"]) for k in ("week", "five") if k in r and (k + "_resets") in r]
-        if any(rs <= r["t"] for _, rs in keys) or any(r[k] < best.get((k, rs), -1) for k, rs in keys):
+        if (r.get("age") or 0) > 600 or any(rs <= r["t"] for _, rs in keys) or any(r[k] < best.get((k, rs), -1) for k, rs in keys):
             continue
         for k, rs in keys:
             best[(k, rs)] = max(best.get((k, rs), -1), r[k])

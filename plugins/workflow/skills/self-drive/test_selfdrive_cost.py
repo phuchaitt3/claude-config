@@ -94,3 +94,9 @@ def test_clean_drops_stale_quota_readings():
         dict(t=6100, week=22.0, week_resets=9e9, five=40.0, five_resets=5000),     # old window already over
     ]
     assert [r["t"] for r in cost.clean(rows)] == [100, 200, 6000]
+
+
+def test_clean_drops_rows_from_a_chat_idle_over_ten_minutes():
+    rows = [dict(t=100, week=20.0, week_resets=9e9, age=5), dict(t=200, week=30.0, week_resets=9e9, age=3600),
+            dict(t=300, week=22.0, week_resets=9e9)]
+    assert [r["t"] for r in cost.clean(rows)] == [100, 300]

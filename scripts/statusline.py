@@ -20,6 +20,8 @@ from pathlib import Path
 
 GREEN, YELLOW, RED, RESET = "\033[32m", "\033[33m", "\033[31m", "\033[0m"
 QUOTA_FILE = Path.home() / ".claude" / "hook-cache" / "quota.json"
+QUOTA_LOG = Path.home() / ".claude" / "quota-log.jsonl"
+LOG_EVERY = 30 * 60
 
 
 def colour(percent: float) -> str:
@@ -106,8 +108,41 @@ def is_stale(limits: dict, saved: dict, now: float, age: float | None = None) ->
     return False
 
 
-def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None, age: float | None = None) -> bool:
-    """Write the rate_limits block with a timestamp; True if written. Never raises."""
+def log_quota(limits: dict, session_id: str, age: float | None, log: Path, now: float) -> bool:
+    """Append one line (time, chat, age, 5-hour and weekly percentages and resets) to the quota log.
+
+    Logged here, on each status-line render after a reply, instead of at the next prompt: the snapshot is
+    then seconds old and the chat that sent it is the one named, so a loop that sleeps for an hour still
+    leaves a fresh row and `selfdrive_cost.clean` has an `age` to check. A line is added when a
+    percentage changed or after LOG_EVERY seconds. Never raises.
+    """
+    try:
+        row = {"t": round(now), "session": session_id, "age": None if age is None else round(age)}
+        for key, name in (("five_hour", "five"), ("seven_day", "week")):
+            if isinstance(limits.get(key), dict):
+                row[name] = float(limits[key]["used_percentage"])
+                row[name + "_resets"] = float(limits[key]["resets_at"])
+        if "week" not in row and "five" not in row:
+            return False
+        last = None
+        if log.exists():
+            with log.open("rb") as handle:
+                lines = handle.read().splitlines()
+            last = json.loads(lines[-1]) if lines else None
+        if last and last.get("five") == row.get("five") and last.get("week") == row.get("week") \
+                and now - float(last["t"]) < LOG_EVERY:
+            return False
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+    except (OSError, ValueError, KeyError, TypeError, IndexError):
+        return False
+    return True
+
+
+def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None, age: float | None = None,
+               log: Path | None = QUOTA_LOG) -> bool:
+    """Write the rate_limits block with a timestamp and log it; True if written. Never raises."""
     limits = data.get("rate_limits")
     if not isinstance(limits, dict) or not limits:
         return False
@@ -117,11 +152,13 @@ def save_quota(data: dict, path: Path = QUOTA_FILE, now: float | None = None, ag
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".tmp")
-        record = {"written_at": time.time() if now is None else now, "rate_limits": limits}
+        record = {"written_at": now_s, "rate_limits": limits, "age": age}
         tmp.write_text(json.dumps(record), encoding="utf-8")
         tmp.replace(path)
     except OSError:
         return False
+    if log is not None:
+        log_quota(limits, str(data.get("session_id") or ""), age, log, now_s)
     return True
 
 

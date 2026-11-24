@@ -54,8 +54,8 @@ def test_render_shows_the_five_hour_quota() -> None:
 def test_save_quota_writes_rate_limits_with_a_timestamp(tmp_path: Path) -> None:
     path = tmp_path / "q" / "quota.json"
     limits = {"five_hour": {"used_percentage": 40, "resets_at": 123}}
-    assert statusline.save_quota({"rate_limits": limits}, path, now=5.0)
-    assert json.loads(path.read_text()) == {"written_at": 5.0, "rate_limits": limits}
+    assert statusline.save_quota({"rate_limits": limits}, path, now=5.0, log=None)
+    assert json.loads(path.read_text()) == {"written_at": 5.0, "rate_limits": limits, "age": None}
     assert not statusline.save_quota({}, tmp_path / "other.json")
     assert not (tmp_path / "other.json").exists()
 
@@ -65,15 +65,15 @@ def test_stale_snapshots_do_not_overwrite_the_saved_quota(tmp_path: Path) -> Non
     now = 1_800_000_000.0
     good = {"five_hour": {"used_percentage": 30, "resets_at": now + 3600},
             "seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
-    assert statusline.save_quota({"rate_limits": good}, path, now=now)
+    assert statusline.save_quota({"rate_limits": good}, path, now=now, log=None)
     older = {"five_hour": {"used_percentage": 15, "resets_at": now + 3600},
              "seven_day": {"used_percentage": 19, "resets_at": now + 86400}}
-    assert not statusline.save_quota({"rate_limits": older}, path, now=now + 5)      # lower, same window
+    assert not statusline.save_quota({"rate_limits": older}, path, now=now + 5, log=None)      # lower, same window
     expired = {"five_hour": {"used_percentage": 40, "resets_at": now - 10}}
-    assert not statusline.save_quota({"rate_limits": expired}, path, now=now + 5)    # window already over
+    assert not statusline.save_quota({"rate_limits": expired}, path, now=now + 5, log=None)    # window already over
     fresh = {"five_hour": {"used_percentage": 2, "resets_at": now + 18000},
              "seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
-    assert statusline.save_quota({"rate_limits": fresh}, path, now=now + 3700)       # new window starts low
+    assert statusline.save_quota({"rate_limits": fresh}, path, now=now + 3700, log=None)       # new window starts low
     assert json.loads(path.read_text())["rate_limits"] == fresh
 
 
@@ -91,3 +91,29 @@ def test_reply_age_and_an_old_snapshot_is_stale_whatever_its_value(tmp_path: Pat
     assert not statusline.is_stale(limits, {}, now, age=60)
     assert statusline.is_stale(limits, {}, now, age=7200)
     assert not statusline.is_stale(limits, {}, now, age=None)                       # unknown age is trusted
+
+
+def test_log_quota_writes_the_chat_and_age_and_skips_unchanged(tmp_path: Path) -> None:
+    now = 1_800_000_000.0
+    log = tmp_path / "log.jsonl"
+    limits = {"five_hour": {"used_percentage": 10, "resets_at": now + 600},
+              "seven_day": {"used_percentage": 75, "resets_at": now + 86400}}
+    assert statusline.log_quota(limits, "s1", 4.2, log, now)
+    row = json.loads(log.read_text())
+    assert (row["session"], row["age"], row["five"], row["week"], row["week_resets"]) == ("s1", 4, 10, 75, now + 86400)
+    assert not statusline.log_quota(limits, "s2", 1, log, now + 60)
+    assert statusline.log_quota(limits, "s2", 1, log, now + statusline.LOG_EVERY + 1)
+    limits["seven_day"]["used_percentage"] = 76
+    assert statusline.log_quota(limits, "s2", 1, log, now + 70)
+    assert len(log.read_text().splitlines()) == 3
+    assert not statusline.log_quota({}, "s", None, log, now) and not statusline.log_quota(limits, "s", 0, tmp_path / "x" / "..", now)
+
+
+def test_save_quota_logs_only_accepted_snapshots(tmp_path: Path) -> None:
+    now = 1_800_000_000.0
+    log = tmp_path / "log.jsonl"
+    good = {"seven_day": {"used_percentage": 24, "resets_at": now + 86400}}
+    assert statusline.save_quota({"rate_limits": good, "session_id": "a"}, tmp_path / "q.json", now=now, age=3, log=log)
+    old = {"seven_day": {"used_percentage": 30, "resets_at": now + 86400}}
+    assert not statusline.save_quota({"rate_limits": old, "session_id": "b"}, tmp_path / "q.json", now=now + 1, age=7200, log=log)
+    assert [json.loads(x)["session"] for x in log.read_text().splitlines()] == ["a"]

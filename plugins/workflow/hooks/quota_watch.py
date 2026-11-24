@@ -12,8 +12,9 @@ wakeup, a worker report) stop Claude Code's built-in auto-continue ("the continu
 the limit"), so the run stalls until someone types; pausing on the known reset time is the usual
 rate-limit practice (standard: findings/claude-code-usage-limit-resume, checked 2026-11-14).
 
-It also appends the 5-hour and weekly percentages to `~/.claude/quota-log.jsonl` (`log_sample`), so
-`selfdrive_cost.py` can say how much of the weekly quota a run used (user's decision, 2026-11-20).
+The quota log `~/.claude/quota-log.jsonl` (for `selfdrive_cost.py`, user's decision, 2026-11-20) is written
+by the status line (`scripts/statusline.py` `log_quota`), not by this hook, since 2026-11-24: that is where
+a fresh snapshot and its age are known.
 """
 
 from __future__ import annotations
@@ -25,8 +26,6 @@ from datetime import datetime
 from pathlib import Path
 
 QUOTA_FILE = Path.home() / ".claude" / "hook-cache" / "quota.json"
-QUOTA_LOG = Path.home() / ".claude" / "quota-log.jsonl"
-LOG_EVERY = 30 * 60
 THRESHOLD = 90.0
 STALE_SECONDS = 30 * 60
 RESUME_MARGIN = 120
@@ -46,50 +45,6 @@ def read_quota(path: Path = QUOTA_FILE, now: float | None = None) -> tuple[float
     if now - written > STALE_SECONDS or resets <= now:
         return None
     return used, resets
-
-
-def log_sample(
-    session_id: str, path: Path = QUOTA_FILE, log: Path = QUOTA_LOG, now: float | None = None
-) -> bool:
-    """Append one line (time, session, 5-hour and weekly percentages and resets) to the quota log.
-
-    A line is added when a percentage changed since the last line, or after LOG_EVERY seconds, so the
-    log stays small and still shows when each step happened. Returns True if a line was written.
-    Never raises: the log must not get in the way of a prompt.
-    """
-    now = time.time() if now is None else now
-    try:
-        record = json.loads(path.read_text(encoding="utf-8"))
-        if now - float(record["written_at"]) > STALE_SECONDS:
-            return False
-        limits = record["rate_limits"]
-        row = {"t": round(now), "session": session_id}
-        for key, name in (("five_hour", "five"), ("seven_day", "week")):
-            if key in limits:
-                row[name] = float(limits[key]["used_percentage"])
-                row[name + "_resets"] = float(limits[key]["resets_at"])
-        if "week" not in row and "five" not in row:
-            return False
-        if any(row.get(k + "_resets", now + 1) <= now for k in ("five", "week")):
-            return False  # a snapshot from before the last reset (statusline.is_stale)
-        last = None
-        if log.exists():
-            with log.open("rb") as handle:
-                lines = handle.read().splitlines()
-            last = json.loads(lines[-1]) if lines else None
-        if (
-            last
-            and last.get("five") == row.get("five")
-            and last.get("week") == row.get("week")
-            and now - float(last["t"]) < LOG_EVERY
-        ):
-            return False
-        log.parent.mkdir(parents=True, exist_ok=True)
-        with log.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row) + "\n")
-    except (OSError, ValueError, KeyError, TypeError, IndexError):
-        return False
-    return True
 
 
 def message(used: float, resets: float, now: float, threshold: float = THRESHOLD) -> str:
@@ -116,7 +71,6 @@ def main() -> None:
     if payload.get("hook_event_name") != "UserPromptSubmit":
         return
     now = time.time()
-    log_sample(str(payload.get("session_id") or ""), now=now)
     quota = read_quota(now=now)
     if quota is None:
         return
