@@ -40,7 +40,7 @@ Then, whichever route found the threads:
 5. Record each thread in the entry as *anecdotal*: URL, subreddit, date or age, the post's score and comment count where known, and a short paraphrase. No usernames (the register is public) and no long verbatim quotes. State the age of the comments and what the thread does not cover.
 6. Raw cleaned text goes in the asking project's own private folder if it has one, never in this repository.
 
-**Other sites:** `webx <url>` reads any page (static fetch, then a headless browser), so it is the next try for a page the fetch tool refuses. It does not get past sites that answer 403 to automated requests (two news sites did on 2026-11-21), and it has no search for any site but Reddit; find other pages with the web search tool.
+**Other sites:** `webx <url>` reads any page (static fetch, then a headless browser), so it is the next try for a page the fetch tool refuses. It does not get past sites that answer 403 to automated requests (two news sites did on 2026-11-21), and it has no search for any site but Reddit; find other pages with the web search tool. **Voz (2026-11-24):** page 1 of a public Voz thread loaded through the fetch tool and pages 2 to 7 returned 403; the agent did not try `webx` on them, and an Internet Archive copy was refused by the permission classifier as a way round the block. The next try for such a page is `webx <url>` as documented here; if that also fails, give the user the URL and ask for a paste (steps 2 to 4 above work for any forum, not only Reddit).
 
 A single thread never overturns a sourced finding; it is an anecdote beside the surveys and vendor documentation. Worked example: `resume-keyword-stuffing`.
 
