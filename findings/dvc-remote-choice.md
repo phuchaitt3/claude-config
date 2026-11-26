@@ -8,7 +8,7 @@ status: current
 ---
 # DVC remote choice for a solo, two-machine project
 
-- **Question:** A project tracks data with DVC but has no remote, so the data exists only in one machine's cache. Is a remote the standard fix, and which kind fits one person with two machines?
+- **Question:** A project tracks data with DVC but has no remote, so the data exists only in one machine's cache. Is a remote the standard fix, and which kind fits one person with two machines? (Separate from `data-versioning-cadence`, which asks when to version, not where the data is stored or how machines share it.)
 
 - **Evidence strength:** official DVC documentation for what remotes are for and how to configure them; a DVC forum thread and an open DVC issue for the Google Drive problem; vendor pages for DagsHub limits (inconsistent). No survey of what solo users choose.
 
