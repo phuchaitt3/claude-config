@@ -35,6 +35,7 @@ The disk file never shrinks by itself. Prune first (compacting before pruning re
 ## Keeping it small
 
 - Prune build cache after build-heavy sessions.
+- When a task ends, remove its stack with `docker compose -p <project> down --rmi local`, which also removes the images it built (never `-v`) (user's decision, 2026-11-26).
 - Docker's disk limit and disk location settings are documented for the Hyper-V backend only; on WSL 2 do not promise the user a cap there.
 - Do not turn on WSL sparse VHD: it was reported gated for data-corruption risk and breaks `Optimize-VHD`.
 

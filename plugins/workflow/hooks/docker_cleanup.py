@@ -128,7 +128,7 @@ def message(rows: list[dict]) -> str:
         + ", ".join(f"{r['name']} [{r['status']}]" for r in rows)
         + "). Remove them when the task is done:"
     ]
-    lines += [f"  docker compose -p {p} down   (no -v: volumes stay)" for p in projects]
+    lines += [f"  docker compose -p {p} down --rmi local   (no -v: volumes stay)" for p in projects]
     if loose:
         lines.append("  docker rm -f " + " ".join(loose))
     lines.append(

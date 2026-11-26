@@ -66,7 +66,7 @@ def test_stop_blocks_once_with_commands(monkeypatch):
     )
     result = dc.stop({"session_id": "s1"})
     assert result["decision"] == "block"
-    assert "docker compose -p p down" in result["reason"]
+    assert "docker compose -p p down --rmi local" in result["reason"]
     assert "docker rm -f tei" in result["reason"]
     assert "-v" in result["reason"] and "volumes stay" in result["reason"]
     assert dc.stop({"session_id": "s1", "stop_hook_active": True}) is None
