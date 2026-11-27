@@ -18,7 +18,7 @@ status: current
   - **Updating through the package manager works from a normal shell:** `winget install --id Microsoft.OneDrive --exact` upgraded 21.220 to 26.212 in place (observed; hash verified by winget). It left the app stopped, so start it afterwards.
   - **Order to try (checker's inference):** (1) update the app; (2) reset it, Win+R, `%localappdata%\Microsoft\OneDrive\onedrive.exe /reset`; (3) with the app closed, rename `%localappdata%\Microsoft\OneDrive\settings\PreSignInSettingsConfig.json`; (4) remove OneDrive entries in Credential Manager; (5) check antivirus, firewall or VPN. A reset disconnects sync, so check nothing is waiting to upload first.
   - The reset path differs when the app is installed under `Program Files`; use the path where `OneDrive.exe` is.
-  - **Whether the update fixes the symptom is not yet confirmed** (the observation stops at the successful upgrade).
+  - **The update was followed by a successful sign-in** (observed 2026-11-27: a few minutes after starting 26.212, the account key showed a signed-in personal account; no reset or file removal was done).
 
 - **Sources:**
   - Microsoft Learn, OneDrive sync release notes (official, versions and Windows 10 rule): https://learn.microsoft.com/en-us/sharepoint/sync-release-notes
@@ -27,7 +27,7 @@ status: current
   - Microsoft Tech Community, "OneDrive stuck on signing in" (community; one user fixed it by installing the latest app; a related symptom, not this one): https://techcommunity.microsoft.com/discussions/onedriveforbusiness/onedrive-stuck-on-signing-in/4023276
 
 - **Limits:**
-  - No source states a minimum version for signing in, so "the old build is the cause" is unproven.
+  - No source states a minimum version for signing in. One upgrade followed by a working sign-in suggests the old build was the cause, but does not prove it.
   - Microsoft's "Reset OneDrive" support article was not read (the fetch was denied), so the reset command and its effect rest on search summaries.
   - The vendor and community pages were read as search summaries, not in full.
   - One machine, one personal account.
