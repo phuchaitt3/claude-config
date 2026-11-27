@@ -19,7 +19,8 @@ GraphQL call, then prints the issues a chat may start, best first (user's decisi
 within groups 2 and 3, the issue that blocks the most open issues, directly or through others, then
 the oldest. With no `resume:` labels in the repo, the order is groups 2 and 3 alone.
 
-Issues that are blocked by an open issue, or labelled `claimed`, `needs-you` or `parked`, are left out.
+Issues that are blocked by an open issue, or labelled `claimed`, `needs-you`, `parked` or `saved-run`
+(a queued run, not a task: SKILL.md "Saved runs"), are left out.
 So is an issue labelled for the other machine (`needs:laptop` on a desktop, `needs:pc` on a laptop;
 workflow:multi-chat-repo, 2026-11-27); an `other machine:` line names each one, so none looks absent.
 It also prints three kinds of fix-up for the chat to make (advisory: none skips or blocks an issue;
@@ -55,7 +56,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
-SKIP_LABELS = {"claimed", "needs-you", "parked"}
+SKIP_LABELS = {"claimed", "needs-you", "parked", "saved-run"}
 MACHINES = ("laptop", "pc")  # `needs:<machine>`: only that machine can do the issue
 NO_BATTERY = 128  # GetSystemPowerStatus BatteryFlag: no system battery
 UNKNOWN_BATTERY = 255

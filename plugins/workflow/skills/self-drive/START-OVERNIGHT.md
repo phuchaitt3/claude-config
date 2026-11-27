@@ -12,6 +12,8 @@ The same start works at any hour (one self-drive mode, 2026-11-27). Written 2026
 
 ## Start it (one terminal per repository)
 
+**A saved run:** double-click the desktop shortcut "Self-drive queue" and type its number. It lists the saved runs of all your repositories, marks those this machine cannot do (with the reason, the 30 GB disk message included), and uses no model quota. To save one, tell a chat "save this to my queue" (`SKILL.md`, "Saved runs"); "run my queue" starts it from a chat. The rest of this section is for a run that is not saved.
+
 Start the loop as a background session from a terminal, not from the VS Code Claude panel. A background session keeps its scheduled wakeups across an editor reload or update, and runs the status line that feeds the quota pause (`SKILL.md` step 7b). The VS Code panel does neither (both tested 2026-11-14).
 
 In PowerShell, the short way (added 2026-11-15): one command does steps 1 to 4 below, and refuses a second session for the same repository and date.

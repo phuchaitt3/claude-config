@@ -1,6 +1,6 @@
 ---
 name: self-drive
-description: Load this when the user asks a chat to "self-drive", "loop", "pick tasks on its own" or "work without prompts", or types /self-drive; "self-drive overnight" means the same: one mode, at any hour. Starts a /loop in which this one chat reviews open PRs, then takes eligible issues without being prompted, and says when to skip an issue and when to stop. Never starts on its own; only the user starts it, per chat.
+description: Load this when the user asks a chat to "self-drive", "loop", "pick tasks on its own" or "work without prompts", or types /self-drive; "self-drive overnight" means the same: one mode, at any hour. Starts a /loop in which this one chat reviews open PRs, then takes eligible issues without being prompted, and says when to skip an issue and when to stop. Also load it when the user says "save this to my queue" or "run my queue" (saved self-drive runs). Never starts on its own; only the user starts it, per chat.
 ---
 
 # Self-driving chat
@@ -50,6 +50,25 @@ When nothing is eligible, file new issues ("New issues") rather than poll; a run
 ## Stopping
 
 The user stops it by telling the chat to stop. The chat then ends the loop and finishes or parks its current task (commit as `wip:` on its own branch if unfinished).
+
+## Saved runs: the queue (user's decision, 2026-11-27)
+
+A saved run is an open issue labelled `saved-run` in the project's repository. It is a note for a later start, not a task: no loop, triage or readiness pass takes it as work. Its title starts `Saved run:` and its body is:
+
+```
+Issues: #12, #7, #9
+Machine: laptop
+
+<the brief: what the user said about these issues, free text>
+```
+
+`Issues:` is the ordered list. `Machine:` is optional (`laptop`, `desktop` or `any`); write it only when the run needs that machine. The first blank line ends the header.
+
+**"Save this to my queue"**: create that issue in the repository the issues belong to (create the label if it is missing; if an open saved run already lists the same issues, edit it instead). Check the repository's visibility with `gh repo view` first: in a public repository the title and body hold nothing private (no personal details, private paths, other private projects or posting names). If the run cannot work without private content, leave it out and tell the user. The brief is read days later, so write it to stand alone and date it. Saving starts nothing. Reply with the issue link.
+
+**"Run my queue"** in a chat: run `~/claude-config/scripts/selfdrive-queue.ps1 -List`. With one run this machine can do, start it with `-Pick <repo>#<issue>`; with several, ask which (`AskUserQuestion`); with none, say why. This starts `selfdrive.ps1` as a background session; the chat does not loop itself. The user can do the same without a chat, and without model quota, from the desktop shortcut "Self-drive queue" (created by `setup-machine.ps1`).
+
+**Closing.** The prompt of such a run says "This is saved run `<owner>/<repo>#<n>`". When the run stops, with the morning summary: if every listed issue is done, comment one line with the PR links and close the saved-run issue; otherwise leave it open and comment what is done and what is left (the next start skips done steps). The comment follows the same public-repository rule. A successor chat (step 7a) keeps the saved-run number in its resume note.
 
 ## Overnight mode (user's decision, 2026-11-13)
 

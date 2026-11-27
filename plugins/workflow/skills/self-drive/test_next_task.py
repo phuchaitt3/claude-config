@@ -66,6 +66,11 @@ def test_parked_issue_is_skipped() -> None:
     assert numbers(ranked) == [2]
 
 
+def test_saved_run_issue_is_not_a_task() -> None:
+    ranked, _ = next_task.rank([issue(1, ["saved-run", "priority:first"]), issue(2)])
+    assert numbers(ranked) == [2]
+
+
 def test_adr_review_without_needs_you_is_a_fixup_and_stays_ranked() -> None:
     ranked, fixups = next_task.rank([issue(1, ["adr-review"]), issue(2, ["adr-review", "needs-you"])])
     assert numbers(ranked) == [1]

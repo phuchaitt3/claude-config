@@ -1,7 +1,8 @@
 # One command that makes this machine follow claude-config. Safe to run any number of times.
 #   powershell -NoProfile -File "$HOME\claude-config\scripts\setup-machine.ps1"
 # Does: git pull --ff-only on claude-config; registers the personal-config marketplace and installs
-# or updates the workflow plugin (through the Claude Code command line); turns autoUpdate on in
+# or updates the workflow plugin (through the Claude Code command line); creates the desktop shortcut
+# "Self-drive queue" (queue-shortcut.ps1); turns autoUpdate on in
 # ~/.claude/settings.json (backup first, nothing else changed). After the first run nothing manual
 # is needed again: the plugin pulls this repo at session start and updates itself.
 # Needs git and python on PATH and the Claude Code CLI (on PATH, or the VS Code extension's copy).
@@ -41,6 +42,10 @@ $installed = & $claude plugin list 2>&1 | Out-String
 if ($installed -notmatch 'workflow@personal-config') { & $claude plugin install workflow@personal-config 2>&1 | Select-Object -Last 2 | Out-Host }
 else { & $claude plugin update workflow@personal-config 2>&1 | Select-Object -Last 1 | Out-Host }
 & $claude plugin list 2>&1 | Select-String -Pattern 'workflow@personal-config|Version|Status' | Out-Host
+
+Step 'desktop shortcut "Self-drive queue"'
+try { & (Join-Path $cfg 'scripts\queue-shortcut.ps1') }
+catch { Write-Host "PROBLEM  shortcut not created: $($_.Exception.Message)" }
 
 Step 'thermal logger task (only on a machine with an NVIDIA GPU)'
 # Always-on logger, independent of chats (user's decision, 2026-11-17): at logon and every 5 minutes;

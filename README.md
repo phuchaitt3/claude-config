@@ -12,13 +12,14 @@ My Claude Code setup, shared between machines through git.
 | `scripts/gpu_run.py` | Machine-wide GPU lock for any repository: `python ~/claude-config/scripts/gpu_run.py run [--wait] -- <command>` runs a GPU job alone, logs every start, wait, refusal and end to `~/.gpu-guard/events.jsonl`; `status`, `check` (GPU busy with no lock held = unguarded use) and `report` show how the laptop was shared. Stdlib only. Tests: `scripts/test_gpu_run.py`. On the laptop, the Windows scheduled task `gpu-guard-check` runs `check` every 5 minutes with `pythonw.exe` (no wake, runs on battery; remove with `schtasks /Delete /TN gpu-guard-check /F`), and the `gpu_watch` hook checks on chat prompts (standard: findings/shared-gpu-one-machine, checked 2026-11-12) | run by hand or by an agent; the task is set up once per machine |
 | `scripts/guard_logs.py` | Monthly rotation and reading of the `~/.gpu-guard` logs: the thermal logger moves earlier months of `thermal.jsonl` to `thermal-YYYY-MM.jsonl` (archives are kept), `gpu_run.py report --thermal` and `laptop_health.py report` read the archives covering the window, and `laptop_health.py report` lists log sizes and warns over 50 MB. Stdlib only. Test: `scripts/test_gpu_run.py` | used by the two scripts; nothing to set up |
 | `scripts/vscode_scroll_test.mjs` | Tests whether VS Code keeps the scroll position of rendered Markdown tabs, in a temporary VS Code (findings/vscode-markdown-scroll-position-lost) | run by hand or by an agent from an empty temporary folder |
+| `scripts/selfdrive-queue.ps1` | Menu of saved self-drive runs (open issues labelled `saved-run`) across your repositories; starts the one you pick through `selfdrive.ps1`, with no model quota (`workflow:self-drive`, "Saved runs"). Tests: `scripts/test_selfdrive_queue.py` | desktop shortcut "Self-drive queue" (`queue-shortcut.ps1`, created by `setup-machine.ps1`) |
 | `CLAUDE.user.md` | The stub to copy to `~/.claude/CLAUDE.md` | copied once per machine |
 
 Project-specific rules stay in each project's own `CLAUDE.md`, together with its hard limits, which these rules never relax.
 
 ## Set up or repair a machine: one command
 
-After cloning this repo to `~/claude-config` (step 1 below), everything else is one command, safe to run any number of times (it pulls this repo, installs or updates the `workflow` plugin through the Claude Code command line, and turns `autoUpdate` on in `~/.claude/settings.json` with a backup):
+After cloning this repo to `~/claude-config` (step 1 below), everything else is one command, safe to run any number of times (it pulls this repo, installs or updates the `workflow` plugin through the Claude Code command line, creates the "Self-drive queue" desktop shortcut, and turns `autoUpdate` on in `~/.claude/settings.json` with a backup):
 
 ```
 powershell -NoProfile -File "$HOME\claude-config\scripts\setup-machine.ps1"
