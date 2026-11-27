@@ -18,7 +18,7 @@ The user switches the laptop between two modes, each one command that needs no a
 
 - Before a long local run in the daytime, ask the user whether to switch to night mode. A chat that switched puts game mode back when the user says they are gaming or the task ends, and says so in the reply. An overnight self-drive run follows `workflow:self-drive`.
 - A timing result made in night mode says "GPU capped at 1350 MHz, CPU turbo off"; never compare it with a game-mode run.
-- The Lenovo step needs Lenovo Legion Toolkit with administrator rights (see "Lenovo mode" below). If it warns, the CPU and GPU caps still applied; tell the user to set the Lenovo mode.
+- The Lenovo step needs Lenovo Legion Toolkit running with administrator rights (see "Lenovo mode" below). The hook reads the Lenovo mode while the toolkit runs and shows "unknown" when it does not; before a long run with it unknown, ask the user to open the toolkit as administrator (user's choice, 2026-11-27: only then, not at every chat start). If `night.ps1` warns, the CPU and GPU caps still applied.
 
 ## GPU clock cap
 
