@@ -57,6 +57,7 @@ The user sees the context meter in the status line; you do not. Suggest once per
 
 - `/clear` with a resume prompt (chat name, folder, branch, next task with its tag) when the next task is unrelated (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) or when quality is slipping (the same correction twice; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13). Do not start the next task in that turn.
 - `/compact <what to keep>` only when the task continues (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) and its state cannot be written to files yet; write ruled-out causes to a file first, because a summary can distort them (the last two clauses are the user's own; no source found).
+- When the `context_nudge_check` reminder arrives with a message that starts an unrelated task, ask before starting it: `/clear` and resend, or "go" to do it here (user's decision, 2026-11-27; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13; the 150000 threshold has no source).
 
 ## Industry practice (user's decision, 2026-11-01)
 
