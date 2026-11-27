@@ -25,7 +25,7 @@ An issue is ready when all of these hold:
 
 - **Ready:** comment `Readiness: ready.` and count it.
 - **A prerequisite an agent can supply** (a download, a data upload to Kaggle, a runner, a script, a design brief, a missing finish line): file it as its own issue with a checkable finish and the issue's `priority:`, `resume:` and `gap:` labels, link it as blocking (`gh issue edit` or the GraphQL `addSubIssue`/dependency API the repo uses; a "Blocked by #n" line in the body alone is invisible to `next_task.py`), and count the issue as ready, since the run will do both. Search for an existing issue first (`gh issue list --search`).
-- **A prerequisite only the user can supply** (a decision, a sign-in or credential, money, hardware the machine lacks): add `needs-you` with the user as assignee and a comment in the form of `SKILL.md` step 4 (what is blocked, the exact action, the time it takes, what happens if nothing is done; a paid step names an estimated cost). Do not count it.
+- **A prerequisite only the user can supply** (a decision, a sign-in or credential, money, hardware neither of your machines has): add `needs-you` with the user as assignee and a comment in the form of `SKILL.md` step 4 (what is blocked, the exact action, the time it takes, what happens if nothing is done; a paid step names an estimated cost) (hardware only the other machine has: label `needs:laptop` or `needs:pc` instead, workflow:multi-chat-repo). Do not count it.
 
 Every comment ends with the session ID. In a public repository no private detail goes into an issue or comment ("private item; ask in chat").
 
