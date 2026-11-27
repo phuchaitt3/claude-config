@@ -1,7 +1,7 @@
 ---
 topic: gpu-driver-update-when
 area: Software process
-question: Should a working laptop's NVIDIA driver be updated to the latest release?
+question: Should a working laptop's NVIDIA driver be updated to the latest release (an update decision; the thermal-tier and benchmark entries do not cover it)?
 checked: 2026-11-27
 review_months: 3
 status: current
