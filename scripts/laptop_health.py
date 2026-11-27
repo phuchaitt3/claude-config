@@ -382,12 +382,14 @@ def cmd_reference(args: argparse.Namespace) -> int:
     for p in procs:
         p.start()
     samples = []
+    aborted = False  # only the temperature stop: a sample count would depend on how slow each reading is
     try:
         while time.time() < stop_at:
             r = sample()
             samples.append(r)
             if (r.get("cpu_temp_c") or 0) >= args.abort_c or (r.get("gpu_temp_c") or 0) >= args.abort_c:
                 print(f"laptop_health: aborted at {r} (>= {args.abort_c:g} C)")
+                aborted = True
                 break
             time.sleep(5)
     finally:
@@ -400,7 +402,7 @@ def cmd_reference(args: argparse.Namespace) -> int:
         return round(sum(v) / len(v), 1) if v else None
 
     result = {"event": "reference", "minutes": args.minutes, "threads": threads, "gpu_load": args.gpu,
-              "samples": len(samples), "aborted": len(samples) < args.minutes * 12 - 2,
+              "samples": len(samples), "aborted": aborted,
               "cpu_idle_c": mean(idle, "cpu_temp_c"), "gpu_idle_c": mean(idle, "gpu_temp_c"),
               "cpu_temp_c": mean(tail, "cpu_temp_c"), "cpu_mhz": mean(tail, "cpu_mhz"),
               "gpu_temp_c": mean(tail, "gpu_temp_c"), "gpu_power_w": mean(tail, "power_w"),
