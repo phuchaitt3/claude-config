@@ -1,4 +1,6 @@
-"""Tests for scripts/selfdrive.ps1: the prompt built with and without each option (uses -DryRun)."""
+"""Tests for scripts/selfdrive.ps1: the prompt built with and without each option, and the
+low-disk refusal (uses -DryRun)."""
+import os
 import shutil
 import subprocess
 import tempfile
@@ -18,10 +20,15 @@ def repo(tmp_path):
     return d
 
 
-def run(repo, *args):
-    out = subprocess.run(
+def invoke(repo, *args, free_gb=100):
+    return subprocess.run(
         [PWSH, "-NoProfile", "-File", str(SCRIPT), str(repo), "-DryRun", *args],
-        capture_output=True, text=True, timeout=60)
+        capture_output=True, text=True, timeout=60,
+        env={**os.environ, "SELFDRIVE_TEST_FREE_GB": str(free_gb)})
+
+
+def run(repo, *args, **kwargs):
+    out = invoke(repo, *args, **kwargs)
     assert out.returncode == 0, out.stderr
     return dict(line.split("=", 1) for line in out.stdout.splitlines() if "=" in line)
 
@@ -53,7 +60,16 @@ def test_issues_and_brief_together(repo, tmp_path):
 
 
 def test_missing_brief_fails(repo):
-    out = subprocess.run(
-        [PWSH, "-NoProfile", "-File", str(SCRIPT), str(repo), "-DryRun", "-Brief", "nope.md"],
-        capture_output=True, text=True, timeout=60)
+    out = invoke(repo, "-Brief", "nope.md")
     assert out.returncode != 0
+
+
+def test_low_disk_refused(repo):
+    out = invoke(repo, free_gb=29)
+    assert out.returncode != 0
+    assert "-LowDiskOk" in out.stderr
+
+
+@pytest.mark.parametrize("args, free_gb", [((), 30), (("-LowDiskOk",), 5), (("-ReadyOnly",), 5)])
+def test_low_disk_allowed(repo, args, free_gb):
+    assert run(repo, *args, free_gb=free_gb)["PROMPT"]

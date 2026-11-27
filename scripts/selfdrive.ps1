@@ -22,6 +22,9 @@
   -ReadyOnly starts no loop: a background session runs the readiness pass (READY.md) and ends,
   so the needs-you items it files can be cleared before bed.
   -DryRun prints the directory, name and prompt and starts nothing (the test uses it).
+  The script refuses to start a loop with under 30 GB free on the system drive; -LowDiskOk starts
+  it anyway, and -ReadyOnly is never refused. SELFDRIVE_TEST_FREE_GB replaces the measured free
+  space (tests only).
   One loop per repository: the script refuses to start a second session for the same repo and date.
 #>
 param(
@@ -31,7 +34,8 @@ param(
     [string]$Name,
     [string[]]$Issues,
     [string]$Brief,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$LowDiskOk
 )
 
 $ErrorActionPreference = 'Stop'
@@ -65,6 +69,14 @@ if ($Brief) {
 }
 if ($ReadyOnly) {
     $prompt = "Readiness pass in $repoName (main checkout, branch main). Load workflow:self-drive, read READY.md in its folder and run that pass yourself (no loop, no subagent), then end with its report."
+}
+# A low disk stops the night's downloads, so refuse now, while someone can still free space.
+if (-not $ReadyOnly -and -not $LowDiskOk) {
+    $drive = [IO.Path]::GetPathRoot([Environment]::SystemDirectory)
+    $freeGB = if ($env:SELFDRIVE_TEST_FREE_GB) { [double]$env:SELFDRIVE_TEST_FREE_GB } else { [IO.DriveInfo]::new($drive).AvailableFreeSpace / 1GB }
+    if ($freeGB -lt 30) {
+        throw "Only $([math]::Floor($freeGB)) GB free on $drive (need 30 GB). Free space (workflow:disk-cleanup) or pass -LowDiskOk."
+    }
 }
 if ($DryRun) {
     Write-Output "DIR=$dir"

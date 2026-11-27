@@ -7,7 +7,7 @@ The same start works at any hour (one self-drive mode, 2026-11-27). Written 2026
 1. **Usage credits off** at claude.ai/settings/usage, so the 5-hour limit pauses the run instead of billing it. The agent cannot see this setting.
 2. **Machine stays on.** Laptop: plugged in, lid open or set to stay awake with the lid shut. PC: nothing to do beyond not turning it off or logging out. The `keep_awake` hook stops idle sleep while the run works; it cannot stop a closed lid, a dead battery or a shutdown. The run detects which machine it is on and skips the laptop-only steps (cooling check, clock cap, cap benchmark) on a desktop (`SKILL.md`, "Which machine").
 3. **Installs that need admin.** A tool an issue needs that asks for administrator rights (a machine-wide installer, a write under Program Files) is installed now, while you are at the machine, or its issue is left out tonight. The readiness pass lists them; an overnight run cannot answer a UAC prompt (user's decision, 2026-11-19).
-4. **Free disk space** of at least 20 GB on the system drive if the run might pull models or images.
+4. **Free disk space** of at least 30 GB on the system drive. `selfdrive.ps1` refuses to start a loop with less; `-LowDiskOk` starts it anyway, and `-ReadyOnly` is never refused.
 5. **One loop per repository.** Two loops in one repository claim the same issues. Several repositories at once is fine, but they share one 5-hour quota: on a Pro plan, run one repository a night, or at most two.
 
 ## Start it (one terminal per repository)
