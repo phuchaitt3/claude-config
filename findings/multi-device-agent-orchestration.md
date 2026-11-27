@@ -2,7 +2,7 @@
 topic: multi-device-agent-orchestration
 area: Agent setup
 question: Is it normal to run Claude Code agents on several devices (for example a laptop and a desktop PC), and what is the standard setup for the devices?
-checked: 2026-11-23
+checked: 2026-11-27
 review_months: 6
 status: current
 ---
@@ -24,6 +24,18 @@ status: current
   - The always-on setting gives no hidden fee found; its costs are the extra network connection per session, exposure of every session to your claude.ai account (a stolen login or leaked link reaches all of them), and unreliable reconnects. Weighing these for a personal setup is the checker's inference.
 - **Common community setup (individual blogs, anecdotal):** each machine holds a full clone of a git repository of notes, rules or config; a session-end hook or timer commits and pushes; one place is the source of truth ("one home per fact"); secrets stay out of the synced repository. One author uses the desktop by day and the laptop at night rather than splitting tasks. A reader comment names merge conflicts from concurrent edits on two machines as the main risk.
 - **Coordination between machines (inference, not found stated for two machines):** the single-machine multi-agent advice transfers: one task, one branch, one worktree, one session; a shared task list or explicit claims for who owns what; serialised merges. Sources on parallel agents (several blogs) say git isolates files but a task list or claims is needed for work allocation. Nothing found covers splitting tasks across two computers.
+
+## Update 2026-11-27: two machines on one repository
+
+- **Not covered by sources found.** A search for two computers working on one repository with coding agents returned advice about worktrees on one machine only. Those guides say: one task per branch and worktree, split by feature area, and git does not catch collisions in shared databases or ports (blogs). Worktrees do not span computers.
+- **A self-hosted CI runner as the second machine's job queue is advised against for public repositories** (blogs): a pull request from anyone could run code on the machine. For private repositories it is described as reasonable for GPU access.
+- **Inference (checker's):** using two machines on one repository is ordinary git use and is safe at the git level with one branch per machine. The extra cost is state git does not carry: downloaded inputs, data caches without a remote, local models, container images, and different GPU capability. So give the second machine only tasks whose inputs come from git, a data remote or a fetch script and whose hardware it meets; keep a chain of dependent tasks on one machine; name the machine on the task claim. If most tasks fail that test, one machine plus a cloud GPU is simpler.
+
+Sources for this update:
+
+- [Git worktrees for parallel AI agents](https://www.augmentcode.com/guides/git-worktrees-parallel-ai-agent-execution) (vendor blog, search summary only)
+- [Multiple AI coding agents, same repository](https://dev.to/robat_das_3c6e956212f6408/multiple-ai-coding-agents-same-repository-the-bugs-git-won-43fb) (individual blog, search summary only)
+- [Self-hosted runners: security, scaling and isolation](https://infra.furybee.org/articles/github-actions-self-hosted-runners/) (individual blog, search summary only)
 
 **Evidence strength:** vendor documentation for the Remote Control, messaging and agent-teams facts (official standard for the tool's own behaviour); anecdotal for the sync setup; no data found on how common multi-device setups are or on a standard device split (heavy jobs on the stronger machine is the checker's inference).
 
