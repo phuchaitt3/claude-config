@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: ALWAYS load this at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, when adding environment settings or a .env file, or when moving or renaming a project folder. Covers proposing a tier (solo-fast, standard, strict) and asking the mode (build, study-design), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled, and the folder layout (`<repo>/main` plus `<repo>/<ID>-<slug>` worktrees) with what to do after a move.
+description: ALWAYS load this at the start of a new project, when a repository has no tier or mode recorded, when configuring git pushes as the bot, when adding environment settings or a .env file, or when moving or renaming a project folder. Covers proposing a tier (solo-fast, standard, strict) and asking the mode (build, docs), deploys by tier, the user's one-time GitHub setup (bot collaborator, protect-main ruleset, CODEOWNERS, delete-branch-on-merge, push protection), the bot's git push config, and how environment settings and .env files are handled, and the folder layout (`<repo>/main` plus `<repo>/<ID>-<slug>` worktrees) with what to do after a move.
 ---
 
 # New project setup
@@ -32,10 +32,9 @@ At the start of a new project, with the tier, ask which mode it runs in (`AskUse
 | Mode | Goal | Who decides the architecture |
 |---|---|---|
 | **build** (default) | ship working software fast | agents, under "Decision rights" |
-| **study-design** | the user learns system design by questioning agents' decisions | agents, with full reasoning in each ADR; the user reviews and may overrule |
 | **docs** | a repository of pages, notes or documentation, with no software to ship (user's decision, 2026-11-01) | agents on wording, structure and examples; the user on claims, scope and what is published |
 
-**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **docs**: agents write and revise pages to the project's page format and log the user's questions on the page; the user decides claims and scope. **study-design**: an agent chooses the architecture and writes the full reasoning in the ADR for a newcomer to study; the user reviews by questioning it from outside the loop, and work does not wait for that review. More modes may be added; each says who decides what.
+**Details per mode** live in `~/claude-config/modes/<mode>.md`. In one line, **docs**: agents write and revise pages to the project's page format and log the user's questions on the page; the user decides claims and scope. A **study-design** mode (agents decide, the user learns by questioning each ADR) was retired on 2026-11-27 (user's decision: in 28 days its review issues got no questions; `findings/effective-study-techniques` rates re-reading low, and the project deep dives in `findings/interview-project-depth` are served by ADRs in any mode); it is in git history. More modes may be added; each says who decides what.
 
 ## Why `main` is protected
 
