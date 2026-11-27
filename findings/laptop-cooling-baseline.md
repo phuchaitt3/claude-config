@@ -37,3 +37,10 @@ status: current
 - No source gives a threshold for when a rise means cleaning.
 - The idle-rise correction for room temperature is the checker's, not sourced.
 - Fan speed is not readable on the laptop checked, so a fan that works harder to hold the same temperature would hide a decline. The clock and the rise are the available signals.
+
+## Added 2026-11-27: cleaning or repasting a gaming laptop oneself
+
+- An iFixit guide for a related model (Legion Y530-15ICH, written by a student team, not Lenovo) rates a repaste "Moderate", 20-30 minutes, with a Phillips #1 screwdriver, 99% isopropyl alcohol, swabs and paste. Cautions: power off and unplug first; pull the battery connector by its wires, not with metal tweezers; spring screws stay captive; tighten the heatsink screws in their numbered order; do not overtighten the cover screws ([guide](https://www.ifixit.com/Guide/Lenovo+Legion+Y530-15ICH+Thermal+Paste+Replacement/169637)).
+- Lenovo publishes hardware maintenance manuals per model with heat sink and fan removal steps ([Y540-15, first pages only without a login](https://www.ifixit.com/Document/rciZSmouSUA26uLV)). Whether these parts are meant for owners to service, and any warranty effect, were not found.
+- Checker's inference (inference: findings/laptop-cooling-baseline): take readings before opening the machine, so the effect can be measured and a new baseline started afterwards.
+- Limits: no guide for the Y540-17 was read; nothing found on damage rates, DIY against a repair shop, or liquid metal.
