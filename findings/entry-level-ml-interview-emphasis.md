@@ -25,4 +25,15 @@ status: current
   - TechRepublic, FPT adds AI skills test for new hires (press): https://www.techrepublic.com/article/news-fpt-ai-skills-test-apac-vietnam/
   - Glassdoor, FPT interview report (anonymous self-report): https://www.glassdoor.com/Interview/FPT-Interview-E780684-RVW98145685.htm
 - **Limits:** Snippets only; the guides are mostly US-market and mostly for ML engineer roles, not residency or trainee programmes in Vietnam. Vendor blogs sell prep. The dissenting claim has one source. See also `findings/leetcode-vietnam-hiring` for candidate reports of data-structures-and-algorithms tests at Vietnamese firms.
+## One Vietnamese employer: VNG's test and interview reports (added 2026-11-27)
+
+- **Finding** (all *anecdotal* or search summaries, mostly old; standard: findings/entry-level-ml-interview-emphasis, checked 2026-11-27):
+  - A 2024-07 forum opener describes the AI intern process the poster expected: a multiple-choice test mostly on data science, a coding interview, then a behaviour round. No reply confirmed it.
+  - Fresher test (posts from 2021-2023): about 25-30 multiple-choice questions in 60 minutes, mostly data structures, algorithms, complexity and code reading; one poster put the pass mark near 60-70% and called the interview the harder stage.
+  - A 2018 careers blog gives a one-hour onsite interview with 2-3 interviewers and results within 2 weeks; one undated candidate quote there lists data types, data structures and design patterns.
+  - No report was found for VNG's 2026 AI residency, which a university announcement calls the first cohort (search summary).
+- **Evidence strength:** *anecdotal*; no first-hand report of a recent VNG AI interview.
+- **Sources:** [Voz, AI intern interview thread](https://voz.vn/t/xin-review-interview-a-i-intern-o-vng.990158/) (2024-07-26, 4 posts); [Voz, VNG fresher test thread](https://voz.vn/t/ve-bai-test-fresher-cua-vng.250967/) (from 2021-03-11, first page only); [Day Nhau Hoc, VNG fresher test](https://daynhauhoc.com/t/kinh-nghiem-lam-bai-test-phong-van-vng-fresher/112997) (2023-03-13 reply); [TopCV blog](https://blog.topcv.vn/thi-tuyen-va-lam-viec-tai-vng/) (2018, promotional); [PTIT HCM announcement](https://fit.ptithcm.edu.vn/2026/10/vng-ai-builder-residency-chinh-thuc-khoi-dong-phat-trien-nhan-tai-cong-nghe-tre-san-sang-kien-tao-tuong-lai-cung-ai.html) (search summary only).
+- **Limits:** Glassdoor pages returned 403 and later forum pages were not read; Reddit search found nothing relevant.
+
 - **Checked:** 2026-11-18
