@@ -15,6 +15,8 @@ Added 2026-11-18 (user's request, claude-config issue #22). Locks the laptop GPU
 - `python ~/claude-config/scripts/gpu_run.py cap off` — full speed.
 - `python ~/claude-config/scripts/gpu_run.py cap status` — which one it is now.
 
+**Lenovo mode** (user's decision, 2026-11-27): an agent may start Lenovo Legion Toolkit when a task needs to read or set the Lenovo power mode (`llt.exe feature get|set power-mode`), and may use `scripts/night.ps1` / `game.ps1` for that task. It puts the previous settings back afterwards and says so in its reply. The toolkit needs administrator rights: started from an agent shell that has `__COMPAT_LAYER=RunAsInvoker`, it runs without them and says "This device is not compatible" (found 2026-11-27). So use a toolkit the user already has running, or ask the user to start it.
+
 **When to use which**
 
 - The user says "cool it down", "quiet mode", "cap the GPU": `cap on`. "Full speed", "lift the cap", "I am going to game": `cap off`. "Is the cap on?": `cap status`.
