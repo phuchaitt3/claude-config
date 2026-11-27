@@ -37,6 +37,36 @@ Sources for this update:
 - [Multiple AI coding agents, same repository](https://dev.to/robat_das_3c6e956212f6408/multiple-ai-coding-agents-same-repository-the-bugs-git-won-43fb) (individual blog, search summary only)
 - [Self-hosted runners: security, scaling and isolation](https://infra.furybee.org/articles/github-actions-self-hosted-runners/) (individual blog, search summary only)
 
+## Update 2026-11-27: routing, claims, data and scaling across machines
+
+**Sourced:**
+
+- **Capability routing is the usual way to send work to the right machine** (official docs): GitHub Actions routes a job by `runs-on` labels, and a self-hosted runner must carry all of them; Kubernetes places a Pod only on nodes with the labels its `nodeSelector` names (read as a summary).
+- **A self-hosted runner is not a safe queue for a public repository** (official docs): GitHub says such runners "should almost never be used for public repositories", because a pull request can compromise the machine.
+- **Sessions:** cross-session messaging reaches sessions that already exist; the page describes no way to start one on another machine, and a received message never counts as the user's consent (official docs). Remote Control server mode (`claude remote-control`) waits for remote connections (official docs); one blog says the phone app can then start a session on that machine (not confirmed in the docs part read). No start-at-boot setting was found.
+- **Queues across a few home machines** (project READMEs): task spooler works on one machine only; `jobd` claims to be a GPU-aware broker across machines on a LAN or Tailscale (young, no independent reports found). Slurm and Ray are described as heavy for two machines; a scheduler is worth it when human coordination fails, not at a set machine count (blogs; no validated threshold).
+- **Atomic claims across machines** (project READMEs and issues): some agent task tools use a git ref or a rejected push as the lock, with leases that expire. GitHub's "create a reference" page does not say what happens when the ref already exists, so that route is unverified.
+- **Models:** a Hugging Face download is pinned with `revision=` and the full commit hash (official docs). A shared cache over a network mount is possible but has symlink problems between Windows and Linux (official docs and a forum, via search summary).
+- **Remote access:** Tailscale's SSH server does not run on Windows; use Windows OpenSSH over the tailnet (guides and an issue, search summary).
+
+**Inference (checker's), for two to a few personal machines:**
+
+- Keep each machine a peer with its own sessions; use the shared services already there (git, the issue tracker, one data remote) and add no controller, queue daemon or shared network drive.
+- Record per machine what it has (GPU compute capability and memory, RAM, installed tools) and per task what it needs; check that before claiming. A third machine then adds one record.
+- Every input a task needs should be reachable from any machine: git, a data remote, or a download pinned by hash. An export that is generated on request (its bytes change, the service can fail) counts as not re-downloadable and goes in the data remote. Models and container images are downloaded by each machine from the pinned source.
+- A label and claim comment on a shared issue tracker is enough while claim collisions are rare; add an atomic lock only after one is seen.
+
+Sources for this update:
+
+- [Using self-hosted runners in a workflow](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow) and [Secure use](https://docs.github.com/en/actions/reference/security/secure-use) (official docs)
+- [Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) (official docs)
+- [Cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging.md), [Remote Control](https://code.claude.com/docs/en/remote-control.md) (official docs); [phone start](https://aicatchup.com/news/claude-code-remote-control-phone-start) (blog, search summary)
+- [jobd](https://github.com/musharna/jobd), [task spooler](https://github.com/justanhduc/task-spooler) (project READMEs)
+- [Scheduling: Slurm, Kubernetes, Ray, or none](https://kentino.com/pages/job-scheduling-for-ai-clusters-slurm-kubernetes-ray-and-knowing-when-you-need-none-of-them) (vendor page, search summary)
+- [tasks.md](https://github.com/tasksmd/tasks.md), [Backlog.md issue 937](https://github.com/MrLesk/Backlog.md/issues/937) (project pages, search summary)
+- [Hugging Face download guide](https://huggingface.co/docs/huggingface_hub/en/guides/download) (official docs); [LAN model storage thread](https://discuss.huggingface.co/t/recommended-tools-for-managing-downloading-and-storing-models-on-lan/169112) (forum, search summary)
+- [Tailscale SSH to Windows, feature request](https://github.com/tailscale/tailscale/issues/17261) (issue, search summary)
+
 **Evidence strength:** vendor documentation for the Remote Control, messaging and agent-teams facts (official standard for the tool's own behaviour); anecdotal for the sync setup; no data found on how common multi-device setups are or on a standard device split (heavy jobs on the stronger machine is the checker's inference).
 
 **Sources:**
