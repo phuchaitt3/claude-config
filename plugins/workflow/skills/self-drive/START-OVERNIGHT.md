@@ -1,6 +1,6 @@
 # Starting a self-drive overnight run (guide for the user)
 
-Written 2026-11-14 for workflow 0.54.0. An agent asked "how do I start an overnight run" reads this file and walks the user through it. The rules the run follows are in `SKILL.md` ("Overnight mode"); this file only says how to start, watch and stop one. If `SKILL.md` and this file disagree, `SKILL.md` wins: fix this file.
+The same start works at any hour (one self-drive mode, 2026-11-27). Written 2026-11-14 for workflow 0.54.0. An agent asked "how do I start an overnight run" reads this file and walks the user through it. The rules the run follows are in `SKILL.md` ("Overnight mode"); this file only says how to start, watch and stop one. If `SKILL.md` and this file disagree, `SKILL.md` wins: fix this file.
 
 ## Before you start (about 2 minutes)
 

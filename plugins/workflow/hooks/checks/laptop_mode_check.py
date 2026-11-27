@@ -156,7 +156,7 @@ def run(payload, *, battery=has_battery, cap=gpu_cap_on, cpu=cpu_max_pct, lenovo
                                        "ask the user to open it as administrator first.")
         return (f"laptop-mode: {line}, and this run is estimated at {minutes:g} min. Long local runs use night "
                 f"mode: ask the user before running `~/claude-config/scripts/night.ps1` in the daytime (an "
-                f"overnight self-drive run sets it itself), and `game.ps1` puts game mode back "
+                f"self-drive run sets it itself), and `game.ps1` puts game mode back "
                 f"(`workflow:gpu-cap`, \"Modes\").{ask_llt}")
     if event == "UserPromptSubmit":
         if not battery() or not first(str(payload.get("session_id", ""))):

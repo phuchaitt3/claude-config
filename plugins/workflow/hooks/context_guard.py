@@ -9,8 +9,8 @@ hook reads the chat's context size there and, above the threshold, reminds the c
 It reads only the tail of the transcript (the last model call's usage), writes nothing and logs
 nothing; the trial log stays `context_size.py --log`, which the reminder tells the chat to run.
 It never blocks: a `stop: true` call, a size at or under the threshold, a missing field, and any
-error all stay silent, because a broken guard must never trap a turn. Daytime loops get the same
-reminder; its text says to ignore it outside an overnight run (step 7a is overnight only).
+error all stay silent, because a broken guard must never trap a turn. Other loops get the same
+reminder; its text says to ignore it outside a self-drive run.
 """
 
 from __future__ import annotations
@@ -24,13 +24,13 @@ TAIL_BYTES = 400_000
 
 REMINDER = (
     "Self-drive context check: this chat's context is {ctx} tokens, over the {limit} limit. "
-    "Overnight run: follow step 7a before this wakeup. Run context_size.py --log, write the resume "
+    "Self-drive run: follow step 7a before this wakeup. Run context_size.py --log, write the resume "
     "note to the morning-summary file, start the successor with claude --bg, confirm it in "
     "claude agents --json, then end this chat with ScheduleWakeup stop: true. A worker still "
     "running does not delay the handover for long: start no new task, worker or background session, "
     "finish what is in flight, and hand over at the latest 60 minutes after the first reading over "
     "the limit (record its time in the summary file), naming any unfinished task in the note. "
-    "Not an overnight run (a daytime loop with the user present): ignore this."
+    "Not a self-drive run (some other loop): ignore this."
 )
 
 

@@ -53,5 +53,5 @@ def run(payload):
             "size and say \"/clear and send this again, or say go to do it here\" (add a resume prompt if the "
             "task needs anything from this chat). If it continues the same work, do it, and at the next task "
             "boundary suggest /clear with a resume prompt. If the user already chose to stay, do not ask again "
-            "until 50k more. Ignore this if the message is not from the user, or in an overnight loop or "
+            "until 50k more. Ignore this if the message is not from the user, or in a self-drive loop or "
             "background worker.")
