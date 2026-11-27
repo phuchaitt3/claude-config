@@ -17,7 +17,7 @@ For a choice that changes the system's structure or a key quality (a store, a qu
 2. **Decision first.** The title states the decision ("Postgres with pgvector, no separate vector store"), not the topic. The Decision section is one to three sentences and is readable without the rest.
 3. **One or two pages.** About 800 words, the change log excluded. If it is longer, something below belongs in a linked note. (standard: Nygard 2011, "one or two pages long"; checked 2026-11-01)
 4. **A record, not a design guide.** Keep out of the ADR, and link instead:
-   - term explanations, background and deep dives: a study note or brief (in a study-design project, `docs/design/`);
+   - term explanations, background and deep dives: a study note or brief (usually in `docs/design/`);
    - benchmarks and query plans: a measurement note with the method and raw numbers; the ADR keeps one line with the result and the link;
    - known bugs and gaps: one line with the issue link.
    The decision must stand alone without the linked material. (standard: Azure Well-Architected, "avoid making decision records design guides… the decision must be clear and stand alone"; checked 2026-11-01)
@@ -25,6 +25,7 @@ For a choice that changes the system's structure or a key quality (a store, a qu
 6. **Confidence and assumptions.** Say how sure the decision is and which assumptions it rests on, marking each number as measured or estimated, with the date. A low-confidence decision names what would change it. (standard: Azure Well-Architected, "record the confidence level"; Henderson, timestamps; checked 2026-11-01)
 7. **Append-only once accepted.** Do not rewrite an accepted record's reasoning. A changed decision is a new ADR that supersedes the old one, and both link each other. A clarification, a corrected fact or a new measurement that leaves the decision unchanged is a dated line in the change log, plus the smallest edit to the body. (standard: Nygard 2011 and Azure Well-Architected, append-only and superseded; departs from standard by allowing small dated corrections, as Henderson's teams do: "mutability has worked better"; checked 2026-11-01)
 8. **Full sentences, short paragraphs.** Bullets for lists of options or consequences, not as a replacement for reasoning. (standard: Nygard 2011; checked 2026-11-01)
+9. **The status changes in the PR that causes it** (user's decision, 2026-11-27, after a record merged as Proposed and stayed so for 13 days although the merge accepted it). Where merging accepts a record (the default), the PR that adds it writes it **Accepted**; the open PR is the proposal, so a record never merges as Proposed. A record that stays open after merge on purpose (an experiment before its decision date, a choice the user has not made) keeps **Proposed** and adds `**Open until:** <YYYY-MM-DD or #issue that decides it>` to its status line; the PR that settles it, or that closes that issue, changes the status, and so does the first agent that sees the date has passed. The same holds for every status line in a repository's docs (a brief's `draft`, a design note's `Proposed`): the PR that builds, decides or drops the thing updates it. A record names its review issue but never restates the issue's state (`Review: #35`, not `Review: #35, open`). The `status_check` hook reminds a chat at `gh pr create` and `gh pr merge`, and once a day lists stale status lines in the repository. (standard: findings/adr-lifecycle, checked 2026-11-01: the GDS Way lets the pull request's state track a record until acceptance)
 
 ## Review questions
 
@@ -35,7 +36,7 @@ Questions and answers stay in the review issue (or PR), not in the ADR. When an 
 ```markdown
 # NNNN: <the decision, in a few words>
 
-**Status:** Proposed | Accepted | Superseded by NNNN | Rejected   **Date:** YYYY-MM-DD
+**Status:** Accepted | Proposed (with Open until) | Superseded by NNNN | Rejected   **Date:** YYYY-MM-DD
 **Decided by:** <who>   **Confidence:** high | medium | low   **Study note:** <link, if any>
 
 ## Context
