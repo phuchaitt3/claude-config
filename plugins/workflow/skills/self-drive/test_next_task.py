@@ -263,3 +263,23 @@ def test_ready_depth_keeps_last_seven_runs() -> None:
     old = [_run("r-a", "2026-11-01T00:00:00Z", "2026-11-01T01:00:00Z", 50)]
     new = [_run(f"r-{i}", f"2026-11-1{i}T00:00:00Z", f"2026-11-1{i}T01:00:00Z", 1) for i in range(7)]
     assert next_task.ready_depth(old + new, "r")[0] == 8  # the old 50/h run drops out
+
+
+def test_issue_for_the_other_machine_is_left_out() -> None:
+    issues = [issue(1, ["needs:laptop"]), issue(2, ["needs:pc"]), issue(3)]
+    assert numbers(next_task.rank(issues, {}, "pc")[0]) == [2, 3]
+    assert numbers(next_task.rank(issues, {}, "laptop")[0]) == [1, 3]
+    assert numbers(next_task.rank(issues, {}, None)[0]) == [1, 2, 3]
+    assert next_task.split_other_machine(issues, "pc") == {1: "needs:laptop"}
+
+
+def test_claimed_issue_for_the_other_machine_raises_no_stale_warning() -> None:
+    _, _, held = next_task.rank_with_claimed([issue(1, ["claimed", "needs:laptop"])], {}, "pc")
+    assert held == []
+
+
+def test_this_machine_reads_the_battery_flag() -> None:
+    assert next_task.this_machine(128) == "pc"
+    assert next_task.this_machine(1) == "laptop"
+    assert next_task.this_machine(255) is None
+    assert next_task.this_machine(None) is None

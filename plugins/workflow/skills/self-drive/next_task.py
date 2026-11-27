@@ -20,6 +20,8 @@ within groups 2 and 3, the issue that blocks the most open issues, directly or t
 the oldest. With no `resume:` labels in the repo, the order is groups 2 and 3 alone.
 
 Issues that are blocked by an open issue, or labelled `claimed`, `needs-you` or `parked`, are left out.
+So is an issue labelled for the other machine (`needs:laptop` on a desktop, `needs:pc` on a laptop;
+workflow:multi-chat-repo, 2026-11-27); an `other machine:` line names each one, so none looks absent.
 It also prints three kinds of fix-up for the chat to make (advisory: none skips or blocks an issue;
 standard: findings/backlog-label-lint, checked 2026-11-18): a bottleneck not labelled
 `priority:now`, a "Blocked by #n" line in an issue body with no matching dependency link
@@ -54,6 +56,9 @@ from pathlib import Path
 
 BOTTLENECK_MIN = 2  # an issue blocking this many open issues counts as priority:now
 SKIP_LABELS = {"claimed", "needs-you", "parked"}
+MACHINES = ("laptop", "pc")  # `needs:<machine>`: only that machine can do the issue
+NO_BATTERY = 128  # GetSystemPowerStatus BatteryFlag: no system battery
+UNKNOWN_BATTERY = 255
 OWNER_REVIEW = "adr-review"  # an owner review: an overnight run cannot do it, so it needs `needs-you`
 WAIT_HEAVY_S = 600  # a lock wait this long is evidence the issue is heavy (#28; 10 min = the run-estimate bar)
 HEAVY = "heavy"  # finish needs a heavy local job (full test suite, local GPU job or large model, Compose stack); not Kaggle-bound work
@@ -165,14 +170,43 @@ def depths(issues: list[dict]) -> dict[int, dict[int, int]]:
     return result
 
 
-def rank(issues: list[dict], ranks: dict[str, int] | None = None) -> tuple[list[dict], list[str]]:
+def battery_flag() -> int | None:
+    """Windows' battery flag, or None where it cannot be read."""
+    if sys.platform != "win32":
+        return None
+    import ctypes  # noqa: PLC0415
+
+    status = (ctypes.c_byte * 12)()  # SYSTEM_POWER_STATUS; the second byte is BatteryFlag
+    if not ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(status)):
+        return None
+    return status[1] & 0xFF
+
+
+def this_machine(flag: int | None) -> str | None:
+    """"laptop" when there is a battery, "pc" when there is none (the test self-drive uses),
+    None when unknown, so nothing is skipped."""
+    if flag is None or flag == UNKNOWN_BATTERY:
+        return None
+    return "pc" if flag & NO_BATTERY else "laptop"
+
+
+def split_other_machine(issues: list[dict], machine: str | None) -> dict[int, str]:
+    """Issue number -> its `needs:` label, for issues this machine is labelled unable to do."""
+    if machine is None:
+        return {}
+    other = {f"needs:{m}" for m in MACHINES if m != machine}
+    return {i["number"]: lab["name"] for i in issues for lab in i["labels"]["nodes"] if lab["name"] in other}
+
+
+def rank(issues: list[dict], ranks: dict[str, int] | None = None,
+         machine: str | None = None) -> tuple[list[dict], list[str]]:
     """The startable issues, best first, and the fix-ups to make."""
-    ranked, fixups, _ = rank_with_claimed(issues, ranks)
+    ranked, fixups, _ = rank_with_claimed(issues, ranks, machine)
     return ranked, fixups
 
 
 def rank_with_claimed(
-    issues: list[dict], ranks: dict[str, int] | None = None
+    issues: list[dict], ranks: dict[str, int] | None = None, machine: str | None = None
 ) -> tuple[list[dict], list[str], list[dict]]:
     """`rank`, plus the unblocked `claimed` issues (not `needs-you`) ranked the same way, best first."""
     ranks = gap_ranks() if ranks is None else ranks
@@ -181,6 +215,7 @@ def rank_with_claimed(
     numbers = {i["number"] for i in issues}
     labels_of = {i["number"]: {lab["name"] for lab in i["labels"]["nodes"]} for i in issues}
     own = {n: resume_key(labs, ranks) for n, labs in labels_of.items()}
+    elsewhere = split_other_machine(issues, machine)
     ranked, fixups, held = [], [], []
     for issue in issues:
         n = issue["number"]
@@ -194,6 +229,8 @@ def rank_with_claimed(
             fixups.append(f"#{n}: labelled {OWNER_REVIEW} (an owner review) without needs-you; add it")
         if fan >= BOTTLENECK_MIN and "priority:now" not in labels:
             fixups.append(f"#{n}: blocks {fan} open issues; label it priority:now")
+        if n in elsewhere:
+            continue
         if _open_numbers(issue["blockedBy"]) or labels & SKIP_LABELS:
             if "claimed" in labels and "needs-you" not in labels and not _open_numbers(issue["blockedBy"]):
                 held.append(entry(issue, labels, fan, own, chain))
@@ -465,7 +502,8 @@ def main() -> int:
     try:
         repo = args.repo or gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).strip()
         issues = fetch(repo)
-        ranked, fixups, held = rank_with_claimed(issues)
+        machine = this_machine(battery_flag())
+        ranked, fixups, held = rank_with_claimed(issues, machine=machine)
         if args.status:
             for line in status(repo, issues, args.handoff, ranked, held):
                 print(line)
@@ -489,6 +527,8 @@ def main() -> int:
             print(line)
     for line in render(ranked, args.limit):
         print(line)
+    for number, label in sorted(split_other_machine(issues, machine).items()):
+        print(f"other machine: #{number} skipped ({label})")
     for line in fixups:
         print(f"fix: {line}")
     return 0
