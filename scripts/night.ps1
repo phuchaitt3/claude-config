@@ -18,10 +18,11 @@ function Set-LenovoMode([string]$Mode) {
         Start-Sleep 6
     }
     & $llt feature set power-mode $Mode
+    if ($LASTEXITCODE -ne 0) { Write-Warning "Lenovo mode NOT changed to $Mode (llt failed); the other settings still apply."; return }
     Write-Host "Lenovo mode now: $(& $llt feature get power-mode)"
 }
 powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 99
 powercfg /setactive SCHEME_CURRENT
 python (Join-Path $PSScriptRoot 'gpu_run.py') cap on
 Set-LenovoMode 'quiet'
-Write-Host 'NIGHT mode: CPU turbo OFF (99%), GPU cap ON (1350 MHz). Lenovo mode set to Quiet.'
+Write-Host 'NIGHT mode: CPU turbo OFF (99%), GPU cap ON (1350 MHz). Lenovo mode: see above.'
