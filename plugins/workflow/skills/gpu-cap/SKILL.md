@@ -1,9 +1,26 @@
 ---
 name: gpu-cap
-description: Load when the user asks to cap, throttle or cool the laptop GPU, wants a quieter or cooler laptop for a heavy job, asks to lift or remove the GPU clock cap, or asks whether the cap is on; also before a job that times this laptop's speed. How to switch the GPU clock cap on, off or read its state with one command.
+description: Load when the user mentions game mode, gaming mode, night mode or the laptop's caps; before a long local run on the laptop; when the user asks to cap, throttle or cool the laptop GPU, wants a quieter or cooler laptop for a heavy job, asks to lift or remove the GPU clock cap, or asks whether the cap is on; also before a job that times this laptop's speed. The two laptop modes (game.ps1, night.ps1) and how to switch the GPU clock cap on, off or read its state with one command.
 ---
 
-# GPU clock cap (laptop only)
+# Laptop modes and the GPU clock cap (laptop only)
+
+## Modes (user's setup; written down 2026-11-27 after a chat did not know them)
+
+The user switches the laptop between two modes, each one command that needs no administrator rights:
+
+| Mode | Command | CPU max (AC) | GPU clock | Lenovo mode | For |
+|---|---|---|---|---|---|
+| **Game** | `~/claude-config/scripts/game.ps1` | 100% (turbo on) | uncapped | Performance | gaming, normal daytime use |
+| **Night** | `~/claude-config/scripts/night.ps1` | 99% (turbo off) | 1000-1350 MHz | Quiet | long runs, overnight |
+
+"Gaming mode" or "game mode" means `game.ps1`, not Windows Game Mode. The `laptop_mode_check` hook prints the current mode at a chat's first prompt and before a run tagged `# estimate:` over 10 minutes outside night mode. Read it live: `gpu_run.py cap status` and `powercfg /query SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX` (0x64 = 100%, 0x63 = 99%).
+
+- Before a long local run in the daytime, ask the user whether to switch to night mode. A chat that switched puts game mode back when the user says they are gaming or the task ends, and says so in the reply. An overnight self-drive run follows `workflow:self-drive`.
+- A timing result made in night mode says "GPU capped at 1350 MHz, CPU turbo off"; never compare it with a game-mode run.
+- The Lenovo step needs Lenovo Legion Toolkit with administrator rights (see "Lenovo mode" below). If it warns, the CPU and GPU caps still applied; tell the user to set the Lenovo mode.
+
+## GPU clock cap
 
 Laptop only: the PC has no cap tasks (`setup-machine.ps1 -ClockCap auto` skips them on a desktop), so `cap` does nothing there.
 
