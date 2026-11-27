@@ -67,4 +67,17 @@ status: current
 - **Sources:** [Voz, "Cognitive Test Momo Talent"](https://voz.vn/t/cognitive-test-momo-talent.1102397/) (forum thread from 2025-05-20, 184 replies on 10 pages, all pages read); [Voz, "Phong van tai Momo Talent"](https://voz.vn/t/phong-van-tai-momo-talent.1104887/) (opening posts only); [NEU career centre, MoMo Talent 2025 listing](https://jobs.neu.edu.vn/jobs/chuong-trinh-tuyen-dung-momo-talent-2025-momo-1202504161758) (repost); [MoMo Talent page](https://momo.careers/momo-talent) (official; its FAQ answer did not come through the fetch); TestGorilla library pages: [critical thinking](https://www.testgorilla.com/test-library/cognitive-ability-tests/critical-thinking-test), [verbal](https://www.testgorilla.com/test-library/cognitive-ability-tests/verbal-reasoning-test), [abstract](https://www.testgorilla.com/test-library/cognitive-ability-tests/abstract-reasoning-test), [numerical](https://www.testgorilla.com/test-library/cognitive-ability-tests/numerical-reasoning-test); [TestGorilla, accommodations for assessments](https://candidates.testgorilla.com/hc/en-us/articles/28302003990427-Accessibility-and-accommodations-for-assessments) (search summary only).
 - **Limits:** one cycle (2025), one forum; nothing from the 2026 cycle was found. TestGorilla's candidate guides returned 403, so its camera, break and demo-question behaviour were not checked against the vendor. Matching timings do not prove the vendor.
 
+## TestGorilla: candidate forum reports (added 2026-11-27)
+
+- **Finding** (Reddit, all *anecdotal*, each usually one poster; standard: findings/online-assessment-types, checked 2026-11-27):
+  - The vendor's practice questions were much easier than the live test.
+  - Time is the main difficulty: one abstract section gave 10 minutes for 50 questions; one critical-thinking section was text-heavy with 18 minutes; other sections reported 12 questions in 10 minutes or 16 in 12.
+  - Camera and microphone on, snapshots taken, full screen forced; one candidate failed after the camera disconnected mid-test.
+  - There are breaks between parts.
+  - One privacy-policy quotation by a poster: webcam pictures kept 6 months, scores and answers 2 years.
+  - Posters did not share actual questions, and some threads promote cheating tools; neither is recorded here.
+- **Evidence strength:** *anecdotal*. Section lengths differ between posts because employers pick different tests.
+- **Sources** (read through `webx` on 2026-11-27; no usernames): [r/recruitinghell, experience of maths, abstract and attention tests](https://www.reddit.com/r/recruitinghell/comments/1pu0hk3/) (about 2025-12, score 14-17, 28 comments); [r/recruitinghell, percentiles and section times](https://www.reddit.com/r/recruitinghell/comments/1qm9675/) (2026-01-25, 7 comments); [r/recruitinghell, five-part assessment](https://www.reddit.com/r/recruitinghell/comments/1pxy4qp/) (2025-12-28, 12 comments); [r/recruitinghell, camera and snapshots](https://www.reddit.com/r/recruitinghell/comments/1xd9cau/) (2026-10-23, 17 comments); [r/nairobitechies, developer assessment](https://www.reddit.com/r/nairobitechies/comments/1u3ozux/) (2026-06-12, 15 comments); [r/SrilankaIT, intern test topics](https://www.reddit.com/r/SrilankaIT/comments/1vsvaw8/) (2026-08-19, 6 comments).
+- **Limits:** none of these is about MoMo or Vietnam; prep-site guides were seen in search summaries only and are not used here.
+
 - **Checked:** 2026-11-24
