@@ -8,7 +8,7 @@ status: current
 ---
 # OneDrive sign-in does nothing on Windows 10
 
-- **Question:** After running the `OneDriveSetup.exe` that ships with Windows, the app says "OneDrive isn't connected"; pressing "Sign in" closes the window and nothing follows.
+- **Question:** After running the `OneDriveSetup.exe` that ships with Windows, the app says "OneDrive isn't connected"; pressing "Sign in" closes the window and nothing follows. (A separate entry because no other one covers the OneDrive app; `dvc-remote-choice` asks which remote to use, not why a client fails to sign in.)
 
 - **Evidence strength:** official Microsoft pages for versions and update rules; **none found that names this symptom or its fix**. The fixes come from third-party guides and community threads. One local observation (below).
 
