@@ -292,13 +292,44 @@ def tool_python() -> Path | None:
     return None
 
 
+def other_pythons():
+    """Interpreters that may have `kagglesdk`: uv's tool, those beside `kaggle`, those on PATH."""
+    found = tool_python()
+    if found:
+        yield found
+    folders = []
+    cli = shutil.which("kaggle")
+    if cli:  # a venv keeps python beside the command; Windows pip, one level up from Scripts
+        folders += [Path(cli).resolve().parent, Path(cli).resolve().parent.parent]
+    folders += [Path(d) for d in os.environ.get("PATH", "").split(os.pathsep) if d]
+    seen = {Path(sys.executable)}
+    for folder in folders:
+        for name in ("python.exe", "python3", "python"):
+            path = folder / name
+            if path not in seen and path.is_file():
+                seen.add(path)
+                yield path
+
+
+def has_sdk(python: Path) -> bool:
+    try:
+        probe = [str(python), "-c", "import kaggle.api.kaggle_api_extended, kagglesdk"]
+        return subprocess.run(probe, capture_output=True, timeout=60).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def ensure_sdk() -> None:
     try:
         import kagglesdk  # noqa: F401
     except ImportError:
-        python = tool_python()
-        if not python or os.environ.get("KAGGLE_SLOTS_REEXEC"):
-            sys.exit("no `kagglesdk` here; install the CLI with `uv tool install kaggle`")
+        again = os.environ.get("KAGGLE_SLOTS_REEXEC")
+        python = None if again else next(filter(has_sdk, other_pythons()), None)
+        if not python:
+            sys.exit(
+                "no Python with `kagglesdk` found (uv tool, beside `kaggle`, on PATH); install "
+                "the CLI with `uv tool install kaggle`. Nothing was pushed."
+            )
         env = {**os.environ, "KAGGLE_SLOTS_REEXEC": "1"}
         sys.exit(subprocess.run([str(python), __file__, *sys.argv[1:]], env=env).returncode)
 

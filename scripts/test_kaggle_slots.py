@@ -179,3 +179,15 @@ def test_patient_retries_only_rate_limits():
     assert ks.patient(call, sleep=slept.append) == "ok" and slept == [5]
     with pytest.raises(OSError):
         ks.patient(lambda: (_ for _ in ()).throw(OSError("down")), sleep=slept.append)
+
+
+def test_finds_the_python_beside_kaggle_without_a_uv_tool(tmp_path, monkeypatch):
+    """A pip install under Windows: python.exe sits one level above Scripts/kaggle.exe."""
+    scripts = tmp_path / "py" / "Scripts"
+    scripts.mkdir(parents=True)
+    python = scripts.parent / "python.exe"
+    python.write_text("")
+    monkeypatch.setattr(ks, "tool_python", lambda: None)
+    monkeypatch.setattr(ks.shutil, "which", lambda name: str(scripts / "kaggle.exe"))
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    assert list(ks.other_pythons()) == [python.resolve()]
