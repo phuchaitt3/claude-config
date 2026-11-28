@@ -1,5 +1,5 @@
 {
-  "version": "0.62.17",
-  "since": "2026-11-19T00:40:00+07:00",
-  "why": "Overnight, the GPU clock cap stays on for the whole run, project timing benchmarks included; a chat must not lift it for its own jobs (only the user's own thermal tests do)"
+  "version": "0.62.70",
+  "since": "2026-11-28T14:55:00+07:00",
+  "why": "Push Kaggle kernels with ~/claude-config/scripts/kaggle_slots.py push: it waits while the kernel has a queued or running version, so no waiting run holds a shared GPU session"
 }
