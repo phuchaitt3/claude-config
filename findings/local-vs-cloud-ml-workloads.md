@@ -1,15 +1,15 @@
 ---
 topic: local-vs-cloud-ml-workloads
 area: ML systems
-question: Is it a good idea to run heavy ML/AI work (training, fine-tuning, inference) on a personal machine rather than a cloud or hosted service?
-checked: 2026-11-27
+question: Is it a good idea to run heavy ML/AI work (training, fine-tuning, inference) on a personal machine rather than a cloud or hosted service, and do production apps use hosted third-party models?
+checked: 2026-11-28
 review_months: 6
 status: current
 ---
 # Heavy ML/AI work on a personal machine or in the cloud
 
 - **Question:** Is it a good idea to run heavy ML/AI work on a personal local machine? Separate from `laptop-overnight-heavy-jobs` and `laptop-thermal-tiers`, which assume the job is local and ask about its risks; this entry covers where it should run (cost, access, safety of model files).
-- **Checked:** 2026-11-27
+- **Checked:** 2026-11-27 (hosted models in production: 2026-11-28)
 - **Evidence strength:**
   - *Official docs:* Colab free-tier limits, pickle and `torch.load` risk, Dell battery swelling.
   - *Sample or survey:* academic researchers' compute (50 respondents).
@@ -50,6 +50,14 @@ No source gives a general yes or no. It depends on how many hours the hardware i
 - **Prefer free or rented cloud** when the job runs for hours with full GPU or CPU load on a laptop, needs more memory than the machine has, is a one-off burst, or loads untrusted model files (isolation still needed).
 - **Buy hardware** only after estimating real GPU hours against the break-even formula with local prices; occasional use does not repay it.
 - A desktop is likely the better local choice than a laptop for sustained load (cooling, no battery). No source was checked for this; treat it as open.
+
+## Hosted third-party models in production (added 2026-11-28)
+
+- **Evidence strength:** *sample or survey* for market share; *vendor or single source* for the default. No source found gives the share of production LLM applications that call a vendor's API against self-hosting.
+- Open-source models held 11% of estimated enterprise LLM API usage, down from 19% (Menlo Ventures, 495 US decision-makers, November 2025). This is open against closed models, not hosted against self-hosted, and leaves self-hosted inference out.
+- Several 2026 consultancy and vendor guides call a managed API the default and keep self-hosting for data residency or high steady volume; their break-even volumes disagree widely (search summaries).
+- (inference: findings/local-vs-cloud-ml-workloads) For a low-traffic application with no GPU host, a hosted vendor model in production is the usual choice; it is not a documented standard.
+- Sources: [Menlo Ventures, State of Generative AI in the Enterprise 2025](https://menlovc.com/perspective/2025-the-state-of-generative-ai-in-the-enterprise/) (VC survey; the firm invests in model vendors); [Self-hosted vs API guide](https://neevcloud.com/blogs/open-weight-vs-closed-models-self-host-or-call-an-api) (vendor blog, search summary). Prices: `hosted-llm-api-prices`.
 
 ## Sources
 
