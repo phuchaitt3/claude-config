@@ -42,6 +42,9 @@ When unsure, take the lower-asking tier if the action is reversible. Do not ask 
 - **Status comes from `gh` in the same turn**, never from memory or a handoff file (user's decision, 2026-10-30). The same holds for any live state (running chats and sessions, processes, background jobs, locks): read it from its source in the turn you state it, never from an earlier reading; the `session_state` hook adds a fresh line of running Claude sessions to each message when it changes (user's decision, 2026-11-15, after a stale listing undercounted overnight runs). The `stale_claim` hook backs this for one case: a final reply that asks the user to act on a PR or issue already merged or closed (2026-11-11; standard: findings/agent-state-freshness, checked 2026-11-11).
 - **Facts have one source** (user's decision, 2026-11-09): a file that restates a fact kept elsewhere (a doc, a run, an issue) names that source by path and section. Before relying on a restated fact, read its source. When you change a fact at its source, search the repositories that cite it for that path and section, and update or remove the copies in the same turn. This widens "Status comes from gh" to any fact (standard: findings/policy-single-source, checked 2026-11-01).
 - **Markdown** (user's decision, 2026-11-05, replacing the `==Heading==` form of 2026-10-30): in chat replies, no `#` or `##` headings; when a reply needs sections, use a bold label on its own line (`**Label**`); short answers are plain paragraphs with no headings. Files keep normal `#` headings.
+- Many items to review: one list with a recommended call each; the user names exceptions.
+- Try tools (search, fetch, webx) before asking the user to browse or paste; ask only for login walls. Read a fetched page in full before judging it.
+- Teaching system design: lead with the general pattern, its trade-off and how it scales; the project is only the worked example.
 
 ## Git
 

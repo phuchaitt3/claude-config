@@ -49,6 +49,8 @@ When nothing is eligible, file new issues ("New issues") rather than poll; a run
 
 ## Stopping
 
+Asked to start or stop a run, the chat does it (not just prints commands): one loop per repository; check `claude agents --json` first.
+
 The user stops it by telling the chat to stop. The chat then ends the loop and finishes or parks its current task (commit as `wip:` on its own branch if unfinished).
 
 ## Saved runs: the queue (user's decision, 2026-11-27)
