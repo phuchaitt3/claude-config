@@ -3,7 +3,7 @@
 A GPU container (`docker run --gpus ...`, `docker compose up` of a file with a GPU service) keeps the
 GPU after its start command returns. Started bare, it holds GPU memory that no lock records:
 on 2026-11-13 an unnamed `docker run --rm --gpus all` reranker sat idle beside a second copy and an
-Ollama model, filling 5.5 of 6 GB. The rule (working-rules, "Laptop GPU") says a GPU service starts
+Ollama model, filling 5.5 of 6 GB. The rule (working-rules, "GPU lock") says a GPU service starts
 through `gpu_run.py hold`, which keeps the lock until its containers stop, and that a `docker run`
 GPU container carries a `--name` or `--label` naming its task so it can be traced.
 
@@ -48,12 +48,12 @@ _UNGUARDED = (
     "Refused: `{cmd}` starts a GPU container outside the machine-wide GPU lock. Run it as "
     "`python ~/claude-config/scripts/gpu_run.py hold --wait --purpose <task> -- <command>` in the "
     "background: it holds the lock until the containers stop, and stopping them releases it. Stop the "
-    "containers when the task no longer needs them. (Rule: working-rules, \"Laptop GPU\".)"
+    "containers when the task no longer needs them. (Rule: working-rules, \"GPU lock\".)"
 )
 _UNNAMED = (
     "Refused: `{cmd}` starts an unnamed GPU container. Add `--name <task>-<service>` or "
     "`--label gpu-guard.task=<task>` so it can be traced to the task that started it, and stop it when "
-    "the task is done. (Rule: working-rules, \"Laptop GPU\".)"
+    "the task is done. (Rule: working-rules, \"GPU lock\".)"
 )
 _TIMEOUT = (
     "Refused: `{cmd}` puts a time limit on the docker client, not the container. Killing the client "
