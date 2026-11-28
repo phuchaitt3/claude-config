@@ -17,11 +17,13 @@ status: current
 - No call listing sessions was found in `kagglesdk` 0.1.38. `CancelKernelSession` exists but needs a session id that no public response returns, so a version can be stopped only in the web page. The maintainers said on 2026-11-24 that the back-end change needed is not planned. `kernels delete` removes the whole kernel, not one version.
 - The quota call showed `timeReserved` 0s while a version was RUNNING, so it does not count sessions.
 - No start time per version was found; `GetKernel` gave a last-run time three days old for a kernel with an active version.
+- Why a second version waits is not documented. In the observed case all other readable kernels were COMPLETE and weekly quota was left, yet version 3 stayed QUEUED while version 2 ran. Community reports (search summaries only, pages not read) give a one-queued-commit-per-user policy (said about TPU), GPU shortage, and runs stuck in QUEUED. Checker's own inference: versions of one kernel may run one at a time while the waiting one still counts as a session.
 - Nearest practice for duplicate runs, GitHub Actions concurrency groups: by default the running run continues, one run may wait, and a newer waiting run replaces the older one; stopping the running one is opt-in (`cancel-in-progress`). Checker's own inference: without a cancel call, "replace the waiting run" is not possible on Kaggle, so the closest safe equivalent is to refuse a second push of a kernel that has an active version.
 
 **Sources:**
 - [GitHub, control workflow concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) (official docs).
 - [kaggle-cli issue #1169](https://github.com/Kaggle/kaggle-cli/issues/1169) and [PR #1255](https://github.com/Kaggle/kaggle-cli/pull/1255) (closed unmerged).
+- [Kaggle forum, queuing a second commit](https://www.kaggle.com/discussions/product-feedback/276952) and [a project that re-pushes a stuck QUEUED notebook](https://github.com/eslam733/voicetut-kaggle/pull/3) (community; search summaries only).
 - First-hand, 2026-11-28: read-only calls with CLI 2.2.5 and `kagglesdk` 0.1.38 on one account.
 
 **Limits:** One account and one observation of two active versions of one kernel. That a QUEUED version counts against the 2-session limit is inferred from refused pushes, not documented. How many older versions can stay active, and whether CPU kernels behave the same, were not tested. No official Kaggle page on any of this was found.
