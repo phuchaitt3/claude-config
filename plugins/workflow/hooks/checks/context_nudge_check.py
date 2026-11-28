@@ -1,13 +1,12 @@
 """Check: tell a chat its context is large when the user sends a message (user's decision, 2026-11-27).
 
-Runs on UserPromptSubmit, in every chat. Above 150000 tokens it asks the chat to suggest `/clear`,
+Runs on UserPromptSubmit, in every chat. Above the limit it asks the chat to suggest `/clear`,
 and to ask first when the new message starts an unrelated task (working rules, "Context"). Why: the
 chat cannot see its context size, and the text rule alone was missed (one daytime chat reached 269k
 over unrelated tasks with no suggestion). Reminder only: it never resets, hands off or blocks.
 
-The threshold is separate from self-drive's (`context_guard.THRESHOLD`, under its own trial), so
-changing that trial does not change daytime chats. No source gives a figure; 150000 is a noise level
-chosen from local transcripts (findings/agent-session-handoff-reset).
+The limit is `limit_tokens` in `settings/context.json`, shared with self-drive (user's decision,
+2026-11-28; read through `context_guard`). No source gives a figure.
 
 Right after `/compact` the last recorded usage is the size before compaction, so it stays silent
 until the next model reply.
@@ -21,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import context_guard
 
 EVENTS = {"UserPromptSubmit"}
-THRESHOLD = 150000
+THRESHOLD = context_guard.THRESHOLD
 _COMPACTION = ('"compact_boundary"', '"isCompactSummary":true')
 
 

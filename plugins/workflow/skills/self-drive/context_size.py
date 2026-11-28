@@ -12,7 +12,7 @@ one integer on stdout; exit code 2 if the transcript or a usage line is not foun
 --log appends one JSON line of session statistics to ~/.claude/context-threshold-log.jsonl
 (local, never committed), for the restart-threshold trial (self-drive step 7a); the
 transcripts themselves are deleted after 30 days, so the log keeps what the analysis
-needs. --threshold names the restart threshold in force (default 200000), recorded in
+needs. --threshold names the restart threshold in force (default: limit_tokens in settings/context.json), recorded in
 the line and used to mark it as a handover. The line also names the repo, so
 `context_report.py --prs` can join the session's time window to the PRs opened and merged in it. `context_report.py` reads the log.
 Used by workflow:self-drive step 7a. Writes nothing except the log line.
@@ -25,8 +25,12 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-DEFAULT_THRESHOLD = 200000
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "hooks"))
+import context_guard  # noqa: E402
+
+DEFAULT_THRESHOLD = context_guard.THRESHOLD
 LOG = os.path.join(os.path.expanduser("~"), ".claude", "context-threshold-log.jsonl")
 QUOTA = os.path.join(os.path.expanduser("~"), ".claude", "hook-cache", "quota.json")
 # Relative cost weights, in units of the input-token price: cache read, 1-hour cache write, output.
@@ -153,6 +157,7 @@ def main(argv=None):
     p.add_argument("session_id", nargs="?")
     p.add_argument("--log", action="store_true")
     p.add_argument("--threshold", type=int, default=DEFAULT_THRESHOLD)
+    p.add_argument("--note", help="stored in the log line, e.g. whether the task was done")
     a = p.parse_args(argv)
     sid = a.session_id or os.environ.get("CLAUDE_CODE_SESSION_ID", "")
     if not sid:
@@ -172,7 +177,10 @@ def main(argv=None):
         try:
             os.makedirs(os.path.dirname(LOG), exist_ok=True)
             with open(LOG, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record(sid, files[0], turns, errors, first_ts, a.threshold)) + "\n")
+                rec = record(sid, files[0], turns, errors, first_ts, a.threshold)
+                if a.note:
+                    rec["note"] = a.note
+                f.write(json.dumps(rec) + "\n")
         except OSError as e:
             print("log not written: " + str(e), file=sys.stderr)
     return 0

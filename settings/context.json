@@ -1,0 +1,7 @@
+{
+  "limit_tokens": 200000,
+  "ceiling_tokens": 250000,
+  "ceiling_minutes": 60,
+  "since": "2026-11-28",
+  "why": "One limit for interactive nudges and self-drive handover; trial data: claude-config#15. The ceilings are starting guesses."
+}

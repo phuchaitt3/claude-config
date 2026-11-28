@@ -21,23 +21,23 @@ class ContextNudgeCheck(unittest.TestCase):
             return c.run({"transcript_path": str(path)})
 
     def test_over_the_limit_reports_the_size(self):
-        text = self.run_on(reply(180_000))
-        self.assertIn("180k", text)
+        text = self.run_on(reply(230_000))
+        self.assertIn("230k", text)
         self.assertIn("/clear", text)
 
     def test_at_or_under_the_limit_is_silent(self):
-        self.assertIsNone(self.run_on(reply(150_000)))
+        self.assertIsNone(self.run_on(reply(200_000)))
         self.assertIsNone(self.run_on(reply(60_000)))
 
     def test_only_the_last_main_thread_reply_counts(self):
-        self.assertIsNone(self.run_on(reply(200_000), reply(60_000)))
-        self.assertIsNone(self.run_on(reply(60_000), reply(200_000, sidechain=True)))
+        self.assertIsNone(self.run_on(reply(250_000), reply(60_000)))
+        self.assertIsNone(self.run_on(reply(60_000), reply(250_000, sidechain=True)))
 
     def test_silent_right_after_compaction_then_counts_again(self):
         boundary = {"type": "system", "subtype": "compact_boundary"}
         summary = {"type": "user", "isCompactSummary": True, "message": {"content": "summary"}}
-        self.assertIsNone(self.run_on(reply(200_000), boundary, summary))
-        self.assertIsNotNone(self.run_on(reply(200_000), boundary, summary, reply(170_000)))
+        self.assertIsNone(self.run_on(reply(250_000), boundary, summary))
+        self.assertIsNotNone(self.run_on(reply(250_000), boundary, summary, reply(220_000)))
 
     def test_missing_transcript_is_silent(self):
         self.assertIsNone(c.run({}))

@@ -53,11 +53,13 @@ Table of model and effort by task type: `workflow:model-effort`.
 
 ## Context
 
-The user sees the context meter in the status line; you do not. Suggest once per task boundary (work committed and recorded; opening, reviewing or merging a PR counts), in one line at the end of the message, never in the middle of a debugging thread:
+**Task boundary** (every chat, self-drive included; user's decision, 2026-11-28, after a handover left a run's issue half done). The current task is done (its PR merged, or waiting only on someone else), parked, or waiting only on a run that a new chat can collect from written notes. A PR for one step of a bigger task is not a boundary, and the middle of a debugging thread never is. Over the limit in `settings/context.json`: start no new task, finish the current one, then switch (an interactive chat suggests `/clear` or `/compact`; a self-drive chat hands over). A chat that hands itself over does so anyway at `ceiling_tokens`, or `ceiling_minutes` after the first reading over the limit, and names what is unfinished.
+
+The user sees the context meter in the status line; you do not. Suggest once per task boundary, in one line at the end of the message, never in the middle of a debugging thread:
 
 - `/clear` with a resume prompt (chat name, folder, branch, next task with its tag) when the next task is unrelated (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) or when quality is slipping (the same correction twice; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13). Do not start the next task in that turn.
 - `/compact <what to keep>` only when the task continues (standard: findings/claude-code-clear-vs-compact, checked 2026-11-13) and its state cannot be written to files yet; write ruled-out causes to a file first, because a summary can distort them (the last two clauses are the user's own; no source found).
-- When the `context_nudge_check` reminder arrives with a message that starts an unrelated task, ask before starting it: `/clear` and resend, or "go" to do it here (user's decision, 2026-11-27; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13; the 150000 threshold has no source).
+- When the `context_nudge_check` reminder arrives with a message that starts an unrelated task, ask before starting it: `/clear` and resend, or "go" to do it here (user's decision, 2026-11-27; standard: findings/claude-code-clear-vs-compact, checked 2026-11-13; the limit is `limit_tokens` in `settings/context.json`, the user's choice with no source).
 
 ## Industry practice (user's decision, 2026-11-01)
 

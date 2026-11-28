@@ -51,3 +51,13 @@ def test_report_uses_last_line_and_keeps_handover(tmp_path) -> None:
     assert len(recs) == 1 and recs[0]["handed_over"] is True
     s = cr.summarise(recs)
     assert s["sessions"] == 1 and s["F"] == 55000
+
+
+def test_note_is_written_to_the_log_line(tmp_path, monkeypatch) -> None:
+    p = tmp_path / "s.jsonl"
+    _write_transcript(p, [55000])
+    log = tmp_path / "log.jsonl"
+    monkeypatch.setattr(cs, "LOG", str(log))
+    monkeypatch.setattr(cs.glob, "glob", lambda _pattern: [str(p)])
+    assert cs.main(["sid", "--log", "--note", "issue done"]) == 0
+    assert json.loads(log.read_text(encoding="utf-8"))["note"] == "issue done"

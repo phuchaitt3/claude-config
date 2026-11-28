@@ -1,7 +1,7 @@
 """PreToolUse hook on ScheduleWakeup: run the self-drive context check at every round end.
 
 Self-drive step 7a asks a chat to measure its context at the end of a round and hand over to a
-successor above 200K. As a text rule it was missed: on 2026-11-15 a round that ended with a merge
+successor above the limit. As a text rule it was missed: on 2026-11-15 a round that ended with a merge
 (not one of the round ends the rule listed) skipped the check, and the chat ran on to 170K with
 three checks in about 90 calls. Every round ends with a `ScheduleWakeup` call (step 7), so this
 hook reads the chat's context size there and, above the threshold, reminds the chat to hand over.
@@ -17,19 +17,31 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 
-# Keep equal to DEFAULT_THRESHOLD in skills/self-drive/context_size.py (a test checks this).
-THRESHOLD = 200000
+# The one place the context limits are set (working rules, "Context"). The fallbacks apply only when
+# the file is missing or broken.
+SETTINGS_FILE = Path.home() / "claude-config" / "settings" / "context.json"
+DEFAULTS = {"limit_tokens": 200000, "ceiling_tokens": 250000, "ceiling_minutes": 60}
+
+
+def settings(path: Path = SETTINGS_FILE) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return {k: int(data.get(k, v)) for k, v in DEFAULTS.items()}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return dict(DEFAULTS)
+
+
+THRESHOLD = settings()["limit_tokens"]
 TAIL_BYTES = 400_000
 
 REMINDER = (
     "Self-drive context check: this chat's context is {ctx} tokens, over the {limit} limit. "
-    "Self-drive run: follow step 7a before this wakeup. Run context_size.py --log, write the resume "
-    "note to the morning-summary file, start the successor with claude --bg, confirm it in "
-    "claude agents --json, then end this chat with ScheduleWakeup stop: true. A worker still "
-    "running does not delay the handover for long: start no new task, worker or background session, "
-    "finish what is in flight, and hand over at the latest 60 minutes after the first reading over "
-    "the limit (record its time in the summary file), naming any unfinished task in the note. "
+    "Self-drive run: follow step 7a before this wakeup and run context_size.py --log. Do not hand "
+    "over mid-task (working rules, \"Context\", task boundary): start no new task, finish or park the "
+    "current one, then hand over. Hand over anyway at the ceiling in settings/context.json, naming "
+    "what is unfinished. "
     "Not a self-drive run (some other loop): ignore this."
 )
 
