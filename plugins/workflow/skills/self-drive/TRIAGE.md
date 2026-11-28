@@ -2,7 +2,9 @@
 
 (User's decision, 2026-11-15.) One pass per repository, run before an overnight run (overnight mode, "Before the first round") or whenever the user asks a chat to "triage resume relevance for <repo>". It labels open issues so `next_task.py` can rank resume work first; the script then only reads labels, so the order stays fixed and repeatable from round to round.
 
-Skip the pass when `~/.claude/resume-gaps.md` does not exist or the project's `CLAUDE.md` says "no gap list".
+**The gap list** is `~/.claude/resume-gaps.md`, or, when that file's first line is `source: <absolute path>`, the file it names (so the list can live in a private repository that both machines sync; this repository is public and names no path to it). Paths written inside the list are relative to the root of the repository that holds it. Below, "the gap list" means that content.
+
+Skip the pass when `~/.claude/resume-gaps.md` (or the file it points to) does not exist or the project's `CLAUDE.md` says "no gap list".
 
 ## Who runs it
 
@@ -10,7 +12,7 @@ One worker subagent, Opus at medium effort (`model: "opus"`, `effort: "medium"`;
 
 ## Inputs (read, never copy into the repository)
 
-- `~/.claude/resume-gaps.md`: the ranked skill groups (slug in backticks), which target names each, the resume file for each target, and which groups are must-haves for which target.
+- The gap list: the ranked skill groups (slug in backticks), which target names each, the resume file for each target, and which groups are must-haves for which target.
 - The resume files it names. Bullets are LaTeX macros in the master content file (`content.tex` beside `master.tex`); a target variant cuts a bullet by redefining its macro as empty, so a bullet is on the target-1 resume when the variant does not empty it. Only bullets of the entry for this repository's project count for `resume:1` to `resume:3` (match the entry by project name or repository link; a project spread over two repositories shares one entry).
 - The open issues of this repository (`gh issue list --state open --limit 200 --json number,title,body,labels`).
 - Leave `saved-run` issues unlabelled: they are queued runs, not tasks (`SKILL.md`, "Saved runs").

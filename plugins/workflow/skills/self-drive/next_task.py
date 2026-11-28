@@ -73,9 +73,17 @@ NO_RANK = 99
 
 
 def gap_ranks(path: Path = GAPS_FILE) -> dict[str, int]:
-    """Group slug -> rank (0 best) from the numbered lines of the local resume-gaps file."""
+    """Group slug -> rank (0 best) from the numbered lines of the resume-gaps list.
+
+    The local file is the list itself, or a pointer whose first non-blank line is
+    `source: <absolute path>` to the list (kept in a private repository both machines sync).
+    """
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+        first = next((x.strip() for x in lines if x.strip()), "")
+        if first.startswith("source:"):
+            target = Path(first.removeprefix("source:").strip()).expanduser()
+            lines = target.read_text(encoding="utf-8-sig").splitlines()
     except OSError:
         return {}
     slugs = [m.group(1) for m in map(GAP_LINE.match, lines) if m]

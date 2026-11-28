@@ -139,6 +139,11 @@ def test_gap_rank_breaks_ties_within_a_resume_kind(tmp_path) -> None:
     ranked, _ = next_task.rank(issues, ranks=ranks)
     assert numbers(ranked) == [2, 1, 3]
     assert next_task.gap_ranks(tmp_path / "missing.md") == {}
+    pointer = tmp_path / "pointer.md"
+    pointer.write_text(f"\nsource: {gaps}\n", encoding="utf-8-sig")
+    assert next_task.gap_ranks(pointer) == ranks
+    pointer.write_text(f"source: {tmp_path / 'missing.md'}\n", encoding="utf-8")
+    assert next_task.gap_ranks(pointer) == {}
 
 
 def test_claimed_lists_only_claimed_issues_in_number_order() -> None:
