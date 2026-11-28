@@ -24,7 +24,7 @@ Templates for `RULES.md`, `INBOX.md`, tickets (`TICKET.md`) and `DONE.md` are in
 ## At the start of a chat
 
 1. Read `RULES.md`, then `INBOX.md`, then any handoff file your task names.
-2. Run `ListAgents` to find the other chats. A chat's `ListAgents` name and ID stay the same after `/clear` (tested 2026-10-31: ID and "started" time unchanged; the scratchpad folder and transcript file do change); a new window gives a new one. Never reuse an address from an earlier window. Your chat name is your own `ListAgents` ID (see "Chat names").
+2. Run `ListAgents` to find the other chats. A chat's `ListAgents` ID stays the same after `/clear` (tested 2026-10-31: ID and "started" time unchanged; the scratchpad folder and transcript file do change); its name changes at the first message after it (the `focus_title` hook, 2026-11-28); a new window gives a new one. Never reuse an address from an earlier window. Your chat name is your own `ListAgents` ID (see "Chat names").
 3. Check who is working where: `ListAgents`, `gh issue list --label claimed`, `gh pr list --state open` and `git worktree list`. If another chat already uses your folder, make your own worktree (below) before editing anything. Then claim your issue (see "Claim rule") and re-read it (claim, then verify): if another chat's claim comment is also there, the one posted later backs off.
 4. Say in one line which model and effort the task needs (see the working rules).
 

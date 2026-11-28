@@ -9,7 +9,7 @@ The full protocol for several chats on one repository is `workflow:multi-chat-re
 
 ## At the start of a chat
 
-1. Run `ListAgents`. A chat's name and ID (six characters in brackets, for example `f8ab79`) survive `/clear`; a new window gives a new one. Your chat name is your own `ListAgents` ID. Never reuse an address from an earlier window.
+1. Run `ListAgents`. A chat's ID (six characters in brackets, for example `f8ab79`) survives `/clear`; its name changes at the first message after it (the `focus_title` hook); a new window gives a new one. Your chat name is your own `ListAgents` ID. Never reuse an address from an earlier window.
 2. For every repository the task will change (including another one when the task was handed over from here): `git log --since=1.day`, `git worktree list`, and, if it has a GitHub remote, `gh issue list --label claimed` and `gh pr list --state open`. A commit or claim for the same task means another chat holds it: stop and ask the user.
 3. **If the repository has a handoff folder (`.handoff/` or the one `CLAUDE.md` names) or an `INBOX.md`, or a peer works in the same folder, load `workflow:multi-chat-repo` now** and follow it (claims, worktrees, inbox).
 4. Say in one line which model and effort the task needs.

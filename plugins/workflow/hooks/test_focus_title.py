@@ -148,3 +148,51 @@ def test_main_end_to_end(tmp_path: Path, monkeypatch, capsys) -> None:
     focus_title.main()
     out = json.loads(capsys.readouterr().out)
     assert out["hookSpecificOutput"]["sessionTitle"] == "myproj: SQL study plan"
+
+
+# --- after /clear (2026-11-28) ---
+
+
+@pytest.mark.parametrize("inherited", ["myproj-01", "myproj-01: old task", "myproj: SQL study plan"])
+def test_inherited_title_gets_the_new_id_and_task(inherited: str) -> None:
+    title = focus_title.title_for("Fix the login bug.", CWD, inherited, "4d4dec", "", True)
+    assert title == "myproj-4d: Fix the login bug"
+
+
+@pytest.mark.parametrize("current", ["my-own-name", "focus-myproj", "myproj-4d", "myproj-notes"])
+def test_other_titles_survive_a_first_prompt(current: str) -> None:
+    assert focus_title.title_for("hi", CWD, current, "4d4dec", "", True) is None
+
+
+@pytest.mark.parametrize("prompt", ["/workflow:self-drive", '<pasted_content id="a">x</pasted_content id="a">'])
+def test_no_usable_task_gives_the_new_id_only(prompt: str) -> None:
+    assert focus_title.title_for(prompt, CWD, "myproj-01", "4d4dec", "", True) == "myproj-4d"
+
+
+def test_prompt_task_is_cut_at_a_word() -> None:
+    task = focus_title.prompt_task("Take the next issue (can the loader run without patching it?)")
+    assert task == "Take the next issue (can the loader run"
+
+
+def test_has_no_reply(tmp_path: Path) -> None:
+    assert focus_title.has_no_reply(_transcript(tmp_path, ['{"type":"user","message":"\\"assistant\\""}']))
+    assert not focus_title.has_no_reply(_transcript(tmp_path, ['{"type":"assistant"}']))
+    assert focus_title.has_no_reply(str(tmp_path / "missing.jsonl"))
+    assert not focus_title.has_no_reply("")
+
+
+@pytest.mark.parametrize(("lines", "renamed"), [([], True), (['{"type":"assistant"}'], False)])
+def test_main_renames_only_before_the_first_reply(tmp_path: Path, monkeypatch, capsys, lines, renamed) -> None:
+    import io
+    import json
+
+    payload = {
+        "prompt": "next task",
+        "cwd": "/work/myproj",
+        "session_title": "myproj-01",
+        "session_id": "4d4dec",
+        "transcript_path": _transcript(tmp_path, lines),
+    }
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    focus_title.main()
+    assert ("myproj-4d: next task" in capsys.readouterr().out) is renamed
