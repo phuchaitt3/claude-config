@@ -30,28 +30,28 @@ def payload(path, tool="ScheduleWakeup", **inp):
 
 
 def test_over_threshold_reminds_with_size(tmp_path):
-    p = transcript(tmp_path, call(read=100000, write=40000, inp=30000))
+    p = transcript(tmp_path, call(read=150000, write=40000, inp=30000))
     text = context_guard.reminder(payload(p))
-    assert text and "170000" in text
+    assert text and "220000" in text
 
 
 def test_at_or_under_threshold_is_silent(tmp_path):
-    p = transcript(tmp_path, call(read=149000, write=1000))
+    p = transcript(tmp_path, call(read=199000, write=1000))
     assert context_guard.reminder(payload(p)) is None
 
 
 def test_uses_the_last_call_not_the_peak(tmp_path):
-    p = transcript(tmp_path, call(read=200000), call(read=90000))
+    p = transcript(tmp_path, call(read=250000), call(read=90000))
     assert context_guard.reminder(payload(p)) is None
 
 
 def test_stop_call_is_silent(tmp_path):
-    p = transcript(tmp_path, call(read=200000))
+    p = transcript(tmp_path, call(read=250000))
     assert context_guard.reminder(payload(p, stop=True)) is None
 
 
 def test_other_tool_is_silent(tmp_path):
-    p = transcript(tmp_path, call(read=200000))
+    p = transcript(tmp_path, call(read=250000))
     assert context_guard.reminder(payload(p, tool="Bash")) is None
 
 
@@ -67,8 +67,8 @@ def test_missing_transcript_or_usage_is_silent(tmp_path):
 
 
 def test_garbage_lines_are_skipped(tmp_path):
-    p = transcript(tmp_path, call(read=170000), "not json", '{"usage": ')
-    assert "170000" in context_guard.reminder(payload(p))
+    p = transcript(tmp_path, call(read=220000), "not json", '{"usage": ')
+    assert "220000" in context_guard.reminder(payload(p))
 
 
 def test_threshold_matches_context_size():

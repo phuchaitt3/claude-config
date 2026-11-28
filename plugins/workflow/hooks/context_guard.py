@@ -1,7 +1,7 @@
 """PreToolUse hook on ScheduleWakeup: run the self-drive context check at every round end.
 
 Self-drive step 7a asks a chat to measure its context at the end of a round and hand over to a
-successor above 150K. As a text rule it was missed: on 2026-11-15 a round that ended with a merge
+successor above 200K. As a text rule it was missed: on 2026-11-15 a round that ended with a merge
 (not one of the round ends the rule listed) skipped the check, and the chat ran on to 170K with
 three checks in about 90 calls. Every round ends with a `ScheduleWakeup` call (step 7), so this
 hook reads the chat's context size there and, above the threshold, reminds the chat to hand over.
@@ -19,7 +19,7 @@ import json
 import sys
 
 # Keep equal to DEFAULT_THRESHOLD in skills/self-drive/context_size.py (a test checks this).
-THRESHOLD = 150000
+THRESHOLD = 200000
 TAIL_BYTES = 400_000
 
 REMINDER = (

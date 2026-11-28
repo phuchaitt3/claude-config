@@ -70,11 +70,11 @@ def test_none_or_empty_result_adds_nothing(tmp_path):
 def test_context_check_fires_through_the_real_checks_dir(tmp_path):
     t = tmp_path / "t.jsonl"
     t.write_text(json.dumps({"type": "assistant", "message": {"usage": {
-        "input_tokens": 0, "cache_read_input_tokens": 200000,
+        "input_tokens": 0, "cache_read_input_tokens": 250000,
         "cache_creation_input_tokens": 0}}}) + "\n", encoding="utf-8")
     payload = {"hook_event_name": "PreToolUse", "tool_name": "ScheduleWakeup",
                "tool_input": {"delaySeconds": 60}, "transcript_path": str(t)}
     texts = dispatch.run_checks(payload)
-    assert len(texts) == 1 and "200000" in texts[0]
+    assert len(texts) == 1 and "250000" in texts[0]
     payload["tool_name"] = "Bash"
     assert dispatch.run_checks(payload) == []

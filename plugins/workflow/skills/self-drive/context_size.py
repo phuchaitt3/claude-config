@@ -12,7 +12,7 @@ one integer on stdout; exit code 2 if the transcript or a usage line is not foun
 --log appends one JSON line of session statistics to ~/.claude/context-threshold-log.jsonl
 (local, never committed), for the restart-threshold trial (self-drive step 7a); the
 transcripts themselves are deleted after 30 days, so the log keeps what the analysis
-needs. --threshold names the restart threshold in force (default 150000), recorded in
+needs. --threshold names the restart threshold in force (default 200000), recorded in
 the line and used to mark it as a handover. The line also names the repo, so
 `context_report.py --prs` can join the session's time window to the PRs opened and merged in it. `context_report.py` reads the log.
 Used by workflow:self-drive step 7a. Writes nothing except the log line.
@@ -26,7 +26,7 @@ import subprocess
 import sys
 import time
 
-DEFAULT_THRESHOLD = 150000
+DEFAULT_THRESHOLD = 200000
 LOG = os.path.join(os.path.expanduser("~"), ".claude", "context-threshold-log.jsonl")
 QUOTA = os.path.join(os.path.expanduser("~"), ".claude", "hook-cache", "quota.json")
 # Relative cost weights, in units of the input-token price: cache read, 1-hour cache write, output.
