@@ -21,7 +21,7 @@ status: current
 - **Where the settings are on github.com (added 2026-11-28; read on a live repository's Settings page and in the docs):**
   - The sidebar section is "Security and quality", with "Advanced Security", "Deploy keys" and "Secrets and variables". There is no "Code security" item.
   - Dependency graph: Settings > Advanced Security, then **Enable** next to "Dependency Graph" (GitHub docs). An administrator can disable it there too. Whether it is on by default for public repositories is not stated on the pages read.
-  - Actions variables: Settings > Secrets and variables > Actions > Variables.
+  - Actions variables: Settings > Secrets and variables > Actions > Variables tab > New repository variable. The form has two fields, **Name** and **Value** (reported from the live page); give both when writing instructions, for example Name `DEPENDENCY_GRAPH`, Value `true`.
   - Rulesets: "Rulesets" sits under "Code, planning, and automation" (no "Rules" heading in the sidebar seen).
   - Labels change; check the page before giving a path.
 - **Newly published CVEs and unrelated pull requests (added 2026-11-28):**
