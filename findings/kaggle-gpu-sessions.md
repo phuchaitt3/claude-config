@@ -18,6 +18,7 @@ status: current
 - The quota call showed `timeReserved` 0s while a version was RUNNING, so it does not count sessions.
 - No start time per version was found; `GetKernel` gave a last-run time three days old for a kernel with an active version.
 - Why a second version waits is not documented. In the observed case all other readable kernels were COMPLETE and weekly quota was left, yet version 3 stayed QUEUED while version 2 ran. Community reports (search summaries only, pages not read) give a one-queued-commit-per-user policy (said about TPU), GPU shortage, and runs stuck in QUEUED. Checker's own inference: versions of one kernel may run one at a time while the waiting one still counts as a session.
+- A new version is listed at once: on a private CPU script kernel, a check started right after `kernels push` returned saw version 1 RUNNING, and a second push started at the same moment, held back by a local lock, saw it too (end-to-end test of the push tool).
 - Status calls are rate limited: about 100 within a few seconds drew "429 Too Many Requests" on some of them.
 - Nearest practice for duplicate runs, GitHub Actions concurrency groups: by default the running run continues, one run may wait, and a newer waiting run replaces the older one; stopping the running one is opt-in (`cancel-in-progress`). Checker's own inference: without a cancel call, "replace the waiting run" is not possible on Kaggle, so the closest safe equivalent is to refuse a second push of a kernel that has an active version.
 
