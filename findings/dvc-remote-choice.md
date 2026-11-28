@@ -25,6 +25,8 @@ status: current
   - **DagsHub** gives each repository a DVC remote with no bucket setup; free tier allows private repositories for non-commercial use, up to 2 collaborators. Its storage limit is stated inconsistently (100 GB on the DVC integration page; 20 GB and 200 GB on the pricing page).
   - **Checker's inference** (no source states it): for one person, two machines and data in the tens of megabytes, any of these works; the choice turns on what the person already has. Google Drive costs about 15 minutes of one-time Cloud Console setup; a local or network path needs no outside service but gives no off-site copy unless the drive itself is backed up.
 
+- **Slow pull from a remote in a cloud-sync folder (2026-11-28).** Many small files make `dvc pull` / `push` slow because of per-file overhead (DVC forum; anecdotal). OneDrive users report the same for many small files (community posts; anecdotal; no official figure found). `dvc pull --jobs` defaults to 4 x CPU count (official, https://doc.dvc.org/command-reference/pull). Inference, not measured: when the remote's files are online-only, each is fetched by OneDrive when DVC reads it, so a pull of mostly tiny files runs well below the line speed; keeping the remote folder "always on this device", or fewer files, avoids that. Sources: https://discuss.dvc.org/t/advice-for-versioning-many-many-small-files/609 , https://techcommunity.microsoft.com/t5/onedrive/onedrive-client-files-on-demand-and-syncing-large-libraries/m-p/1596137
+
 - **Sources:**
   - DVC docs, remote storage (official): https://doc.dvc.org/user-guide/data-management/remote-storage
   - DVC docs, Google Drive remote (official): https://doc.dvc.org/user-guide/data-management/remote-storage/google-drive
