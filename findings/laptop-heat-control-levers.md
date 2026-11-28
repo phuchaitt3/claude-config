@@ -19,6 +19,11 @@ status: current
 - **Capping GPU power is the more common first lever.** Guides and forum users recommend `nvidia-smi -pl <W>` first and an undervolt only if still too hot, since an aggressive undervolt can make an unattended machine unstable. Reported costs are small: about 6% throughput for 25% less power (RTX 5090), about 2% for 30% less (GB10); single-user reports, not controlled tests. The limit can reset at reboot, so it is reapplied at start-up. On laptops, check which limiter is active first (`nvidia-smi -q -d PERFORMANCE`: SW power cap vs thermal) and benchmark under sustained load, not bursts.
 - **Checker's synthesis:** a power cap lowers the average temperature and fan noise for the whole run with a small, measurable speed cost. Wait-to-cool lowers only the start temperature: once a job runs, it heats up to the same level, and gaps between jobs add heat-cool cycles, which `laptop-thermal-tiers` lists as a wear driver. Wait-to-cool is a fit only as a guard against starting a job on an already hot machine (for example after a daytime load), not as the main heat control.
 
+## CPU turbo as a lever (added 2026-11-28)
+
+- **What it is:** Intel Turbo Boost lets a CPU run at base clock for light work and go higher, up to its Max Turbo Frequency, for heavy work, while staying within temperature and power limits. It is on by default; Intel does not recommend turning it off except for troubleshooting or measuring (standard: [Intel](https://www.intel.com/content/www/us/en/gaming/resources/turbo-boost.html), vendor page, read 2026-11-28).
+- **Turning it off in Windows:** setting the power plan's "Maximum processor state" to 99% is widely reported to keep turbo from engaging and to lower temperatures (*anecdotal*: [Thomas-Krenn wiki](https://www.thomas-krenn.com/de/wiki/Windows_CPU_Turbo_Boost_deaktivieren), [Microsoft Q&A user answer](https://learn.microsoft.com/en-us/answers/a/7909151); seen as search summaries only). No Microsoft documentation of this effect was found, and some users report a clock other than the base clock. Check the clock on the machine.
+
 ## Sources
 
 - [Chrobak et al.: Algorithms for temperature-aware task scheduling in microprocessor systems (arXiv 0801.4238)](https://arxiv.org/abs/0801.4238) (peer-reviewed theory).
