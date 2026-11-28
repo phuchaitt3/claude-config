@@ -18,6 +18,12 @@ status: current
   - The action is available for all public repositories, and private ones with GitHub Code Security or Advanced Security; it needs the dependency graph (GitHub docs, action README).
   - It looks at vulnerable versions *introduced by the pull request's package changes*, not the whole tree (GitHub docs). `fail-on-severity` defaults to `low` (action README).
   - **Inference:** worth enabling on a public repository: it is free there, and because it judges only the PR's changes it cannot block an unrelated pull request. Set the threshold to match the code-scanning gate (for example `high`) instead of the default.
+- **Where the settings are on github.com (added 2026-11-28; read on a live repository's Settings page and in the docs):**
+  - The sidebar section is "Security and quality", with "Advanced Security", "Deploy keys" and "Secrets and variables". There is no "Code security" item.
+  - Dependency graph: Settings > Advanced Security, then **Enable** next to "Dependency Graph" (GitHub docs). An administrator can disable it there too. Whether it is on by default for public repositories is not stated on the pages read.
+  - Actions variables: Settings > Secrets and variables > Actions > Variables.
+  - Rulesets: "Rulesets" sits under "Code, planning, and automation" (no "Rules" heading in the sidebar seen).
+  - Labels change; check the page before giving a path.
 - **Newly published CVEs and unrelated pull requests (added 2026-11-28):**
   - Gating only on newly introduced vulnerabilities, with existing ones reported elsewhere, is used by at least one organisation (Camunda) and described by vendor guides; scheduled rescans catch CVEs published after a build, and are suggested to raise alerts rather than fail pull requests (vendor guide).
   - Skipping unfixed vulnerabilities avoids a red build nobody can act on (vendor guide; Trivy `ignore-unfixed`).
@@ -25,6 +31,7 @@ status: current
   - Trivy exceptions can expire: `expired_at` in `.trivyignore.yaml` (experimental), or `exp:YYYY-MM-DD` after the ID in `.trivyignore` (Trivy docs).
   - **Inference:** to stop a newly published CVE blocking unrelated work, run the failing gate only when the pull request changes what goes into the image (Dockerfiles, dependency manifests and lockfiles) and keep the scheduled run as the alarm. The cost: other pull requests merge while a known fixable critical is still in the image.
 - **Sources:**
+  - GitHub, enable the dependency graph (official docs): https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/enable-dependency-graph
   - GitHub, about dependency review (official docs): https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependency-review
   - dependency-review-action README (official): https://github.com/actions/dependency-review-action
   - Docker, build best practices (official docs): https://docs.docker.com/build/building/best-practices/
