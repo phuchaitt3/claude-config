@@ -2,7 +2,7 @@
 topic: multi-device-agent-orchestration
 area: Agent setup
 question: Is it normal to run Claude Code agents on several devices (for example a laptop and a desktop PC), and what is the standard setup for the devices?
-checked: 2026-11-27
+checked: 2026-11-28
 review_months: 6
 status: current
 ---
@@ -66,6 +66,20 @@ Sources for this update:
 - [tasks.md](https://github.com/tasksmd/tasks.md), [Backlog.md issue 937](https://github.com/MrLesk/Backlog.md/issues/937) (project pages, search summary)
 - [Hugging Face download guide](https://huggingface.co/docs/huggingface_hub/en/guides/download) (official docs); [LAN model storage thread](https://discuss.huggingface.co/t/recommended-tools-for-managing-downloading-and-storing-models-on-lan/169112) (forum, search summary)
 - [Tailscale SSH to Windows, feature request](https://github.com/tailscale/tailscale/issues/17261) (issue, search summary)
+
+## Update 2026-11-28: does a second machine add throughput on one subscription?
+
+**Sourced:**
+
+- Usage limits belong to the account and are shared by Claude and Claude Code (official help page, search summary). A third-party guide: limits follow the account, not the device, so two computers running at once empty the same 5-hour window about twice as fast (vendor blog, search summary). See also `findings/overnight-agent-runs` and `findings/claude-pro-usage-limits`.
+- No vendor statement on throughput from several machines was found, and no measurement.
+
+**Inference (checker's):** on one small plan, a second autonomous run adds finished work only when quota would otherwise go unused before it resets, or when one run spends much of its time waiting on machine-bound jobs. When the weekly limit binds, run the one queue with the most valuable tasks. Splitting by machine is worth it for tasks that need that machine's hardware or data, not to divide the model's work.
+
+Sources for this update:
+
+- [Using Claude Code with your Pro or Max plan](https://support.claude.com/en/articles/11145838-using-claude-code-with-your-pro-or-max-plan) (official help page, search summary)
+- [One Claude account on two computers](https://agentsroom.dev/blog/one-claude-account-two-computers-and-two-people) (vendor blog, search summary)
 
 **Evidence strength:** vendor documentation for the Remote Control, messaging and agent-teams facts (official standard for the tool's own behaviour); anecdotal for the sync setup; no data found on how common multi-device setups are or on a standard device split (heavy jobs on the stronger machine is the checker's inference).
 
