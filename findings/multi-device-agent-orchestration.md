@@ -97,3 +97,15 @@ Sources for this update:
 **Limits:** the docs were read through a summarising fetch tool, so exact wording is partly paraphrase; the Remote Control "Limitations" section was summarised only. Remote Control and messaging are research-preview or fast-changing features. Nothing found on cost or quota use across devices, or on two machines sharing one repository at the same moment beyond the blog comment above.
 
 **Checked:** 2026-11-23
+
+## Update 2026-11-28: what of the per-user folder follows the user between machines
+
+**Sourced (official docs, read 2026-11-28):**
+
+- `~/.claude` holds login credentials, session transcripts (unencrypted), user settings, user `CLAUDE.md` and rules, and auto memory. The directory page describes no syncing of it between machines; its only sync is of plugins and skills from the claude.ai account.
+- Auto memory is machine-local and not shared across machines or cloud environments (memory page, read as a summary).
+- Sharing routes the docs describe: commit project files to git; `@` imports; symlinked rules; `autoMemoryDirectory` to move memory elsewhere.
+
+**Inference (checker's):** a file both machines must see belongs in a synced git repository (with at most a local pointer or import in `~/.claude`); copying the whole folder would carry credentials and transcripts.
+
+Sources: [Claude directory](https://code.claude.com/docs/en/claude-directory), [Memory](https://code.claude.com/docs/en/memory)

@@ -30,3 +30,9 @@ Not from a source (the checker's advice): set a spending cap on any paid API key
 ## Limits
 
 The OWASP cheat sheet itself (cheatsheetseries.owasp.org) was not read; read it for authoritative detail. Some search results were low-quality copies and were ignored.
+
+## Update 2026-11-28: private repository on a personal free plan
+
+- Secret scanning and push protection are on for public repositories. For private repositories they need GitHub Secret Protection, which can be bought only on Team or Enterprise plans (official docs).
+- User-level push protection is described as stopping secrets pushed to public repositories (official docs).
+- Sources: [About GitHub Advanced Security](https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security), [About push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection)
