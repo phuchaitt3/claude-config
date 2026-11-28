@@ -5,6 +5,11 @@ import pytest
 import kaggle_slots as ks
 
 
+@pytest.fixture(autouse=True)
+def lock_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("GPU_GUARD_DIR", str(tmp_path / "locks"))
+
+
 class Fake:
     """`rounds` is a list of {version: state}; each check of the kernel uses the next one."""
 
@@ -87,6 +92,64 @@ def test_retries_while_both_sessions_are_taken(tmp_path):
 def test_other_push_errors_exit(tmp_path):
     with pytest.raises(SystemExit, match="push failed"):
         run(tmp_path, Fake([{}]), replies=("Kernel push error: bad slug",))
+
+
+def held():
+    other = ks.gpu_run.Lock("kaggle-push")
+    free = other.try_acquire({})
+    other.release()
+    return not free
+
+
+def test_lock_covers_check_and_push_but_not_the_wait(tmp_path):
+    seen = []
+
+    class Watching(Fake):
+        def latest_version(self, ref):
+            seen.append(("check", held()))
+            return super().latest_version(ref)
+
+    (tmp_path / "kernel-metadata.json").write_text(
+        json.dumps({"id": "me/a", "code_file": "s.py"}), encoding="utf-8"
+    )
+    (tmp_path / "s.py").write_text("new code\n", encoding="utf-8")
+
+    def send(command):
+        seen.append(("send", held()))
+        return 0, "pushed"
+
+    ks.push(
+        Watching([{1: "RUNNING"}, {}]),
+        ks.parser().parse_args(["push", "-p", str(tmp_path)]),
+        send=send,
+        sleep=lambda _: seen.append(("wait", held())),
+        clock=lambda: 0.0,
+    )
+    assert seen == [("check", True), ("wait", False), ("check", True), ("send", True)]
+    assert not held()
+
+
+def test_a_second_push_waits_for_the_lock(tmp_path):
+    first = ks.gpu_run.Lock("kaggle-push")
+    assert first.try_acquire({})
+    slept = []
+
+    def sleep(seconds):
+        slept.append(seconds)
+        first.release()
+
+    with ks.push_lock(deadline=100.0, sleep=sleep, clock=lambda: 0.0):
+        assert slept == [ks.LOCK_POLL]
+
+
+def test_a_stuck_lock_gives_up_without_pushing(tmp_path):
+    first = ks.gpu_run.Lock("kaggle-push")
+    assert first.try_acquire({})
+    try:
+        with pytest.raises(SystemExit, match="nothing was pushed"):
+            run(tmp_path, Fake([{}]), "--wait-timeout", "0")
+    finally:
+        first.release()
 
 
 def test_notebooks_compare_by_cell_source():

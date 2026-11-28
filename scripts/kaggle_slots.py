@@ -10,8 +10,11 @@ count against the limit, and `kaggle kernels status <owner>/<kernel>` shows only
 
 `push` waits on this machine, sending nothing, while the kernel has an active version or both
 sessions are taken; run it in the background. It refuses code identical to an active version.
-`--allow-active` skips both checks. If Kaggle cannot be read, nothing is pushed. Two pushes within
-the same few seconds can still both get through: there is no lock on Kaggle's side.
+`--allow-active` skips both checks. If Kaggle cannot be read, nothing is pushed.
+
+Pushes through this tool on one machine take turns: a local file lock (in gpu_run's lock folder) is
+held around check-and-push only, never while waiting. Across machines (laptop and PC) the gap stays
+open: Kaggle offers no lock, so two pushes within the same few seconds can both get through.
 
 There is no way to cancel a version from here: use "View Active Events" on the Kaggle site.
 """
@@ -19,6 +22,7 @@ There is no way to cancel a version from here: use "View Active Events" on the K
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import shutil
@@ -30,10 +34,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gpu_run  # noqa: E402  (its file lock; standard library only)
+
 DONE = {"COMPLETE", "ERROR", "CANCEL_ACKNOWLEDGED", "NEW_SCRIPT"}
 LOOKBACK = 5  # newest versions of a kernel to check; the account runs 2 at once
 RECENT = 20  # most recently run kernels `status` lists
 RECENT_DAYS = 3  # older runs are not checked: a session ends within hours, and each check costs calls
+LOCK_POLL = 2  # seconds between tries for the local push lock
 BACKOFF = (5, 15, 30)  # seconds, after "429 Too Many Requests"
 MAX_FAILURES = 5  # failed checks in a row, while waiting, before giving up
 # The CLI prints a refused push as "Kernel push error: ..." and still exits 0.
@@ -163,6 +171,24 @@ def say(text: str) -> None:
     print(time.strftime("%H:%M:%S"), text, flush=True)
 
 
+@contextlib.contextmanager
+def push_lock(deadline: float, sleep, clock):
+    """One check-and-push at a time on this machine. The OS frees the lock if its holder dies."""
+    lock = gpu_run.Lock("kaggle-push")
+    told = False
+    while not lock.try_acquire({"pid": os.getpid()}):
+        if clock() + LOCK_POLL >= deadline:
+            sys.exit("gave up waiting (another push on this machine); nothing was pushed")
+        if not told:
+            say("waiting: another push on this machine is checking or sending")
+            told = True
+        sleep(LOCK_POLL)
+    try:
+        yield
+    finally:
+        lock.release()
+
+
 def push(kaggle, args, send=send, sleep=time.sleep, clock=time.monotonic) -> None:
     folder = Path(args.path)
     ref, code = read_kernel(folder)
@@ -184,7 +210,10 @@ def push(kaggle, args, send=send, sleep=time.sleep, clock=time.monotonic) -> Non
         sleep(args.every)
 
     waited = False
-    while True:
+
+    def attempt() -> str | None:
+        """Check, then push. Returns why to wait, or None once the push is accepted."""
+        nonlocal failures, waited
         if not args.allow_active:
             try:
                 active = active_versions(kaggle, ref)
@@ -193,8 +222,7 @@ def push(kaggle, args, send=send, sleep=time.sleep, clock=time.monotonic) -> Non
                 failures += 1
                 if not waited or failures >= MAX_FAILURES:
                     sys.exit(f"could not check {ref} ({error}); nothing was pushed")
-                wait(f"the check failed: {error}")
-                continue
+                return f"the check failed: {error}"
             failures = 0
             if same:
                 sys.exit(
@@ -202,19 +230,24 @@ def push(kaggle, args, send=send, sleep=time.sleep, clock=time.monotonic) -> Non
                     "was pushed. Wait for it and read its output (--allow-active pushes anyway)."
                 )
             if active:
-                shown = ", ".join(f"version {v} {s}" for v, s in sorted(active.items()))
-                wait(f"{ref} has {shown}")
                 waited = True
-                continue
+                shown = ", ".join(f"version {v} {s}" for v, s in sorted(active.items()))
+                return f"{ref} has {shown}"
         status, text = send(command)
         say(text)
         if SESSION_LIMIT in text:
-            wait("both GPU sessions are taken")
             waited = True
-            continue
+            return "both GPU sessions are taken"
         if status != 0 or PUSH_ERROR in text:
             sys.exit("push failed; nothing was started")
-        return
+        return None
+
+    while True:
+        with push_lock(deadline, sleep, clock):
+            why = attempt()
+        if why is None:
+            return
+        wait(why)  # outside the lock: other kernels' pushes go ahead meanwhile
 
 
 def report(kaggle) -> list[str]:
